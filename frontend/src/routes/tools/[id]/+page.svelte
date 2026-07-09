@@ -27,7 +27,7 @@
 		form = {
 			toolNumber: t.toolNumber, name: t.name, description: t.description ?? '',
 			brand: t.brand ?? '', model: t.model ?? '', serialNumber: t.serialNumber ?? '',
-			qrCode: t.qrCode ?? '', notes: t.notes ?? '',
+			qrCode: t.qrCode ?? '', imageUrl: t.imageUrl ?? '', notes: t.notes ?? '',
 			categoryId: t.categoryId ?? '', locationId: t.locationId ?? '',
 		};
 	}
@@ -109,6 +109,7 @@
 				<div><label>Model</label><input bind:value={form.model} /></div>
 				<div><label>Serial Number</label><input bind:value={form.serialNumber} /></div>
 				<div><label>QR Code</label><input bind:value={form.qrCode} placeholder="Optional QR data" /></div>
+				<div><label>Image URL</label><input bind:value={form.imageUrl} placeholder="https://..." /></div>
 				<div><label>Category</label>
 					<select bind:value={form.categoryId}>
 						<option value="">--</option>
@@ -128,6 +129,9 @@
 	{:else}
 		<div class="card" style="margin-top:0">
 			<div class="card-header"><h2>Details</h2></div>
+			{#if tool.imageUrl}
+				<img src={tool.imageUrl} alt="" class="detail-image" />
+			{/if}
 			<div class="detail-grid">
 				<span>Category:</span><span>{tool.category?.name ?? '-'}</span>
 				<span>Location:</span><span>{tool.location?.name ?? '-'}</span>

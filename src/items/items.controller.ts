@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Query } from '@nestjs/common';
 import { ItemsService } from './items.service';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
@@ -14,8 +14,13 @@ export class ItemsController {
   }
 
   @Get()
-  findAll() {
-    return this.itemsService.findAll();
+  findAll(@Query('q') q?: string) {
+    return this.itemsService.findAll(q);
+  }
+
+  @Get('low-stock')
+  findLowStock() {
+    return this.itemsService.findLowStock();
   }
 
   @Get(':id')

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Query } from '@nestjs/common';
 import { ToolsService } from './tools.service';
 import { CreateToolDto } from './dto/create-tool.dto';
 import { UpdateToolDto } from './dto/update-tool.dto';
@@ -22,8 +22,8 @@ export class ToolsController {
   }
 
   @Get()
-  findAll() {
-    return this.toolsService.findAll();
+  findAll(@Query('q') q?: string) {
+    return this.toolsService.findAll(q);
   }
 
   @Get(':id')

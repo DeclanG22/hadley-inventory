@@ -14,8 +14,33 @@ export class ItemsService {
     return this.prisma.item.create({ data });
   }
 
-  findAll() {
+  findAll(q?: string) {
     return this.prisma.item.findMany({
+      where: q
+        ? {
+            OR: [
+              { itemNumber: { contains: q, mode: 'insensitive' } },
+              { description: { contains: q, mode: 'insensitive' } },
+            ],
+          }
+        : undefined,
+      orderBy: { itemNumber: 'asc' },
+      include: {
+        category: true,
+        subCategory: true,
+        location: true,
+        vendor: true,
+      },
+    });
+  }
+
+  async findLowStock() {
+    const rows = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT id FROM items WHERE min_stock IS NOT NULL AND on_hand <= min_stock ORDER BY item_number ASC
+    `;
+    if (rows.length === 0) return [];
+    return this.prisma.item.findMany({
+      where: { id: { in: rows.map(r => r.id) } },
       orderBy: { itemNumber: 'asc' },
       include: {
         category: true,

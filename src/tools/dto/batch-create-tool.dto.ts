@@ -37,6 +37,10 @@ export class BatchCreateToolDto {
 
   @IsOptional()
   @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
   notes?: string;
 
   @IsOptional()

@@ -61,6 +61,10 @@ export class CreateItemDto {
   qrCode?: string;
 
   @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
   @IsInt()
   @Type(() => Number)
   locationId?: number;
@@ -75,6 +79,12 @@ export class CreateItemDto {
   @Min(0)
   @Type(() => Number)
   onHand?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  minStock?: number;
 
   @IsOptional()
   @IsInt()

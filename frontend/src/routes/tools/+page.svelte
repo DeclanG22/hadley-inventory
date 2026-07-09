@@ -2,8 +2,9 @@
 	import { tools } from '$lib/api';
 
 	let list = $state<any[]>([]);
+	let search = $state('');
 
-	function load() { tools.list().then(l => list = l); }
+	function load() { tools.list(search || undefined).then(l => list = l); }
 	$effect(load);
 
 	function remove(id: number) {
@@ -25,6 +26,9 @@
 </div>
 
 <div class="card">
+	<div class="search-bar">
+		<input type="search" bind:value={search} placeholder="Search tools by number, name, brand, or model..." oninput={load} />
+	</div>
 	<div class="table-wrap">
 		<table>
 			<thead>
@@ -41,7 +45,12 @@
 			<tbody>
 				{#each list as t}
 					<tr>
-						<td><a href="/tools/{t.id}">{t.toolNumber}</a></td>
+						<td>
+							{#if t.imageUrl}
+								<img src={t.imageUrl} alt="" class="item-thumb" />
+							{/if}
+							<a href="/tools/{t.id}">{t.toolNumber}</a>
+						</td>
 						<td>{t.name}</td>
 						<td>{t.brand ?? '-'}</td>
 						<td>{t.model ?? '-'}</td>

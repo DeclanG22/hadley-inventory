@@ -13,9 +13,11 @@ export class ItemEntity {
   subCategoryId: number | null;
   headType: string | null;
   qrCode: string | null;
+  imageUrl: string | null;
   locationId: number | null;
   vendorId: number | null;
   onHand: number;
+  minStock: number | null;
   lastQtyInOut: number | null;
   lastJobNumber: string | null;
   dateAdded: Date | null;

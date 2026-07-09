@@ -6,7 +6,7 @@
 
 	let form = $state({
 		toolNumber: '', name: '', description: '', brand: '', model: '',
-		serialNumber: '', qrCode: '', notes: '', categoryId: '', locationId: '',
+		serialNumber: '', qrCode: '', imageUrl: '', notes: '', categoryId: '', locationId: '',
 	});
 	let saved = $state(false);
 
@@ -49,6 +49,7 @@
 			<div><label>Model</label><input bind:value={form.model} /></div>
 			<div><label>Serial Number</label><input bind:value={form.serialNumber} /></div>
 			<div><label>QR Code</label><input bind:value={form.qrCode} placeholder="Optional QR data" /></div>
+			<div><label>Image URL</label><input bind:value={form.imageUrl} placeholder="https://..." /></div>
 			<div><label>Category</label>
 				<select bind:value={form.categoryId}>
 					<option value="">--</option>

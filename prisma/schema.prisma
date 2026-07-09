@@ -77,12 +77,14 @@ model Item {
   subCategory   ItemSubCategory? @relation(fields: [subCategoryId], references: [id])
   headType      String?          @map("head_type")
   qrCode        String?          @map("qr_code")
+  imageUrl      String?          @map("image_url")
   locationId    Int?             @map("location_id")
   location      Location?        @relation(fields: [locationId], references: [id])
   vendorId      Int?             @map("vendor_id")
   vendor        Vendor?          @relation(fields: [vendorId], references: [id])
 
   onHand        Int       @default(0) @map("on_hand")
+  minStock      Int?      @map("min_stock")
   lastQtyInOut  Int?      @map("last_qty_in_out")
   lastJobNumber String?   @map("last_job_number")
   dateAdded     DateTime? @map("date_added")
@@ -135,6 +137,7 @@ model Tool {
   model        String?
   serialNumber String?  @map("serial_number")
   qrCode       String?  @map("qr_code")
+  imageUrl     String?  @map("image_url")
   notes        String?
 
   categoryId   Int?           @map("category_id")

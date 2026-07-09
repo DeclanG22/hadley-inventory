@@ -407,6 +407,26 @@ label {
   max-width: 300px;
 }
 
+/* Search bar */
+.search-bar {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+.search-bar input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+.search-bar input:focus {
+  border-color: var(--accent);
+}
+
 /* Tables */
 .table-wrap {
   overflow-x: auto;
@@ -485,6 +505,11 @@ table a:hover {
   color: var(--red);
   border-color: color-mix(in srgb, var(--red) 25%, transparent);
 }
+.badge-warning {
+  background: color-mix(in srgb, var(--orange) 15%, transparent);
+  color: var(--orange);
+  border-color: color-mix(in srgb, var(--orange) 25%, transparent);
+}
 
 /* Page header */
 .page-header {
@@ -501,6 +526,25 @@ table a:hover {
 .page-header-actions {
   display: flex;
   gap: 6px;
+}
+
+/* Thumbnails */
+.item-thumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--border-color);
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.detail-image {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 12px;
+  object-fit: contain;
+  border: 1px solid var(--border-color);
+  margin-top: 8px;
 }
 
 /* Segmented control */
@@ -539,7 +583,7 @@ table a:hover {
 /* Stat card (dashboard) */
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(6, 1fr);
   gap: 10px;
 }
 .stat-card {

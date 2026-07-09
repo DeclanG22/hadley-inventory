@@ -52,8 +52,19 @@ export class ToolsService {
     });
   }
 
-  findAll() {
+  findAll(q?: string) {
     return this.prisma.tool.findMany({
+      where: q
+        ? {
+            OR: [
+              { toolNumber: { contains: q, mode: 'insensitive' } },
+              { name: { contains: q, mode: 'insensitive' } },
+              { brand: { contains: q, mode: 'insensitive' } },
+              { model: { contains: q, mode: 'insensitive' } },
+              { description: { contains: q, mode: 'insensitive' } },
+            ],
+          }
+        : undefined,
       orderBy: { name: 'asc' },
       include: {
         category: true,

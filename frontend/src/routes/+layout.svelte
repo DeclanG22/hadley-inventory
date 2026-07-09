@@ -22,7 +22,7 @@
 			</a>
 
 			<span class="nav-label">Items</span>
-			<a href="/items" class="tab-link" class:active={path === '/items' || (path.startsWith('/items/') && path !== '/items/new')}>
+			<a href="/items" class="tab-link" class:active={path === '/items' || (path.startsWith('/items/') && path !== '/items/new' && path !== '/items/low-stock')}>
 <span class="tab-link-icon" aria-hidden="true">
     <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
 	<path d="M0 0h24v24H0z" fill="none" />
@@ -45,6 +45,20 @@
 			<span>New Item</span>
 
 			</a>
+			<a href="/items/low-stock" class="tab-link" class:active={path === '/items/low-stock'}>
+			<span class="tab-link-icon" aria-hidden="true">
+			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+				<path d="M0 0h24v24H0z" fill="none" />
+				<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5">
+					<path stroke-linejoin="round" d="M12 22c-.818 0-1.6-.33-3.163-.988C4.946 19.373 3 18.554 3 17.175V7.542M12 22c.818 0 1.6-.33 3.163-.988C19.054 19.373 21 18.554 21 17.175V7.542M12 22v-9.97m9-4.488c0 .613-.802 1-2.405 1.773l-2.92 1.41c-1.804.87-2.705 1.304-3.675 1.304m9-4.487c0-.612-.802-.999-2.405-1.772L17 5M3 7.542c0 .613.802 1 2.405 1.773l2.92 1.41c1.804.87 2.705 1.304 3.675 1.304M3 7.542c0-.612.802-.999 2.405-1.772L7 5m-1 8.026l2 .997" />
+					<path d="m10 2l2 2m0 0l2 2m-2-2l-2 2m2-2l2-2" />
+				</g>
+</svg>
+
+			</span>
+			<span>Low Stock</span>
+
+			</a>
 			<a href="/item-categories" class="tab-link" class:active={path === '/item-categories'}>
 			<span class="tab-link-icon" aria-hidden="true">
 			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
@@ -55,6 +69,7 @@
 			<span>Categories</span>
 
 			</a>
+
 
 			<span class="nav-label">Tools</span>
 			<a href="/tools" class="tab-link" class:active={path === '/tools' || (path.startsWith('/tools/') && path !== '/tools/new')}>

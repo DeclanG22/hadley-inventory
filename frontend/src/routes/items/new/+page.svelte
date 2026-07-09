@@ -7,8 +7,8 @@
 
 	let form = $state({
 		itemNumber: '', description: '', productType: '', unit: '', unitPrice: '',
-		weightPerUnit: '', analysisCode: '', headType: '', qrCode: '', categoryId: '',
-		subCategoryId: '', locationId: '', vendorId: '', onHand: '',
+		weightPerUnit: '', analysisCode: '', headType: '', qrCode: '', imageUrl: '', categoryId: '',
+		subCategoryId: '', locationId: '', vendorId: '', onHand: '', minStock: '',
 		lastQtyInOut: '', lastJobNumber: '', totalCost: '',
 	});
 	let subCats = $state<any[]>([]);
@@ -32,7 +32,7 @@
 		for (const [k, v] of Object.entries(form)) {
 			if (v === '') continue;
 			if (['unitPrice','weightPerUnit','totalCost'].includes(k)) data[k] = Number(v);
-			else if (['categoryId','subCategoryId','locationId','vendorId','onHand','lastQtyInOut'].includes(k)) data[k] = Number(v);
+			else if (['categoryId','subCategoryId','locationId','vendorId','onHand','minStock','lastQtyInOut'].includes(k)) data[k] = Number(v);
 			else data[k] = v;
 		}
 		await items.create(data);
@@ -63,6 +63,7 @@
 			<div><label>Analysis Code</label><input bind:value={form.analysisCode} /></div>
 			<div><label>Head Type</label><input bind:value={form.headType} /></div>
 			<div><label>QR Code</label><input bind:value={form.qrCode} placeholder="Optional QR data" /></div>
+			<div><label>Image URL</label><input bind:value={form.imageUrl} placeholder="https://..." /></div>
 			<div><label>Category</label>
 				<select bind:value={form.categoryId} onchange={onCategoryChange}>
 					<option value="">--</option>
@@ -88,6 +89,7 @@
 				</select>
 			</div>
 			<div><label>On Hand</label><input type="number" bind:value={form.onHand} /></div>
+			<div><label>Min Stock</label><input type="number" bind:value={form.minStock} placeholder="Low stock alert threshold" /></div>
 			<div><label>Last Qty In/Out</label><input type="number" bind:value={form.lastQtyInOut} /></div>
 			<div><label>Last Job Number</label><input bind:value={form.lastJobNumber} /></div>
 			<div><label>Total Cost</label><input type="number" step="0.01" bind:value={form.totalCost} /></div>

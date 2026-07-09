@@ -2,8 +2,9 @@
 	import { items } from '$lib/api';
 
 	let list = $state<any[]>([]);
+	let search = $state('');
 
-	function load() { items.list().then(l => list = l); }
+	function load() { items.list(search || undefined).then(l => list = l); }
 	$effect(load);
 
 	function remove(id: number) {
@@ -18,6 +19,9 @@
 </div>
 
 <div class="card">
+	<div class="search-bar">
+		<input type="search" bind:value={search} placeholder="Search items by number or description..." oninput={load} />
+	</div>
 	<div class="table-wrap">
 		<table>
 			<thead>
@@ -34,7 +38,12 @@
 			<tbody>
 				{#each list as i}
 					<tr>
-						<td><a href="/items/{i.id}">{i.itemNumber}</a></td>
+						<td>
+							{#if i.imageUrl}
+								<img src={i.imageUrl} alt="" class="item-thumb" />
+							{/if}
+							<a href="/items/{i.id}">{i.itemNumber}</a>
+						</td>
 						<td>{i.description}</td>
 						<td>{i.category?.name ?? '-'}</td>
 						<td>{i.onHand}</td>

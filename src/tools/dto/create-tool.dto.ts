@@ -32,6 +32,10 @@ export class CreateToolDto {
 
   @IsOptional()
   @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
   notes?: string;
 
   @IsOptional()

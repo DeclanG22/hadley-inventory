@@ -8,7 +8,7 @@
 		quantity: '',
 		toolNumberPrefix: '',
 		name: '', description: '', brand: '', model: '',
-		serialNumber: '', qrCode: '', notes: '', categoryId: '', locationId: '',
+		serialNumber: '', qrCode: '', imageUrl: '', notes: '', categoryId: '', locationId: '',
 	});
 	let saved = $state(false);
 	let created = $state<any[]>([]);
@@ -32,6 +32,7 @@
 		if (form.model) data.model = form.model;
 		if (form.serialNumber) data.serialNumber = form.serialNumber;
 		if (form.qrCode) data.qrCode = form.qrCode;
+		if (form.imageUrl) data.imageUrl = form.imageUrl;
 		if (form.notes) data.notes = form.notes;
 		if (form.categoryId) data.categoryId = Number(form.categoryId);
 		if (form.locationId) data.locationId = Number(form.locationId);
@@ -80,6 +81,7 @@
 			<div><label>Model</label><input bind:value={form.model} /></div>
 			<div><label>Serial Number</label><input bind:value={form.serialNumber} /></div>
 			<div><label>QR Code</label><input bind:value={form.qrCode} placeholder="Optional QR data" /></div>
+			<div><label>Image URL</label><input bind:value={form.imageUrl} placeholder="https://..." /></div>
 			<div><label>Category</label>
 				<select bind:value={form.categoryId}>
 					<option value="">--</option>

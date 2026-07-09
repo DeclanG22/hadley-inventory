@@ -114,6 +114,15 @@ Create a category.
 ### `GET /items`
 List all items with category, sub-category, location, vendor.
 
+**Query params**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| q     | str  | Search by item number or description (case-insensitive) |
+
+### `GET /items/low-stock`
+List items where `onHand <= minStock` (minStock must be set).
+
 ### `GET /items/:id`
 ### `POST /items`
 
@@ -169,6 +178,12 @@ Record stock movement. Positive `quantityInOut` = stock in, negative = stock out
 
 ### `GET /tools`
 List all tools with category, location, and current checkout status.
+
+**Query params**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| q     | str  | Search by tool number, name, brand, model, or description (case-insensitive) |
 
 ### `GET /tools/:id`
 Tool details with checkout history and maintenance log.

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { items, vendors, locations, itemCategories } from '$lib/api';
+	import ItemChart from '$lib/ItemChart.svelte';
 	let { params } = $props();
 
 	let item = $state<any>(null);
@@ -28,10 +29,10 @@
 		form = {
 			itemNumber: i.itemNumber, description: i.description, productType: i.productType ?? '',
 			unit: i.unit ?? '', unitPrice: i.unitPrice ?? '', weightPerUnit: i.weightPerUnit ?? '',
-			analysisCode: i.analysisCode ?? '', headType: i.headType ?? '', qrCode: i.qrCode ?? '',
+			analysisCode: i.analysisCode ?? '', headType: i.headType ?? '', qrCode: i.qrCode ?? '', imageUrl: i.imageUrl ?? '',
 			categoryId: i.categoryId ?? '', subCategoryId: i.subCategoryId ?? '',
 			locationId: i.locationId ?? '', vendorId: i.vendorId ?? '',
-			onHand: i.onHand ?? '', lastQtyInOut: i.lastQtyInOut ?? '',
+			onHand: i.onHand ?? '', minStock: i.minStock ?? '', lastQtyInOut: i.lastQtyInOut ?? '',
 			lastJobNumber: i.lastJobNumber ?? '', totalCost: i.totalCost ?? '',
 		};
 		if (i.categoryId) itemCategories.subCategories.list(i.categoryId).then(l => subCats = l);
@@ -49,7 +50,7 @@
 		for (const [k, v] of Object.entries(form)) {
 			if (v === '') continue;
 			if (['unitPrice','weightPerUnit','totalCost'].includes(k)) data[k] = Number(v);
-			else if (['categoryId','subCategoryId','locationId','vendorId','onHand','lastQtyInOut'].includes(k)) data[k] = Number(v);
+			else if (['categoryId','subCategoryId','locationId','vendorId','onHand','minStock','lastQtyInOut'].includes(k)) data[k] = Number(v);
 			else data[k] = v;
 		}
 		await items.update(id, data);
@@ -104,6 +105,7 @@
 				<div><label>Analysis Code</label><input bind:value={form.analysisCode} /></div>
 				<div><label>Head Type</label><input bind:value={form.headType} /></div>
 				<div><label>QR Code</label><input bind:value={form.qrCode} placeholder="Optional QR data" /></div>
+				<div><label>Image URL</label><input bind:value={form.imageUrl} placeholder="https://..." /></div>
 				<div><label>Category</label>
 					<select bind:value={form.categoryId} onchange={onCategoryChange}>
 						<option value="">--</option>
@@ -129,6 +131,7 @@
 					</select>
 				</div>
 				<div><label>On Hand</label><input type="number" bind:value={form.onHand} /></div>
+				<div><label>Min Stock</label><input type="number" bind:value={form.minStock} placeholder="Low stock alert threshold" /></div>
 				<div><label>Last Qty In/Out</label><input type="number" bind:value={form.lastQtyInOut} /></div>
 				<div><label>Last Job Number</label><input bind:value={form.lastJobNumber} /></div>
 				<div><label>Total Cost</label><input type="number" step="0.01" bind:value={form.totalCost} /></div>
@@ -138,11 +141,15 @@
 	{:else}
 		<div class="card" style="margin-top:0">
 			<div class="card-header"><h2>Details</h2></div>
+			{#if item.imageUrl}
+				<img src={item.imageUrl} alt="" class="detail-image" />
+			{/if}
 			<div class="detail-grid">
 				<span>Category:</span><span>{item.category?.name ?? '-'}{item.subCategory ? ` / ${item.subCategory.name}` : ''}</span>
 				<span>Head Type:</span><span>{item.headType ?? '-'}</span>
 				<span>Unit:</span><span>{item.unit ?? '-'}</span>
 				<span>Unit Price:</span><span>{item.unitPrice ? `$${Number(item.unitPrice).toFixed(2)}` : '-'}</span>
+				<span>Min Stock:</span><span>{item.minStock ?? '-'}</span>
 				<span>Vendor:</span><span>{item.vendor?.name ?? '-'}</span>
 				<span>Location:</span><span>{item.location?.name ?? '-'}</span>
 				<span>Total Cost:</span><span>{item.totalCost ? `$${Number(item.totalCost).toFixed(2)}` : '-'}</span>
@@ -150,6 +157,8 @@
 			</div>
 		</div>
 	{/if}
+
+	<ItemChart transactions={txns} />
 
 	<div class="card" style="margin-top:10px">
 		<div class="card-header"><h2>Record Transaction</h2></div>

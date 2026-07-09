@@ -54,7 +54,8 @@ export const toolCategories = {
 
 // Items
 export const items = {
-	list: () => request<any[]>('/items'),
+	list: (q?: string) => request<any[]>(`/items${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+	lowStock: () => request<any[]>('/items/low-stock'),
 	get: (id: number) => request<any>(`/items/${id}`),
 	create: (data: any) => request<any>('/items', { method: 'POST', body: JSON.stringify(data) }),
 	update: (id: number, data: any) => request<any>(`/items/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
@@ -68,7 +69,7 @@ export const items = {
 
 // Tools
 export const tools = {
-	list: () => request<any[]>('/tools'),
+	list: (q?: string) => request<any[]>(`/tools${q ? `?q=${encodeURIComponent(q)}` : ''}`),
 	get: (id: number) => request<any>(`/tools/${id}`),
 	create: (data: any) => request<any>('/tools', { method: 'POST', body: JSON.stringify(data) }),
 	batchCreate: (data: any) => request<any[]>('/tools/batch', { method: 'POST', body: JSON.stringify(data) }),

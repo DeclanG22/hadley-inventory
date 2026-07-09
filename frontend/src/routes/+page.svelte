@@ -10,7 +10,8 @@
 	let recentActivity = $state<any[]>([]);
 
 	$effect(() => {
-		items.list().then(l => { itemCount = l.length; lowStock = l.filter((i: any) => i.onHand > 0 && i.onHand < 10).length; });
+		items.list().then(l => itemCount = l.length);
+		items.lowStock().then(l => lowStock = l.length);
 		tools.list().then(l => { toolCount = l.length; checkedOut = l.filter((t: any) => t.checkouts?.length > 0).length; });
 		vendors.list().then(l => vendorCount = l.length);
 		locations.list().then(l => locationCount = l.length);
@@ -27,14 +28,15 @@
 		<span class="stat-value">{itemCount}</span>
 		<span class="stat-label">Items</span>
 	</div>
-	<div class="stat-card">
-		<span class="stat-value">{toolCount}</span>
-		<span class="stat-label">Tools</span>
-	</div>
 	<div class="stat-card warn">
 		<span class="stat-value">{lowStock}</span>
 		<span class="stat-label">Low Stock Items</span>
 	</div>
+	<div class="stat-card">
+		<span class="stat-value">{toolCount}</span>
+		<span class="stat-label">Tools</span>
+	</div>
+
 	<div class="stat-card">
 		<span class="stat-value">{checkedOut}</span>
 		<span class="stat-label">Checked Out Tools</span>

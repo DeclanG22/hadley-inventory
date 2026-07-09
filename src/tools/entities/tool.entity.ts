@@ -7,6 +7,7 @@ export class ToolEntity {
   model: string | null;
   serialNumber: string | null;
   qrCode: string | null;
+  imageUrl: string | null;
   notes: string | null;
   categoryId: number | null;
   locationId: number | null;
