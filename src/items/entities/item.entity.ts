@@ -12,6 +12,7 @@ export class ItemEntity {
   categoryId: number | null;
   subCategoryId: number | null;
   headType: string | null;
+  qrCode: string | null;
   locationId: number | null;
   vendorId: number | null;
   onHand: number;

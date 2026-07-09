@@ -36,9 +36,9 @@ export class ItemCategoriesService {
 
   // SubCategories
 
-  createSubCategory(dto: CreateItemSubCategoryDto) {
+  createSubCategory(categoryId: number, dto: CreateItemSubCategoryDto) {
     return this.prisma.itemSubCategory.create({
-      data: dto,
+      data: { name: dto.name, itemCategoryId: categoryId },
       include: { itemCategory: true },
     });
   }

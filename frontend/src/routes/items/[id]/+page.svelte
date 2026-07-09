@@ -1,0 +1,195 @@
+<script lang="ts">
+	import { items, vendors, locations, itemCategories } from '$lib/api';
+	let { params } = $props();
+
+	let item = $state<any>(null);
+	let txns = $state<any[]>([]);
+	let editing = $state(false);
+	let vendorsList = $state<any[]>([]);
+	let locationsList = $state<any[]>([]);
+	let catsList = $state<any[]>([]);
+	let subCats = $state<any[]>([]);
+
+	let form = $state<any>({});
+
+	let txnForm = $state({ jobNumber: '', date: new Date().toISOString().slice(0,10), quantityIn: '', quantityOut: '', unitPrice: '', totalCost: '', notes: '' });
+
+	function load() {
+		const id = Number(params.id);
+		items.get(id).then(i => { item = i; resetForm(i); });
+		items.transactions.list(id).then(t => txns = t);
+		vendors.list().then(l => vendorsList = l);
+		locations.list().then(l => locationsList = l);
+		itemCategories.list().then(l => catsList = l);
+	}
+	$effect(load);
+
+	function resetForm(i: any) {
+		form = {
+			itemNumber: i.itemNumber, description: i.description, productType: i.productType ?? '',
+			unit: i.unit ?? '', unitPrice: i.unitPrice ?? '', weightPerUnit: i.weightPerUnit ?? '',
+			analysisCode: i.analysisCode ?? '', headType: i.headType ?? '', qrCode: i.qrCode ?? '',
+			categoryId: i.categoryId ?? '', subCategoryId: i.subCategoryId ?? '',
+			locationId: i.locationId ?? '', vendorId: i.vendorId ?? '',
+			onHand: i.onHand ?? '', lastQtyInOut: i.lastQtyInOut ?? '',
+			lastJobNumber: i.lastJobNumber ?? '', totalCost: i.totalCost ?? '',
+		};
+		if (i.categoryId) itemCategories.subCategories.list(i.categoryId).then(l => subCats = l);
+	}
+
+	function onCategoryChange() {
+		const id = Number(form.categoryId);
+		if (!id) { subCats = []; form.subCategoryId = ''; return; }
+		itemCategories.subCategories.list(id).then(l => subCats = l);
+	}
+
+	async function save() {
+		const id = Number(params.id);
+		const data: any = {};
+		for (const [k, v] of Object.entries(form)) {
+			if (v === '') continue;
+			if (['unitPrice','weightPerUnit','totalCost'].includes(k)) data[k] = Number(v);
+			else if (['categoryId','subCategoryId','locationId','vendorId','onHand','lastQtyInOut'].includes(k)) data[k] = Number(v);
+			else data[k] = v;
+		}
+		await items.update(id, data);
+		editing = false;
+		items.get(id).then(i => { item = i; resetForm(i); });
+	}
+
+	async function addTxn() {
+		const id = Number(params.id);
+		const qtyIn = Number(txnForm.quantityIn) || 0;
+		const qtyOut = Number(txnForm.quantityOut) || 0;
+		if (qtyIn === 0 && qtyOut === 0) return;
+		const data: any = { date: txnForm.date, quantityInOut: qtyIn - qtyOut };
+		if (txnForm.jobNumber) data.jobNumber = txnForm.jobNumber;
+		if (txnForm.unitPrice) data.unitPrice = Number(txnForm.unitPrice);
+		if (txnForm.totalCost) data.totalCost = Number(txnForm.totalCost);
+		if (txnForm.notes) data.notes = txnForm.notes;
+		await items.transactions.create(id, data);
+		txnForm = { jobNumber: '', date: new Date().toISOString().slice(0,10), quantityIn: '', quantityOut: '', unitPrice: '', totalCost: '', notes: '' };
+		items.get(id).then(i => item = i);
+		items.transactions.list(id).then(t => txns = t);
+	}
+</script>
+
+{#if !item}
+	<div class="loading">Loading...</div>
+{:else}
+	<div class="page-header">
+		<div>
+			<h1>{item.itemNumber}</h1>
+			<p style="color:var(--empty-text-primary);font-size:13px;margin-top:2px">{item.description}</p>
+		</div>
+		<div class="page-header-actions">
+			<div class="stat-card" style="padding:8px 16px;min-width:80px">
+				<div class="stat-value" style="font-size:22px">{item.onHand}</div>
+				<div class="stat-label">On Hand</div>
+			</div>
+			<button class="btn-ghost btn-sm" onclick={() => editing = !editing}>{editing ? 'Cancel' : 'Edit'}</button>
+		</div>
+	</div>
+
+	{#if editing}
+		<form class="card" style="margin-top:0" onsubmit={(e) => { e.preventDefault(); save(); }}>
+			<div class="card-header"><h2>Edit Item</h2></div>
+			<div class="form-grid">
+				<div class="full"><label>Item Number</label><input bind:value={form.itemNumber} required /></div>
+				<div class="full"><label>Description</label><input bind:value={form.description} required /></div>
+				<div><label>Product Type</label><input bind:value={form.productType} /></div>
+				<div><label>Unit</label><input bind:value={form.unit} placeholder="Each, Box, etc" /></div>
+				<div><label>Unit Price</label><input type="number" step="0.01" bind:value={form.unitPrice} /></div>
+				<div><label>Weight/Unit (g)</label><input type="number" step="0.0001" bind:value={form.weightPerUnit} /></div>
+				<div><label>Analysis Code</label><input bind:value={form.analysisCode} /></div>
+				<div><label>Head Type</label><input bind:value={form.headType} /></div>
+				<div><label>QR Code</label><input bind:value={form.qrCode} placeholder="Optional QR data" /></div>
+				<div><label>Category</label>
+					<select bind:value={form.categoryId} onchange={onCategoryChange}>
+						<option value="">--</option>
+						{#each catsList as c}<option value={c.id}>{c.name}</option>{/each}
+					</select>
+				</div>
+				<div><label>Sub-Category</label>
+					<select bind:value={form.subCategoryId}>
+						<option value="">--</option>
+						{#each subCats as s}<option value={s.id}>{s.name}</option>{/each}
+					</select>
+				</div>
+				<div><label>Location</label>
+					<select bind:value={form.locationId}>
+						<option value="">--</option>
+						{#each locationsList as l}<option value={l.id}>{l.name}</option>{/each}
+					</select>
+				</div>
+				<div><label>Vendor</label>
+					<select bind:value={form.vendorId}>
+						<option value="">--</option>
+						{#each vendorsList as v}<option value={v.id}>{v.name}</option>{/each}
+					</select>
+				</div>
+				<div><label>On Hand</label><input type="number" bind:value={form.onHand} /></div>
+				<div><label>Last Qty In/Out</label><input type="number" bind:value={form.lastQtyInOut} /></div>
+				<div><label>Last Job Number</label><input bind:value={form.lastJobNumber} /></div>
+				<div><label>Total Cost</label><input type="number" step="0.01" bind:value={form.totalCost} /></div>
+			</div>
+			<button type="submit" style="margin-top:12px">Save Changes</button>
+		</form>
+	{:else}
+		<div class="card" style="margin-top:0">
+			<div class="card-header"><h2>Details</h2></div>
+			<div class="detail-grid">
+				<span>Category:</span><span>{item.category?.name ?? '-'}{item.subCategory ? ` / ${item.subCategory.name}` : ''}</span>
+				<span>Head Type:</span><span>{item.headType ?? '-'}</span>
+				<span>Unit:</span><span>{item.unit ?? '-'}</span>
+				<span>Unit Price:</span><span>{item.unitPrice ? `$${Number(item.unitPrice).toFixed(2)}` : '-'}</span>
+				<span>Vendor:</span><span>{item.vendor?.name ?? '-'}</span>
+				<span>Location:</span><span>{item.location?.name ?? '-'}</span>
+				<span>Total Cost:</span><span>{item.totalCost ? `$${Number(item.totalCost).toFixed(2)}` : '-'}</span>
+				<span>QR Code:</span><span>{item.qrCode ?? '-'}</span>
+			</div>
+		</div>
+	{/if}
+
+	<div class="card" style="margin-top:10px">
+		<div class="card-header"><h2>Record Transaction</h2></div>
+		<form onsubmit={(e) => { e.preventDefault(); addTxn(); }}>
+			<div class="form-grid">
+				<div><label>Date *</label><input type="date" bind:value={txnForm.date} required /></div>
+				<div><label>Job Number</label><input bind:value={txnForm.jobNumber} /></div>
+				<div><label>Qty In</label><input type="number" bind:value={txnForm.quantityIn} /></div>
+				<div><label>Qty Out</label><input type="number" bind:value={txnForm.quantityOut} /></div>
+				<div><label>Unit Price</label><input type="number" step="0.01" bind:value={txnForm.unitPrice} /></div>
+				<div><label>Total Cost</label><input type="number" step="0.01" bind:value={txnForm.totalCost} /></div>
+				<div class="full"><label>Notes</label><input bind:value={txnForm.notes} /></div>
+			</div>
+			<button type="submit" style="margin-top:12px" class="btn-primary">Record</button>
+		</form>
+	</div>
+
+	<div class="card" style="margin-top:10px">
+		<div class="card-header"><h2>Transaction History</h2></div>
+		{#if txns.length === 0}
+			<div class="empty-state">No transactions recorded.</div>
+		{:else}
+			<div class="table-wrap">
+				<table>
+					<thead><tr><th>Date</th><th>In</th><th>Out</th><th>Job</th><th>Unit Price</th><th>Total</th><th>Notes</th></tr></thead>
+					<tbody>
+						{#each txns as t}
+							<tr>
+								<td>{new Date(t.date).toLocaleDateString()}</td>
+								<td>{t.quantityInOut > 0 ? t.quantityInOut : '-'}</td>
+								<td>{t.quantityInOut < 0 ? -t.quantityInOut : '-'}</td>
+								<td>{t.jobNumber ?? '-'}</td>
+								<td>{t.unitPrice ? `$${Number(t.unitPrice).toFixed(2)}` : '-'}</td>
+								<td>{t.totalCost ? `$${Number(t.totalCost).toFixed(2)}` : '-'}</td>
+								<td>{t.notes ?? ''}</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{/if}
+	</div>
+{/if}

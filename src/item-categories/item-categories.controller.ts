@@ -39,7 +39,7 @@ export class ItemCategoriesController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CreateItemSubCategoryDto,
   ) {
-    return this.itemCategoriesService.createSubCategory({ ...dto, itemCategoryId: id });
+    return this.itemCategoriesService.createSubCategory(id, dto);
   }
 
   @Get(':id/sub-categories')

@@ -76,6 +76,7 @@ model Item {
   subCategoryId Int?             @map("sub_category_id")
   subCategory   ItemSubCategory? @relation(fields: [subCategoryId], references: [id])
   headType      String?          @map("head_type")
+  qrCode        String?          @map("qr_code")
   locationId    Int?             @map("location_id")
   location      Location?        @relation(fields: [locationId], references: [id])
   vendorId      Int?             @map("vendor_id")

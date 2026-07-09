@@ -5,6 +5,7 @@ import { UpdateToolDto } from './dto/update-tool.dto';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { CheckinDto } from './dto/checkin.dto';
 import { CreateMaintenanceDto } from './dto/create-maintenance.dto';
+import { BatchCreateToolDto } from './dto/batch-create-tool.dto';
 
 @Controller('tools')
 export class ToolsController {
@@ -13,6 +14,11 @@ export class ToolsController {
   @Post()
   create(@Body() dto: CreateToolDto) {
     return this.toolsService.create(dto);
+  }
+
+  @Post('batch')
+  batchCreate(@Body() dto: BatchCreateToolDto) {
+    return this.toolsService.batchCreate(dto);
   }
 
   @Get()

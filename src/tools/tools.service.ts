@@ -5,6 +5,7 @@ import { UpdateToolDto } from './dto/update-tool.dto';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { CheckinDto } from './dto/checkin.dto';
 import { CreateMaintenanceDto } from './dto/create-maintenance.dto';
+import { BatchCreateToolDto } from './dto/batch-create-tool.dto';
 
 @Injectable()
 export class ToolsService {
@@ -12,6 +13,43 @@ export class ToolsService {
 
   create(dto: CreateToolDto) {
     return this.prisma.tool.create({ data: dto });
+  }
+
+  async batchCreate(dto: BatchCreateToolDto) {
+    const lastTool = await this.prisma.tool.findFirst({
+      where: { toolNumber: { startsWith: dto.toolNumberPrefix } },
+      orderBy: { toolNumber: 'desc' },
+      select: { toolNumber: true },
+    });
+
+    let nextNum = 1;
+    if (lastTool) {
+      const match = lastTool.toolNumber.match(/-(\d+)$/);
+      if (match) nextNum = parseInt(match[1], 10) + 1;
+    }
+
+    const data: any[] = [];
+    for (let i = 0; i < dto.quantity; i++) {
+      data.push({
+        toolNumber: `${dto.toolNumberPrefix}-${String(nextNum + i).padStart(3, '0')}`,
+        name: dto.name,
+        description: dto.description,
+        brand: dto.brand,
+        model: dto.model,
+        serialNumber: dto.serialNumber,
+        qrCode: dto.qrCode,
+        notes: dto.notes,
+        categoryId: dto.categoryId,
+        locationId: dto.locationId,
+      });
+    }
+
+    await this.prisma.tool.createMany({ data });
+    return this.prisma.tool.findMany({
+      where: { toolNumber: { startsWith: dto.toolNumberPrefix } },
+      orderBy: { toolNumber: 'desc' },
+      take: dto.quantity,
+    });
   }
 
   findAll() {

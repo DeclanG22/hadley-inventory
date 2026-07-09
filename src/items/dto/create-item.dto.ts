@@ -57,6 +57,10 @@ export class CreateItemDto {
   headType?: string;
 
   @IsOptional()
+  @IsString()
+  qrCode?: string;
+
+  @IsOptional()
   @IsInt()
   @Type(() => Number)
   locationId?: number;

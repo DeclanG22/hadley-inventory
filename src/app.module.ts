@@ -6,6 +6,7 @@ import { ItemCategoriesModule } from './item-categories/item-categories.module';
 import { ToolCategoriesModule } from './tool-categories/tool-categories.module';
 import { ItemsModule } from './items/items.module';
 import { ToolsModule } from './tools/tools.module';
+import { ActivityModule } from './activity/activity.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ToolsModule } from './tools/tools.module';
     ToolCategoriesModule,
     ItemsModule,
     ToolsModule,
+    ActivityModule,
   ],
 })
 export class AppModule {}

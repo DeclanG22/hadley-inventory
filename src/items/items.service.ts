@@ -49,17 +49,30 @@ export class ItemsService {
 
   // Transactions
 
-  createTransaction(itemId: number, dto: CreateTransactionDto) {
-    return this.prisma.itemTransaction.create({
-      data: {
-        itemId,
-        jobNumber: dto.jobNumber,
-        date: new Date(dto.date),
-        quantityInOut: dto.quantityInOut,
-        unitPrice: dto.unitPrice,
-        totalCost: dto.totalCost,
-        notes: dto.notes,
-      },
+  async createTransaction(itemId: number, dto: CreateTransactionDto) {
+    const [transaction] = await this.prisma.$transaction([
+      this.prisma.itemTransaction.create({
+        data: {
+          itemId,
+          jobNumber: dto.jobNumber,
+          date: new Date(dto.date + 'T00:00:00'),
+          quantityInOut: dto.quantityInOut,
+          unitPrice: dto.unitPrice,
+          totalCost: dto.totalCost,
+          notes: dto.notes,
+        },
+      }),
+      this.prisma.item.update({
+        where: { id: itemId },
+        data: {
+          onHand: { increment: dto.quantityInOut },
+          lastQtyInOut: dto.quantityInOut,
+          lastJobNumber: dto.jobNumber,
+        },
+      }),
+    ]);
+    return this.prisma.itemTransaction.findUnique({
+      where: { id: transaction.id },
       include: { item: true },
     });
   }
