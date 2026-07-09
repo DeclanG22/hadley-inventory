@@ -1,13 +1,184 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// ===== Shared Reference Data =====
+
+model Vendor {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  items Item[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("vendors")
+}
+
+model Location {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  items Item[]
+  tools Tool[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("locations")
+}
+
+// ===== Items Domain (Consumables) =====
+
+model ItemCategory {
+  id            Int              @id @default(autoincrement())
+  name          String           @unique
+  subCategories ItemSubCategory[]
+  items         Item[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("item_categories")
+}
+
+model ItemSubCategory {
+  id             Int          @id @default(autoincrement())
+  name           String
+  itemCategoryId Int          @map("item_category_id")
+  itemCategory   ItemCategory @relation(fields: [itemCategoryId], references: [id])
+  items          Item[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([name, itemCategoryId])
+  @@map("item_sub_categories")
+}
+
+model Item {
+  id            Int      @id @default(autoincrement())
+  itemNumber    String   @unique @map("item_number")
+  description   String
+  productType   String?  @map("product_type")
+  unit          String?
+  unitPrice     Decimal? @map("unit_price") @db.Decimal(10, 2)
+  weightPerUnit Decimal? @map("weight_per_unit") @db.Decimal(10, 4)
+  analysisCode  String?  @map("analysis_code")
+  removeFlag    Boolean  @default(false) @map("remove_flag")
+  labelPrinted  Boolean  @default(false) @map("label_printed")
+
+  categoryId    Int?             @map("category_id")
+  category      ItemCategory?    @relation(fields: [categoryId], references: [id])
+  subCategoryId Int?             @map("sub_category_id")
+  subCategory   ItemSubCategory? @relation(fields: [subCategoryId], references: [id])
+  headType      String?          @map("head_type")
+  locationId    Int?             @map("location_id")
+  location      Location?        @relation(fields: [locationId], references: [id])
+  vendorId      Int?             @map("vendor_id")
+  vendor        Vendor?          @relation(fields: [vendorId], references: [id])
+
+  onHand        Int       @default(0) @map("on_hand")
+  lastQtyInOut  Int?      @map("last_qty_in_out")
+  lastJobNumber String?   @map("last_job_number")
+  dateAdded     DateTime? @map("date_added")
+  dateDisbursed DateTime? @map("date_disbursed")
+  totalCost     Decimal?  @map("total_cost") @db.Decimal(12, 2)
+
+  transactions ItemTransaction[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("items")
+}
+
+model ItemTransaction {
+  id            Int      @id @default(autoincrement())
+  itemId        Int      @map("item_id")
+  item          Item     @relation(fields: [itemId], references: [id])
+  jobNumber     String?  @map("job_number")
+  date          DateTime
+  quantityInOut Int      @map("quantity_in_or_out")
+  unitPrice     Decimal? @map("unit_price") @db.Decimal(10, 2)
+  totalCost     Decimal? @map("total_cost") @db.Decimal(12, 2)
+  notes         String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("item_transactions")
+}
+
+// ===== Tools Domain (Unique Assets) =====
+
+model ToolCategory {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  tools Tool[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("tool_categories")
+}
+
+model Tool {
+  id           Int      @id @default(autoincrement())
+  toolNumber   String   @unique @map("tool_number")
+  name         String
+  description  String?
+  brand        String?
+  model        String?
+  serialNumber String?  @map("serial_number")
+  qrCode       String?  @map("qr_code")
+  notes        String?
+
+  categoryId   Int?           @map("category_id")
+  category     ToolCategory?  @relation(fields: [categoryId], references: [id])
+  locationId   Int?           @map("location_id")
+  location     Location?      @relation(fields: [locationId], references: [id])
+
+  checkouts   ToolCheckout[]
+  maintenance ToolMaintenanceLog[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("tools")
+}
+
+model ToolCheckout {
+  id               Int       @id @default(autoincrement())
+  toolId           Int       @map("tool_id")
+  tool             Tool      @relation(fields: [toolId], references: [id])
+  checkedOutBy     String    @map("checked_out_by")
+  jobNumber        String?   @map("job_number")
+  jobSite          String?   @map("job_site")
+  checkedOutAt     DateTime  @default(now()) @map("checked_out_at")
+  expectedReturnAt DateTime? @map("expected_return_at")
+  checkedInAt      DateTime? @map("checked_in_at")
+  notes            String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("tool_checkouts")
+}
+
+model ToolMaintenanceLog {
+  id          Int      @id @default(autoincrement())
+  toolId      Int      @map("tool_id")
+  tool        Tool     @relation(fields: [toolId], references: [id])
+  type        String
+  description String?
+  date        DateTime
+  performedBy String?  @map("performed_by")
+  cost        Decimal? @db.Decimal(10, 2)
+  notes       String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("tool_maintenance_logs")
 }
