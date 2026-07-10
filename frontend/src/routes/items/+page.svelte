@@ -9,13 +9,13 @@
 	let categoryId = $state('');
 	let vendorId = $state('');
 	let locationId = $state('');
-	let page = $state(1);
 	let sortBy = $state('itemNumber');
 	let sortOrder = $state<'asc' | 'desc'>('asc');
 	let locList = $state<any[]>([]);
 	let venList = $state<any[]>([]);
 	let catList = $state<any[]>([]);
 
+	let viewMode = $state<'table' | 'cards'>('table');
 	let debounce: any;
 
 	function load() {
@@ -24,7 +24,7 @@
 			categoryId: categoryId ? Number(categoryId) : undefined,
 			vendorId: vendorId ? Number(vendorId) : undefined,
 			locationId: locationId ? Number(locationId) : undefined,
-			page, limit: 50, sortBy, sortOrder,
+			sortBy, sortOrder,
 		}).then(r => { result = r; }).finally(() => loading = false);
 	}
 	$effect(() => {
@@ -36,13 +36,12 @@
 
 	function onSearchInput() {
 		clearTimeout(debounce);
-		debounce = setTimeout(() => { page = 1; load(); }, 300);
+		debounce = setTimeout(load, 300);
 	}
 
 	function setSort(col: string) {
 		if (sortBy === col) { sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; }
 		else { sortBy = col; sortOrder = 'asc'; }
-		page = 1;
 		load();
 	}
 
@@ -50,8 +49,6 @@
 		if (!confirm('Delete this item?')) return;
 		items.remove(id).then(load);
 	}
-
-	function go(p: number) { page = p; load(); }
 
 	function exportCSV() {
 		items.list(search || undefined, { categoryId: categoryId ? Number(categoryId) : undefined, vendorId: vendorId ? Number(vendorId) : undefined, locationId: locationId ? Number(locationId) : undefined, limit: 5000 })
@@ -77,6 +74,10 @@
 <div class="page-header">
 	<h1>Items</h1>
 	<div style="display:flex;gap:6px">
+		<div class="segmented">
+			<button type="button" class="segment" class:active={viewMode === 'table'} onclick={() => viewMode = 'table'}>Table</button>
+			<button type="button" class="segment" class:active={viewMode === 'cards'} onclick={() => viewMode = 'cards'}>Cards</button>
+		</div>
 		<a href="/items/import" class="btn">Import</a>
 		<button class="btn" onclick={exportCSV}>Export</button>
 		<a href="/items/new" class="btn btn-primary">+ New Item</a>
@@ -86,15 +87,15 @@
 <div class="card">
 	<div class="search-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
 		<input type="search" bind:value={search} placeholder="Search items..." oninput={onSearchInput} style="flex:1;min-width:140px" />
-		<select bind:value={categoryId} onchange={() => { page = 1; load(); }} style="width:140px">
+		<select bind:value={categoryId} onchange={load} style="width:140px">
 			<option value="">All Categories</option>
 			{#each catList as c}<option value={c.id}>{c.name}</option>{/each}
 		</select>
-		<select bind:value={vendorId} onchange={() => { page = 1; load(); }} style="width:140px">
+		<select bind:value={vendorId} onchange={load} style="width:140px">
 			<option value="">All Vendors</option>
 			{#each venList as v}<option value={v.id}>{v.name}</option>{/each}
 		</select>
-		<select bind:value={locationId} onchange={() => { page = 1; load(); }} style="width:140px">
+		<select bind:value={locationId} onchange={load} style="width:140px">
 			<option value="">All Locations</option>
 			{#each locList as l}<option value={l.id}>{l.name}</option>{/each}
 		</select>
@@ -108,55 +109,144 @@
 			<div class="sk-row"><div class="sk-cell sk" style="width:13%"></div><div class="sk-cell sk" style="width:36%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:14%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:8%"></div></div>
 		</div>
 	{:else if result && result.data.length > 0}
-		<div style="display:flex;justify-content:space-between;align-items:center;padding:0 0 8px;font-size:13px;color:var(--text-secondary)">
-			<span>Showing {result.data.length} of {result.total} item(s)</span>
-			<div class="pagination" style="display:flex;gap:4px;align-items:center">
-				<button class="btn-ghost btn-sm" disabled={page <= 1} onclick={() => go(page - 1)}>Prev</button>
-				<span style="font-size:12px;color:var(--text-secondary)">Page {result.page} of {Math.ceil(result.total / result.limit)}</span>
-				<button class="btn-ghost btn-sm" disabled={page * result.limit >= result.total} onclick={() => go(page + 1)}>Next</button>
-			</div>
-		</div>
-		<div class="table-wrap">
-			<table>
-				<thead>
-					<tr>
-						<th role="button" tabindex={0} onclick={() => setSort('itemNumber')} style="cursor:pointer">Item #{sortArrow('itemNumber')}</th>
-						<th role="button" tabindex={0} onclick={() => setSort('description')} style="cursor:pointer">Description{sortArrow('description')}</th>
-						<th>Category</th>
-						<th role="button" tabindex={0} onclick={() => setSort('onHand')} style="cursor:pointer">On Hand{sortArrow('onHand')}</th>
-						<th>Unit</th>
-						<th role="button" tabindex={0} onclick={() => setSort('unitPrice')} style="cursor:pointer">Price{sortArrow('unitPrice')}</th>
-						<th></th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each result.data as i}
-						<tr onclick={() => goto(`/items/${i.id}`)}>
-							<td>
-								{#if i.imageUrl}
-									<img src={i.imageUrl} alt="" class="item-thumb" />
-								{/if}
-								<a href="/items/{i.id}" onclick={(e) => e.stopPropagation()}>{i.itemNumber}</a>
-							</td>
-							<td>{i.description}</td>
-							<td>{i.category?.name ?? '-'}</td>
-							<td>{i.onHand}</td>
-							<td>{i.unit ?? '-'}</td>
-							<td>{i.unitPrice ? `$${Number(i.unitPrice).toFixed(2)}` : '-'}</td>
-							<td><button class="btn-ghost btn-sm" onclick={(e) => { e.stopPropagation(); remove(i.id); }}>Delete</button></td>
+		{#if viewMode === 'table'}
+			<div class="table-wrap">
+				<table style="table-layout:fixed">
+					<thead>
+						<tr>
+							<th role="button" tabindex={0} onclick={() => setSort('itemNumber')} style="cursor:pointer;width:300px">Item #{sortArrow('itemNumber')}</th>
+							<th role="button" tabindex={0} onclick={() => setSort('description')} style="cursor:pointer;width:auto">Description{sortArrow('description')}</th>
+							<th style="width:120px">Category</th>
+							<th role="button" tabindex={0} onclick={() => setSort('onHand')} style="cursor:pointer;width:70px">On Hand{sortArrow('onHand')}</th>
+							<th style="width:70px">Unit</th>
+							<th role="button" tabindex={0} onclick={() => setSort('unitPrice')} style="cursor:pointer;width:70px">Price{sortArrow('unitPrice')}</th>
+							<th style="width:40px"></th>
 						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
-		<div style="display:flex;justify-content:center;gap:4px;align-items:center;padding:12px 0 0">
-			<button class="btn-ghost btn-sm" disabled={page <= 1} onclick={() => go(1)}>First</button>
-			<button class="btn-ghost btn-sm" disabled={page <= 1} onclick={() => go(page - 1)}>Prev</button>
-			<span style="font-size:13px;color:var(--text-secondary)">Page {result.page} of {Math.ceil(result.total / result.limit)}</span>
-			<button class="btn-ghost btn-sm" disabled={page * (result?.limit ?? 1) >= (result?.total ?? 0)} onclick={() => go(page + 1)}>Next</button>
-			<button class="btn-ghost btn-sm" disabled={page * (result?.limit ?? 1) >= (result?.total ?? 0)} onclick={() => go(Math.ceil((result?.total ?? 0) / (result?.limit ?? 1)))}>Last</button>
-		</div>
+					</thead>
+					<tbody>
+						{#each result.data as i}
+							<tr onclick={() => goto(`/items/${i.id}`)}>
+								<td>
+									{#if i.imageUrl}
+										<img src={i.imageUrl} alt="" class="item-thumb" />
+									{/if}
+									<a href="/items/{i.id}" onclick={(e) => e.stopPropagation()}>{i.itemNumber}</a>
+								</td>
+								<td>{i.description}</td>
+								<td>{i.category?.name ?? '-'}</td>
+								<td>{i.onHand}</td>
+								<td>{i.unit ?? '-'}</td>
+								<td>{i.unitPrice ? `$${Number(i.unitPrice).toFixed(2)}` : '-'}</td>
+								<td><button class="btn-del btn-sm" onclick={(e) => { e.stopPropagation(); remove(i.id); }}><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 14 14"><path d="M0 0h14v14H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M1.707.293A1 1 0 0 0 .293 1.707L5.586 7L.293 12.293a1 1 0 1 0 1.414 1.414L7 8.414l5.293 5.293a1 1 0 0 0 1.414-1.414L8.414 7l5.293-5.293A1 1 0 0 0 12.293.293L7 5.586z" clip-rule="evenodd" /></svg></button></td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{:else}
+			<div class="card-grid">
+				{#each result.data as i}
+					<div class="item-card" role="button" tabindex={0} onclick={() => goto(`/items/${i.id}`)} onkeydown={(e) => e.key === 'Enter' && goto(`/items/${i.id}`)}>
+						{#if i.imageUrl}
+							<img src={i.imageUrl} alt="" class="item-card-img" />
+						{/if}
+						<div class="item-card-body">
+							<div class="item-card-title">{i.itemNumber}</div>
+							<div class="item-card-desc">{i.description}</div>
+							<div class="item-card-meta">
+								<span>On Hand: <strong>{i.onHand}</strong></span>
+								<span>{i.category?.name ?? '-'}</span>
+								<span>{i.unit ?? '-'}</span>
+								<span>{i.unitPrice ? `$${Number(i.unitPrice).toFixed(2)}` : '-'}</span>
+							</div>
+						</div>
+						<button class="btn-del btn-sm item-card-del" onclick={(e) => { e.stopPropagation(); remove(i.id); }}><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 14 14"><path d="M0 0h14v14H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M1.707.293A1 1 0 0 0 .293 1.707L5.586 7L.293 12.293a1 1 0 1 0 1.414 1.414L7 8.414l5.293 5.293a1 1 0 0 0 1.414-1.414L8.414 7l5.293-5.293A1 1 0 0 0 12.293.293L7 5.586z" clip-rule="evenodd" /></svg></button>
+					</div>
+				{/each}
+			</div>
+		{/if}
 	{:else}
 		<div class="empty-state">No items found.</div>
 	{/if}
 </div>
+
+<style>
+	.table-wrap tbody tr:nth-child(even) td {
+		background: var(--bg-off);
+	}
+
+	.card-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+		gap: 12px;
+	}
+
+	.item-card {
+		display: flex;
+		flex-direction: column;
+		background: color-mix(in srgb, var(--bg-secondary), 50% transparent);
+		border: 1px solid var(--border-color);
+		border-radius: 18px;
+		padding: 0;
+		overflow: hidden;
+		text-align: left;
+		cursor: pointer;
+		transition: border-color 0.15s ease;
+		position: relative;
+		font-family: inherit;
+		font-size: inherit;
+		color: inherit;
+		width: 100%;
+	}
+
+	.item-card:hover {
+		border-color: var(--text-secondary);
+	}
+
+	.item-card-img {
+		width: 100%;
+		height: 140px;
+		object-fit: cover;
+		border-bottom: 1px solid var(--border-color);
+	}
+
+	.item-card-body {
+		padding: 12px 14px;
+		flex: 1;
+	}
+
+	.item-card-title {
+		font-size: 15px;
+		font-weight: 500;
+		color: var(--text-primary);
+		margin-bottom: 2px;
+	}
+
+	.item-card-desc {
+		font-size: 12px;
+		color: var(--empty-text-primary);
+		margin-bottom: 10px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.item-card-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 12px;
+		font-size: 12px;
+		color: var(--text-secondary);
+	}
+
+	.item-card-meta strong {
+		color: var(--text-primary);
+		font-weight: 500;
+	}
+
+	.item-card-del {
+		position: absolute;
+		top: 8px;
+		right: 8px;
+	}
+</style>

@@ -54,7 +54,7 @@
 		<div class="card cat-card">
 			<div class="cat-header">
 				<strong>{cat.name}</strong>
-				<button class="btn-ghost btn-sm" onclick={() => removeCat(cat.id)}>Delete</button>
+				<button class="btn-del btn-sm" onclick={() => removeCat(cat.id)}><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 14 14"><path d="M0 0h14v14H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M1.707.293A1 1 0 0 0 .293 1.707L5.586 7L.293 12.293a1 1 0 1 0 1.414 1.414L7 8.414l5.293 5.293a1 1 0 0 0 1.414-1.414L8.414 7l5.293-5.293A1 1 0 0 0 12.293.293L7 5.586z" clip-rule="evenodd" /></svg></button>
 			</div>
 
 			<div class="form-row" style="margin-top:10px">
@@ -67,7 +67,7 @@
 					{#each cat.subCategories as sub}
 						<span class="sub-item">
 							{sub.name}
-							<button class="btn-ghost btn-sm" onclick={() => removeSub(sub.id)}>x</button>
+							<button class="btn-del btn-sm" onclick={() => removeSub(sub.id)}><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 14 14"><path d="M0 0h14v14H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M1.707.293A1 1 0 0 0 .293 1.707L5.586 7L.293 12.293a1 1 0 1 0 1.414 1.414L7 8.414l5.293 5.293a1 1 0 0 0 1.414-1.414L8.414 7l5.293-5.293A1 1 0 0 0 12.293.293L7 5.586z" clip-rule="evenodd" /></svg></button>
 						</span>
 					{/each}
 				</div>

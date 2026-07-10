@@ -343,6 +343,23 @@ button:active, .btn:active {
   background: var(--red);
   color: var(--red-bg);
 }
+.btn-del {
+  background: transparent;
+  color: var(--empty-text-primary);
+  border-color: transparent;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+.btn-del:hover {
+  background: color-mix(in srgb, var(--red) 20%, transparent);
+  color: var(--red);
+}
+.btn-del svg {
+  display: block;
+}
 .btn-icon {
   width: 32px;
   height: 32px;
@@ -482,11 +499,11 @@ tbody td {
   border-bottom: 1px solid color-mix(in srgb, var(--border-color) 40%, transparent);
   color: var(--text-secondary);
   font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 tbody tr { cursor: pointer; }
-tbody tr:nth-child(even) td {
-  background: var(--bg-off);
-}
 tbody tr:last-child td {
   border-bottom: none;
 }
@@ -685,14 +702,18 @@ table a {
 }
 .sub-item button {
   padding: 0;
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  font-size: 11px;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  font-size: 10px;
   line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+.sub-item button svg {
+  width: 8px;
+  height: 8px;
 }
 
 /* Empty state */
