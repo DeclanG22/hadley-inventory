@@ -61,6 +61,14 @@ export const items = {
 	update: (id: number, data: any) => request<any>(`/items/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 	remove: (id: number) => request<void>(`/items/${id}`, { method: 'DELETE' }),
 	transactions: {
+		all: (filters?: { dateFrom?: string; dateTo?: string; jobNumber?: string }) => {
+			const params = new URLSearchParams();
+			if (filters?.dateFrom) params.set('dateFrom', filters.dateFrom);
+			if (filters?.dateTo) params.set('dateTo', filters.dateTo);
+			if (filters?.jobNumber) params.set('jobNumber', filters.jobNumber);
+			const qs = params.toString();
+			return request<any[]>(`/items/transactions${qs ? `?${qs}` : ''}`);
+		},
 		list: (itemId: number) => request<any[]>(`/items/${itemId}/transactions`),
 		create: (itemId: number, data: any) =>
 			request<any>(`/items/${itemId}/transactions`, { method: 'POST', body: JSON.stringify(data) }),

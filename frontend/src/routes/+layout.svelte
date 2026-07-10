@@ -22,7 +22,7 @@
 			</a>
 
 			<span class="nav-label">Items</span>
-			<a href="/items" class="tab-link" class:active={path === '/items' || (path.startsWith('/items/') && path !== '/items/new' && path !== '/items/low-stock')}>
+			<a href="/items" class="tab-link" class:active={path === '/items' || (path.startsWith('/items/') && path !== '/items/new' && path !== '/items/low-stock' && path !== '/items/costing' && path !== '/items/import')}>
 <span class="tab-link-icon" aria-hidden="true">
     <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
 	<path d="M0 0h24v24H0z" fill="none" />
@@ -38,7 +38,7 @@
 				<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
 					<path d="M0 0h24v24H0z" fill="none" />
 					<path fill="currentColor" d="m21.71 10.12l-7.83-7.83a1 1 0 0 0-1.7.57L11.45 8l-2 2l-.33-.19A1 1 0 0 0 8 11.44l-1.15 1.17l-.33-.19a1 1 0 0 0-1.11 1.63l-1.17 1.16l-.32-.21a1 1 0 0 0-1.37.37a1 1 0 0 0 .25 1.26l-.51.51a.9.9 0 0 0-.21.33a1 1 0 0 0-.08.38V21a1 1 0 0 0 1 1h3.13a1 1 0 0 0 .38-.08a.9.9 0 0 0 .33-.21L8.54 20l.33.19a1 1 0 0 0 1.37-.36a1 1 0 0 0-.24-1.27l1.17-1.16l.33.19a1 1 0 0 0 .49.13a1 1 0 0 0 .6-1.72l1.17-1.16l.33.19a1 1 0 0 0 .49.13a1 1 0 0 0 .62-1.77l.79-.79l5.15-.73a1 1 0 0 0 .81-.68a1 1 0 0 0-.24-1.07M5.72 20H4v-1.72l.57-.57L6.75 19Zm2.49-2.5L6 16.25l1.14-1.14l2.17 1.25Zm2.61-2.6l-2.18-1.26l1.15-1.14L12 13.75Zm2.61-2.61L11.25 11l1.14-1.14l1.72 1.72Zm2.45-1.74l-2.43-2.43l.43-3l5 5Z" />
-</svg>
+				</svg>
 
 
 				</span>
@@ -53,12 +53,26 @@
 					<path stroke-linejoin="round" d="M12 22c-.818 0-1.6-.33-3.163-.988C4.946 19.373 3 18.554 3 17.175V7.542M12 22c.818 0 1.6-.33 3.163-.988C19.054 19.373 21 18.554 21 17.175V7.542M12 22v-9.97m9-4.488c0 .613-.802 1-2.405 1.773l-2.92 1.41c-1.804.87-2.705 1.304-3.675 1.304m9-4.487c0-.612-.802-.999-2.405-1.772L17 5M3 7.542c0 .613.802 1 2.405 1.773l2.92 1.41c1.804.87 2.705 1.304 3.675 1.304M3 7.542c0-.612.802-.999 2.405-1.772L7 5m-1 8.026l2 .997" />
 					<path d="m10 2l2 2m0 0l2 2m-2-2l-2 2m2-2l2-2" />
 				</g>
-</svg>
+			</svg>
 
 			</span>
 			<span>Low Stock</span>
 
 			</a>
+
+			<a href="/items/costing" class="tab-link" class:active={path === '/items/costing'}>
+			<span class="tab-link-icon" aria-hidden="true">
+			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16">
+				<path d="M0 0h16v16H0z" fill="none" />
+				<path fill="currentColor" d="M4 9h4v2H4z" />
+				<path fill="currentColor" d="M16 2h-1V0H5v2H3v1.25L2.4 4H1v1.75L0 7v9h12l4-5zM2 5h8v2H2zm9 10H1V8h10zm1-8h-1V4H4V3h8zm2-2.5l-1 1.25V2H6V1h8z" />
+</svg>
+
+			</span>
+			<span>Costing</span>
+
+			</a>
+
 			<a href="/item-categories" class="tab-link" class:active={path === '/item-categories'}>
 			<span class="tab-link-icon" aria-hidden="true">
 			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
@@ -139,7 +153,8 @@
 <style>
 	.app-shell {
 		display: flex;
-		min-height: 100dvh;
+		height: 100dvh;
+		overflow: hidden;
 	}
 	.sidebar {
 		width: 220px;
@@ -150,6 +165,10 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
+		position: sticky;
+		top: 0;
+		height: 100dvh;
+		overflow-y: auto;
 	}
 	.logo {
 		font-size: 13px;
@@ -203,5 +222,7 @@
 		padding: 24px;
 		max-width: 1280px;
 		overflow-x: auto;
+		overflow-y: auto;
+		height: 100dvh;
 	}
 </style>

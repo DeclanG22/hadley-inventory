@@ -15,7 +15,10 @@
 
 <div class="page-header">
 	<h1>Items</h1>
-	<a href="/items/new" class="btn btn-primary">+ New Item</a>
+	<div style="display:flex;gap:6px">
+		<a href="/items/import" class="btn">Import</a>
+		<a href="/items/new" class="btn btn-primary">+ New Item</a>
+	</div>
 </div>
 
 <div class="card">

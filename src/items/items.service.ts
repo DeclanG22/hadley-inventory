@@ -102,6 +102,28 @@ export class ItemsService {
     });
   }
 
+  async findAllTransactions(filters: { dateFrom?: string; dateTo?: string; jobNumber?: string }) {
+    const where: any = {};
+
+    if (filters.dateFrom || filters.dateTo) {
+      where.date = {};
+      if (filters.dateFrom) where.date.gte = new Date(filters.dateFrom + 'T00:00:00');
+      if (filters.dateTo) where.date.lte = new Date(filters.dateTo + 'T23:59:59');
+    }
+
+    if (filters.jobNumber) {
+      where.jobNumber = { contains: filters.jobNumber, mode: 'insensitive' };
+    }
+
+    return this.prisma.itemTransaction.findMany({
+      where,
+      orderBy: { date: 'desc' },
+      include: {
+        item: { select: { id: true, itemNumber: true, description: true } },
+      },
+    });
+  }
+
   findTransactions(itemId: number) {
     return this.prisma.itemTransaction.findMany({
       where: { itemId },

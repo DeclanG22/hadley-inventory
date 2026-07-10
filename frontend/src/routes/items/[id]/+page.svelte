@@ -15,6 +15,54 @@
 
 	let txnForm = $state({ jobNumber: '', date: new Date().toISOString().slice(0,10), quantityIn: '', quantityOut: '', unitPrice: '', totalCost: '', notes: '' });
 
+	let filterDateFrom = $state('');
+	let filterDateTo = $state('');
+	let filterJob = $state('');
+	let filterDirection = $state('all');
+
+	let filtered = $derived.by(() => {
+		let f = txns;
+		if (filterDateFrom) {
+			const from = new Date(filterDateFrom);
+			f = f.filter((t: any) => new Date(t.date) >= from);
+		}
+		if (filterDateTo) {
+			const to = new Date(filterDateTo);
+			to.setDate(to.getDate() + 1);
+			f = f.filter((t: any) => new Date(t.date) < to);
+		}
+		if (filterJob) {
+			const q = filterJob.toLowerCase();
+			f = f.filter((t: any) => (t.jobNumber ?? '').toLowerCase().includes(q));
+		}
+		if (filterDirection === 'in') {
+			f = f.filter((t: any) => t.quantityInOut > 0);
+		} else if (filterDirection === 'out') {
+			f = f.filter((t: any) => t.quantityInOut < 0);
+		}
+		return f;
+	});
+
+	function exportCsv() {
+		const rows = [['Date','In','Out','Job Number','Unit Price','Total Cost','Notes']];
+		for (const t of filtered) {
+			const d = new Date(t.date).toLocaleDateString();
+			const qIn = t.quantityInOut > 0 ? t.quantityInOut : '';
+			const qOut = t.quantityInOut < 0 ? -t.quantityInOut : '';
+			const price = t.unitPrice ? Number(t.unitPrice).toFixed(2) : '';
+			const cost = t.totalCost ? Number(t.totalCost).toFixed(2) : '';
+			rows.push([d, qIn, qOut, t.jobNumber ?? '', price, cost, t.notes ?? '']);
+		}
+		const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+		const blob = new Blob([csv], { type: 'text/csv' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `${item.itemNumber}_transactions.csv`;
+		a.click();
+		URL.revokeObjectURL(url);
+	}
+
 	function load() {
 		const id = Number(params.id);
 		items.get(id).then(i => { item = i; resetForm(i); });
@@ -177,15 +225,34 @@
 	</div>
 
 	<div class="card" style="margin-top:10px">
-		<div class="card-header"><h2>Transaction History</h2></div>
+		<div class="card-header">
+			<h2>Transaction History</h2>
+			<div class="page-header-actions">
+				{#if filtered.length > 0}
+					<button class="btn-ghost btn-sm" onclick={exportCsv}>Export CSV</button>
+				{/if}
+			</div>
+		</div>
+		<div class="filter-bar">
+			<input type="date" bind:value={filterDateFrom} placeholder="From" title="From date" />
+			<input type="date" bind:value={filterDateTo} placeholder="To" title="To date" />
+			<input type="search" bind:value={filterJob} placeholder="Job #" style="flex:1;max-width:160px" />
+			<select bind:value={filterDirection}>
+				<option value="all">All</option>
+				<option value="in">In</option>
+				<option value="out">Out</option>
+			</select>
+		</div>
 		{#if txns.length === 0}
 			<div class="empty-state">No transactions recorded.</div>
+		{:else if filtered.length === 0}
+			<div class="empty-state">No transactions match the filter.</div>
 		{:else}
 			<div class="table-wrap">
 				<table>
 					<thead><tr><th>Date</th><th>In</th><th>Out</th><th>Job</th><th>Unit Price</th><th>Total</th><th>Notes</th></tr></thead>
 					<tbody>
-						{#each txns as t}
+						{#each filtered as t}
 							<tr>
 								<td>{new Date(t.date).toLocaleDateString()}</td>
 								<td>{t.quantityInOut > 0 ? t.quantityInOut : '-'}</td>

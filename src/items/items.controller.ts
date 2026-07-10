@@ -23,6 +23,16 @@ export class ItemsController {
     return this.itemsService.findLowStock();
   }
 
+  // All transactions (costing view) — must come before @Get(':id')
+  @Get('transactions')
+  findAllTransactions(
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('jobNumber') jobNumber?: string,
+  ) {
+    return this.itemsService.findAllTransactions({ dateFrom, dateTo, jobNumber });
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.itemsService.findOne(id);
