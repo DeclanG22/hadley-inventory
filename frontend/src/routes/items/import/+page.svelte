@@ -7,9 +7,10 @@
 	let importing = $state(false);
 	let result = $state<any>(null);
 	let error = $state('');
+	let fieldsLoading = $state(true);
 
 	$effect(() => {
-		fetch('/api/items/import/fields').then(r => r.json()).then(d => fields = d);
+		fetch('/api/items/import/fields').then(r => r.json()).then(d => fields = d).finally(() => fieldsLoading = false);
 	});
 
 	async function analyzeFile() {
@@ -116,7 +117,13 @@
 	<a href="/items" class="btn-ghost btn-sm">Back</a>
 </div>
 
-{#if result}
+{#if fieldsLoading}
+	<div class="card"><div class="sk-form">
+		<div class="sk-line sk" style="width:40%;height:24px"></div>
+		<div class="sk-line sk" style="width:100%;height:100px;border-radius:8px"></div>
+		<div class="sk-line sk" style="width:20%;height:36px;margin-top:12px;border-radius:6px"></div>
+	</div></div>
+{:else if result}
 	<div class="card">
 		<div class="card-header"><h2>Import Results</h2></div>
 		<div class="result-grid">

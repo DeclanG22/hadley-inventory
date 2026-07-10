@@ -1,6 +1,7 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import '../app.css';
 	import { page } from '$app/stores';
+	import Toast from '$lib/ToastNotification.svelte';
 	let { children } = $props();
 	let path = $derived($page.url.pathname);
 </script>
@@ -45,6 +46,16 @@
 			<span>New Item</span>
 
 			</a>
+			<a href="/item-categories" class="tab-link" class:active={path === '/item-categories'}>
+			<span class="tab-link-icon" aria-hidden="true">
+			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+				<path d="M0 0h24v24H0z" fill="none" />
+				<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 3h6m-3-3v6" />
+</svg>
+			</span>
+			<span>Categories</span>
+
+			</a>
 			<a href="/items/low-stock" class="tab-link" class:active={path === '/items/low-stock'}>
 			<span class="tab-link-icon" aria-hidden="true">
 			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
@@ -73,20 +84,26 @@
 
 			</a>
 
-			<a href="/item-categories" class="tab-link" class:active={path === '/item-categories'}>
+			<a href="/stock-takes" class="tab-link" class:active={path === '/stock-takes' || path.startsWith('/stock-takes/')}>
 			<span class="tab-link-icon" aria-hidden="true">
 			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
 				<path d="M0 0h24v24H0z" fill="none" />
-				<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 3h6m-3-3v6" />
+				<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+					<path d="M4 18a2 2 0 1 0 4 0a2 2 0 1 0-4 0m12 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0M6 12v-2a6 6 0 1 1 12 0v2" />
+					<path d="m15 9l3 3l3-3" />
+				</g>
 </svg>
-			</span>
-			<span>Categories</span>
 
+
+			</span>
+			<span>Stock Take</span>
 			</a>
 
 
+
+
 			<span class="nav-label">Tools</span>
-			<a href="/tools" class="tab-link" class:active={path === '/tools' || (path.startsWith('/tools/') && path !== '/tools/new')}>
+			<a href="/tools" class="tab-link" class:active={path === '/tools' || (path.startsWith('/tools/') && path !== '/tools/new' && path !== '/tools/costing')}>
     <span class="tab-link-icon" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 48 48">
             <path d="M0 0h48v48H0z" fill="none" />
@@ -111,6 +128,17 @@
 			<span>New Tool</span>
 
 			</a>
+			<a href="/tools/costing" class="tab-link" class:active={path === '/tools/costing'}>
+			<span class="tab-link-icon" aria-hidden="true">
+			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16">
+				<path d="M0 0h16v16H0z" fill="none" />
+				<path fill="currentColor" d="M4 9h4v2H4z" />
+				<path fill="currentColor" d="M16 2h-1V0H5v2H3v1.25L2.4 4H1v1.75L0 7v9h12l4-5zM2 5h8v2H2zm9 10H1V8h10zm1-8h-1V4H4V3h8zm2-2.5l-1 1.25V2H6V1h8z" />
+			</svg>
+			</span>
+			<span>Costing</span>
+			</a>
+
 			<a href="/tool-categories" class="tab-link" class:active={path === '/tool-categories'}>
 			<span class="tab-link-icon" aria-hidden="true">
 			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
@@ -149,6 +177,7 @@
 		{@render children()}
 	</main>
 </div>
+<Toast />
 
 <style>
 	.app-shell {
@@ -165,10 +194,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
-		position: sticky;
-		top: 0;
 		height: 100dvh;
-		overflow-y: auto;
 	}
 	.logo {
 		font-size: 13px;
@@ -224,5 +250,6 @@
 		overflow-x: auto;
 		overflow-y: auto;
 		height: 100dvh;
+		box-sizing: border-box;
 	}
 </style>

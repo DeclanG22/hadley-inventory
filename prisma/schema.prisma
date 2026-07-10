@@ -63,7 +63,6 @@ model Item {
   id            Int      @id @default(autoincrement())
   itemNumber    String   @unique @map("item_number")
   description   String
-  productType   String?  @map("product_type")
   unit          String?
   unitPrice     Decimal? @map("unit_price") @db.Decimal(10, 2)
   weightPerUnit Decimal? @map("weight_per_unit") @db.Decimal(10, 4)
@@ -91,7 +90,8 @@ model Item {
   dateDisbursed DateTime? @map("date_disbursed")
   totalCost     Decimal?  @map("total_cost") @db.Decimal(12, 2)
 
-  transactions ItemTransaction[]
+  transactions   ItemTransaction[]
+  stockTakeItems StockTakeItem[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -113,6 +113,36 @@ model ItemTransaction {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("item_transactions")
+}
+
+// ===== Stock Take / Inventory Count =====
+
+model StockTake {
+  id        Int            @id @default(autoincrement())
+  date      DateTime
+  notes     String?
+  status    String         @default("draft") // draft, completed, cancelled
+
+  items StockTakeItem[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("stock_takes")
+}
+
+model StockTakeItem {
+  id          Int       @id @default(autoincrement())
+  stockTakeId Int       @map("stock_take_id")
+  stockTake   StockTake @relation(fields: [stockTakeId], references: [id], onDelete: Cascade)
+  itemId      Int       @map("item_id")
+  item        Item      @relation(fields: [itemId], references: [id])
+  systemQty   Int       @map("system_qty")
+  physicalQty Int?      @map("physical_qty")
+  notes       String?
+
+  @@unique([stockTakeId, itemId])
+  @@map("stock_take_items")
 }
 
 // ===== Tools Domain (Unique Assets) =====
@@ -138,6 +168,7 @@ model Tool {
   serialNumber String?  @map("serial_number")
   qrCode       String?  @map("qr_code")
   imageUrl     String?  @map("image_url")
+  purchaseCost Decimal?  @map("purchase_cost") @db.Decimal(10, 2)
   notes        String?
 
   categoryId   Int?           @map("category_id")

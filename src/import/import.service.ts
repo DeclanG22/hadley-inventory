@@ -24,9 +24,6 @@ const COLUMNS: Record<string, string> = {
   'product description': 'description',
   'name': 'description',
   'product name': 'description',
-  'product type': 'productType',
-  'type': 'productType',
-  'product': 'productType',
   'date added': 'dateAdded',
   'added': 'dateAdded',
   'date created': 'dateAdded',
@@ -136,7 +133,6 @@ const COLUMNS: Record<string, string> = {
 const FIELDS = [
   { value: 'itemNumber', label: 'Item Number', required: true },
   { value: 'description', label: 'Description', required: true },
-  { value: 'productType', label: 'Product Type', required: false },
   { value: 'dateAdded', label: 'Date Added', required: false },
   { value: 'onHand', label: 'On Hand', required: false },
   { value: 'lastQtyInOut', label: 'Last Quantity In or Out', required: false },
@@ -167,7 +163,6 @@ interface StoredFile {
 interface ImportRow {
   itemNumber: string;
   description: string;
-  productType?: string;
   dateAdded?: string;
   onHand?: number;
   lastQtyInOut?: number;
@@ -396,7 +391,6 @@ export class ImportService {
     return {
       itemNumber: str('itemNumber') ?? '',
       description: str('description') ?? '',
-      productType: str('productType'),
       dateAdded: str('dateAdded'),
       onHand: num('onHand'),
       lastQtyInOut: num('lastQtyInOut'),
@@ -471,7 +465,6 @@ export class ImportService {
 
     const data: any = {
       description: mapped.description,
-      productType: mapped.productType,
       unit: mapped.unit,
       unitPrice: mapped.unitPrice,
       weightPerUnit: mapped.weightPerUnit,

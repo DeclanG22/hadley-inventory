@@ -14,8 +14,25 @@ export class ItemsController {
   }
 
   @Get()
-  findAll(@Query('q') q?: string) {
-    return this.itemsService.findAll(q);
+  findAll(
+    @Query('q') q?: string,
+    @Query('categoryId') categoryId?: string,
+    @Query('vendorId') vendorId?: string,
+    @Query('locationId') locationId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string,
+  ) {
+    return this.itemsService.findAll(q, {
+      categoryId: categoryId ? Number(categoryId) : undefined,
+      vendorId: vendorId ? Number(vendorId) : undefined,
+      locationId: locationId ? Number(locationId) : undefined,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      sortBy,
+      sortOrder: sortOrder as 'asc' | 'desc' | undefined,
+    });
   }
 
   @Get('low-stock')

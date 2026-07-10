@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { items } from '$lib/api';
 
 	let txns = $state<any[]>([]);
@@ -89,7 +90,13 @@
 	</div>
 
 	{#if loading}
-		<div class="loading">Loading...</div>
+		<div class="sk-table">
+			<div class="sk-row"><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:14%"></div><div class="sk-cell sk" style="width:28%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:12%"></div></div>
+			<div class="sk-row"><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:16%"></div><div class="sk-cell sk" style="width:32%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:12%"></div></div>
+			<div class="sk-row"><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:25%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:14%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:12%"></div></div>
+			<div class="sk-row"><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:18%"></div><div class="sk-cell sk" style="width:22%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:14%"></div><div class="sk-cell sk" style="width:12%"></div></div>
+			<div class="sk-row"><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:15%"></div><div class="sk-cell sk" style="width:30%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:12%"></div></div>
+		</div>
 	{:else if txns.length === 0}
 		<div class="empty-state">No transactions found.</div>
 	{:else}
@@ -110,9 +117,9 @@
 				</thead>
 				<tbody>
 					{#each txns as t}
-						<tr>
+						<tr onclick={() => goto(`/items/${t.item.id}`)}>
 							<td style="white-space:nowrap">{new Date(t.date).toLocaleDateString()}</td>
-							<td><a href="/items/{t.item.id}">{t.item.itemNumber}</a></td>
+							<td><a href="/items/{t.item.id}" onclick={(e) => e.stopPropagation()}>{t.item.itemNumber}</a></td>
 							<td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{t.item.description}</td>
 							<td>{t.jobNumber ?? '-'}</td>
 							<td>{Math.abs(t.quantityInOut)}</td>

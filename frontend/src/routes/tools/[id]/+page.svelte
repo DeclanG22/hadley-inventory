@@ -1,5 +1,6 @@
 ﻿<script lang="ts">
 	import { tools, locations, toolCategories } from '$lib/api';
+	import { addToast } from '$lib/toast.svelte';
 	let { params } = $props();
 
 	let tool = $state<any>(null);
@@ -41,46 +42,58 @@
 	}
 
 	async function save() {
-		const id = Number(params.id);
-		const data: any = {};
-		for (const [k, v] of Object.entries(form)) {
-			if (v === '') continue;
-			if (['categoryId','locationId'].includes(k)) data[k] = Number(v);
-			else data[k] = v;
-		}
-		await tools.update(id, data);
-		editing = false;
-		tools.get(id).then(t => { tool = t; resetForm(t); });
+		try {
+			const id = Number(params.id);
+			const data: any = {};
+			for (const [k, v] of Object.entries(form)) {
+				if (v === '') continue;
+				if (['categoryId','locationId'].includes(k)) data[k] = Number(v);
+				else data[k] = v;
+			}
+			await tools.update(id, data);
+			editing = false;
+			tools.get(id).then(t => { tool = t; resetForm(t); });
+			addToast('Tool updated', 'success');
+		} catch (e: any) { addToast(e.message, 'error'); }
 	}
 
 	async function doCheckout() {
-		const id = Number(params.id);
-		const data: any = { checkedOutBy: checkoutForm.checkedOutBy };
-		if (checkoutForm.jobNumber) data.jobNumber = checkoutForm.jobNumber;
-		if (checkoutForm.jobSite) data.jobSite = checkoutForm.jobSite;
-		if (checkoutForm.expectedReturnAt) data.expectedReturnAt = checkoutForm.expectedReturnAt;
-		if (checkoutForm.notes) data.notes = checkoutForm.notes;
-		await tools.checkout(id, data);
-		checkoutForm = { checkedOutBy: '', jobNumber: '', jobSite: '', expectedReturnAt: '', notes: '' };
-		load();
+		try {
+			const id = Number(params.id);
+			const data: any = { checkedOutBy: checkoutForm.checkedOutBy };
+			if (checkoutForm.jobNumber) data.jobNumber = checkoutForm.jobNumber;
+			if (checkoutForm.jobSite) data.jobSite = checkoutForm.jobSite;
+			if (checkoutForm.expectedReturnAt) data.expectedReturnAt = checkoutForm.expectedReturnAt;
+			if (checkoutForm.notes) data.notes = checkoutForm.notes;
+			await tools.checkout(id, data);
+			checkoutForm = { checkedOutBy: '', jobNumber: '', jobSite: '', expectedReturnAt: '', notes: '' };
+			load();
+			addToast('Tool checked out', 'success');
+		} catch (e: any) { addToast(e.message, 'error'); }
 	}
 
 	async function doCheckin() {
-		const id = Number(params.id);
-		await tools.checkin(id);
-		load();
+		try {
+			const id = Number(params.id);
+			await tools.checkin(id);
+			load();
+			addToast('Tool checked in', 'success');
+		} catch (e: any) { addToast(e.message, 'error'); }
 	}
 
 	async function doMaint() {
-		const id = Number(params.id);
-		const data: any = { type: maintForm.type, date: maintForm.date };
-		if (maintForm.description) data.description = maintForm.description;
-		if (maintForm.performedBy) data.performedBy = maintForm.performedBy;
-		if (maintForm.cost) data.cost = Number(maintForm.cost);
-		if (maintForm.notes) data.notes = maintForm.notes;
-		await tools.maintenance.create(id, data);
-		maintForm = { type: 'repair', description: '', date: new Date().toISOString().slice(0,10), performedBy: '', cost: '', notes: '' };
-		load();
+		try {
+			const id = Number(params.id);
+			const data: any = { type: maintForm.type, date: maintForm.date };
+			if (maintForm.description) data.description = maintForm.description;
+			if (maintForm.performedBy) data.performedBy = maintForm.performedBy;
+			if (maintForm.cost) data.cost = Number(maintForm.cost);
+			if (maintForm.notes) data.notes = maintForm.notes;
+			await tools.maintenance.create(id, data);
+			maintForm = { type: 'repair', description: '', date: new Date().toISOString().slice(0,10), performedBy: '', cost: '', notes: '' };
+			load();
+			addToast('Maintenance record added', 'success');
+		} catch (e: any) { addToast(e.message, 'error'); }
 	}
 
 	function openCheckout(): any | undefined {
@@ -165,7 +178,15 @@
 </script>
 
 {#if !tool}
-	<div class="loading">Loading...</div>
+	<div class="card"><div class="sk-detail">
+		<div class="sk-line sk" style="width:30%;height:24px"></div>
+		<div class="sk-line sk" style="width:50%"></div>
+		<div class="sk-line sk" style="width:40%"></div>
+		<div style="height:20px"></div>
+		<div class="sk-line sk" style="width:100%"></div>
+		<div class="sk-line sk" style="width:100%"></div>
+		<div class="sk-line sk" style="width:60%"></div>
+	</div></div>
 {:else}
 	<div class="page-header">
 		<div>
@@ -345,7 +366,7 @@
 						{#each filteredMaint as m}
 							<tr>
 								<td>{new Date(m.date).toLocaleDateString()}</td>
-								<td><span class="badge">{m.type}</span></td>
+								<td><span class="badge badge-{m.type}">{m.type}</span></td>
 								<td>{m.description ?? '-'}</td>
 								<td>{m.performedBy ?? '-'}</td>
 								<td>{m.cost ? `$${Number(m.cost).toFixed(2)}` : '-'}</td>

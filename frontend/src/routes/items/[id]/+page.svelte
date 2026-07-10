@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { items, vendors, locations, itemCategories } from '$lib/api';
 	import ItemChart from '$lib/ItemChart.svelte';
+	import { addToast } from '$lib/toast.svelte';
 	let { params } = $props();
 
 	let item = $state<any>(null);
@@ -75,7 +76,7 @@
 
 	function resetForm(i: any) {
 		form = {
-			itemNumber: i.itemNumber, description: i.description, productType: i.productType ?? '',
+			itemNumber: i.itemNumber, description: i.description,
 			unit: i.unit ?? '', unitPrice: i.unitPrice ?? '', weightPerUnit: i.weightPerUnit ?? '',
 			analysisCode: i.analysisCode ?? '', headType: i.headType ?? '', qrCode: i.qrCode ?? '', imageUrl: i.imageUrl ?? '',
 			categoryId: i.categoryId ?? '', subCategoryId: i.subCategoryId ?? '',
@@ -93,38 +94,52 @@
 	}
 
 	async function save() {
-		const id = Number(params.id);
-		const data: any = {};
-		for (const [k, v] of Object.entries(form)) {
-			if (v === '') continue;
-			if (['unitPrice','weightPerUnit','totalCost'].includes(k)) data[k] = Number(v);
-			else if (['categoryId','subCategoryId','locationId','vendorId','onHand','minStock','lastQtyInOut'].includes(k)) data[k] = Number(v);
-			else data[k] = v;
-		}
-		await items.update(id, data);
-		editing = false;
-		items.get(id).then(i => { item = i; resetForm(i); });
+		try {
+			const id = Number(params.id);
+			const data: any = {};
+			for (const [k, v] of Object.entries(form)) {
+				if (v === '') continue;
+				if (['unitPrice','weightPerUnit','totalCost'].includes(k)) data[k] = Number(v);
+				else if (['categoryId','subCategoryId','locationId','vendorId','onHand','minStock','lastQtyInOut'].includes(k)) data[k] = Number(v);
+				else data[k] = v;
+			}
+			await items.update(id, data);
+			editing = false;
+			items.get(id).then(i => { item = i; resetForm(i); });
+			addToast('Item updated', 'success');
+		} catch (e: any) { addToast(e.message, 'error'); }
 	}
 
 	async function addTxn() {
-		const id = Number(params.id);
-		const qtyIn = Number(txnForm.quantityIn) || 0;
-		const qtyOut = Number(txnForm.quantityOut) || 0;
-		if (qtyIn === 0 && qtyOut === 0) return;
-		const data: any = { date: txnForm.date, quantityInOut: qtyIn - qtyOut };
-		if (txnForm.jobNumber) data.jobNumber = txnForm.jobNumber;
-		if (txnForm.unitPrice) data.unitPrice = Number(txnForm.unitPrice);
-		if (txnForm.totalCost) data.totalCost = Number(txnForm.totalCost);
-		if (txnForm.notes) data.notes = txnForm.notes;
-		await items.transactions.create(id, data);
-		txnForm = { jobNumber: '', date: new Date().toISOString().slice(0,10), quantityIn: '', quantityOut: '', unitPrice: '', totalCost: '', notes: '' };
-		items.get(id).then(i => item = i);
-		items.transactions.list(id).then(t => txns = t);
+		try {
+			const id = Number(params.id);
+			const qtyIn = Number(txnForm.quantityIn) || 0;
+			const qtyOut = Number(txnForm.quantityOut) || 0;
+			if (qtyIn === 0 && qtyOut === 0) return;
+			const data: any = { date: txnForm.date, quantityInOut: qtyIn - qtyOut };
+			if (txnForm.jobNumber) data.jobNumber = txnForm.jobNumber;
+			if (txnForm.unitPrice) data.unitPrice = Number(txnForm.unitPrice);
+			if (txnForm.totalCost) data.totalCost = Number(txnForm.totalCost);
+			if (txnForm.notes) data.notes = txnForm.notes;
+			await items.transactions.create(id, data);
+			txnForm = { jobNumber: '', date: new Date().toISOString().slice(0,10), quantityIn: '', quantityOut: '', unitPrice: '', totalCost: '', notes: '' };
+			items.get(id).then(i => item = i);
+			items.transactions.list(id).then(t => txns = t);
+			addToast('Transaction added', 'success');
+		} catch (e: any) { addToast(e.message, 'error'); }
 	}
 </script>
 
 {#if !item}
-	<div class="loading">Loading...</div>
+	<div class="card"><div class="sk-detail">
+		<div class="sk-line sk" style="width:35%;height:24px"></div>
+		<div class="sk-line sk" style="width:55%"></div>
+		<div class="sk-line sk" style="width:45%"></div>
+		<div style="height:20px"></div>
+		<div class="sk-line sk" style="width:100%"></div>
+		<div class="sk-line sk" style="width:100%"></div>
+		<div class="sk-line sk" style="width:70%"></div>
+	</div></div>
 {:else}
 	<div class="page-header">
 		<div>
@@ -146,8 +161,7 @@
 			<div class="form-grid">
 				<div class="full"><label>Item Number</label><input bind:value={form.itemNumber} required /></div>
 				<div class="full"><label>Description</label><input bind:value={form.description} required /></div>
-				<div><label>Product Type</label><input bind:value={form.productType} /></div>
-				<div><label>Unit</label><input bind:value={form.unit} placeholder="Each, Box, etc" /></div>
+<div><label>Unit</label><input bind:value={form.unit} placeholder="Each, Box, etc" /></div>
 				<div><label>Unit Price</label><input type="number" step="0.01" bind:value={form.unitPrice} /></div>
 				<div><label>Weight/Unit (g)</label><input type="number" step="0.0001" bind:value={form.weightPerUnit} /></div>
 				<div><label>Analysis Code</label><input bind:value={form.analysisCode} /></div>
@@ -206,7 +220,10 @@
 		</div>
 	{/if}
 
-	<ItemChart transactions={txns} />
+	<div class="card" style="margin-top:10px">
+		<div class="card-header"><h2>Stock History Chart</h2></div>
+		<ItemChart transactions={txns} />
+	</div>
 
 	<div class="card" style="margin-top:10px">
 		<div class="card-header"><h2>Record Transaction</h2></div>

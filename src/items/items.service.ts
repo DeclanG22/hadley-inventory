@@ -14,24 +14,47 @@ export class ItemsService {
     return this.prisma.item.create({ data });
   }
 
-  findAll(q?: string) {
-    return this.prisma.item.findMany({
-      where: q
-        ? {
-            OR: [
-              { itemNumber: { contains: q, mode: 'insensitive' } },
-              { description: { contains: q, mode: 'insensitive' } },
-            ],
-          }
-        : undefined,
-      orderBy: { itemNumber: 'asc' },
-      include: {
-        category: true,
-        subCategory: true,
-        location: true,
-        vendor: true,
-      },
-    });
+  async findAll(q?: string, filters?: {
+    categoryId?: number; vendorId?: number; locationId?: number;
+    page?: number; limit?: number;
+    sortBy?: string; sortOrder?: 'asc' | 'desc';
+  }) {
+    const where: any = {};
+    if (q) {
+      where.OR = [
+        { itemNumber: { contains: q, mode: 'insensitive' } },
+        { description: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+    if (filters?.categoryId) where.categoryId = filters.categoryId;
+    if (filters?.vendorId) where.vendorId = filters.vendorId;
+    if (filters?.locationId) where.locationId = filters.locationId;
+
+    const page = filters?.page ?? 1;
+    const limit = filters?.limit ?? 2000;
+    const skip = (page - 1) * limit;
+
+    const allowedSorts = ['itemNumber', 'description', 'onHand', 'unitPrice'];
+    const sortBy = allowedSorts.includes(filters?.sortBy ?? '') ? filters!.sortBy! : 'itemNumber';
+    const sortOrder = filters?.sortOrder === 'desc' ? 'desc' : 'asc';
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.item.findMany({
+        where,
+        orderBy: { [sortBy]: sortOrder },
+        skip,
+        take: limit,
+        include: {
+          category: true,
+          subCategory: true,
+          location: true,
+          vendor: true,
+        },
+      }),
+      this.prisma.item.count({ where }),
+    ]);
+
+    return { data, total, page, limit };
   }
 
   async findLowStock() {

@@ -160,6 +160,98 @@ export class ToolsService {
     });
   }
 
+  // Combined costing — purchase records + maintenance records
+
+  async findCosting(filters: { dateFrom?: string; dateTo?: string }) {
+    const whereMaint: any = {};
+    if (filters.dateFrom || filters.dateTo) {
+      whereMaint.date = {};
+      if (filters.dateFrom) whereMaint.date.gte = new Date(filters.dateFrom + 'T00:00:00');
+      if (filters.dateTo) whereMaint.date.lte = new Date(filters.dateTo + 'T23:59:59');
+    }
+
+    const [tools, maints] = await Promise.all([
+      this.prisma.tool.findMany({
+        select: { id: true, toolNumber: true, name: true, brand: true, model: true, purchaseCost: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.toolMaintenanceLog.findMany({
+        where: whereMaint,
+        orderBy: { date: 'desc' },
+        include: {
+          tool: { select: { id: true, toolNumber: true, name: true } },
+        },
+      }),
+    ]);
+
+    const records: any[] = [];
+
+    for (const t of tools) {
+      if (!t.purchaseCost) continue;
+      records.push({
+        date: t.createdAt,
+        type: 'purchase',
+        toolId: t.id,
+        toolNumber: t.toolNumber,
+        toolName: t.name,
+        description: t.brand && t.model ? `${t.brand} ${t.model}` : (t.brand ?? t.model ?? ''),
+        performedBy: null,
+        cost: Number(t.purchaseCost),
+      });
+    }
+
+    for (const m of maints) {
+      records.push({
+        date: m.date,
+        type: m.type,
+        toolId: m.tool.id,
+        toolNumber: m.tool.toolNumber,
+        toolName: m.tool.name,
+        description: m.description ?? '',
+        performedBy: m.performedBy ?? null,
+        cost: m.cost ? Number(m.cost) : null,
+      });
+    }
+
+    // Filter by date for purchase records (maintenance already filtered via Prisma)
+    let filtered = records;
+    if (filters.dateFrom) {
+      const from = new Date(filters.dateFrom + 'T00:00:00');
+      filtered = filtered.filter(r => r.date >= from);
+    }
+    if (filters.dateTo) {
+      const to = new Date(filters.dateTo + 'T23:59:59');
+      filtered = filtered.filter(r => r.date <= to);
+    }
+
+    filtered.sort((a, b) => b.date.getTime() - a.date.getTime());
+    return filtered;
+  }
+
+  // Maintenance costing
+
+  async findMaintenanceCosting(filters: { dateFrom?: string; dateTo?: string; type?: string }) {
+    const where: any = {};
+
+    if (filters.dateFrom || filters.dateTo) {
+      where.date = {};
+      if (filters.dateFrom) where.date.gte = new Date(filters.dateFrom + 'T00:00:00');
+      if (filters.dateTo) where.date.lte = new Date(filters.dateTo + 'T23:59:59');
+    }
+
+    if (filters.type) {
+      where.type = filters.type;
+    }
+
+    return this.prisma.toolMaintenanceLog.findMany({
+      where,
+      orderBy: { date: 'desc' },
+      include: {
+        tool: { select: { id: true, toolNumber: true, name: true, purchaseCost: true } },
+      },
+    });
+  }
+
   // Maintenance
 
   createMaintenance(id: number, dto: CreateMaintenanceDto) {

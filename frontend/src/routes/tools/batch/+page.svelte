@@ -1,8 +1,10 @@
 ﻿<script lang="ts">
 	import { tools, locations, toolCategories } from '$lib/api';
+	import { addToast } from '$lib/toast.svelte';
 
 	let locList = $state<any[]>([]);
 	let catList = $state<any[]>([]);
+	let loading = $state(true);
 
 	let form = $state({
 		quantity: '',
@@ -15,8 +17,11 @@
 	let error = $state('');
 
 	function loadRefs() {
-		locations.list().then(l => locList = l);
-		toolCategories.list().then(l => catList = l);
+		loading = true;
+		Promise.all([
+			locations.list().then(l => locList = l),
+			toolCategories.list().then(l => catList = l),
+		]).finally(() => loading = false);
 	}
 	$effect(loadRefs);
 
@@ -40,8 +45,10 @@
 			const result = await tools.batchCreate(data);
 			created = result;
 			saved = true;
+			addToast(`Created ${result.length} tools`, 'success');
 		} catch (e: any) {
 			error = e.message;
+			addToast(e.message, 'error');
 		}
 	}
 </script>
@@ -51,7 +58,16 @@
 	<a href="/tools" class="btn-ghost btn-sm">Back to Tools</a>
 </div>
 
-{#if saved}
+{#if loading}
+	<div class="card"><div class="sk-form">
+		<div style="display:flex;gap:16px"><div class="sk-line sk" style="width:50%"></div><div class="sk-line sk" style="width:50%"></div></div>
+		<div class="sk-line sk" style="width:100%"></div>
+		<div class="sk-line sk" style="width:100%"></div>
+		<div style="display:flex;gap:16px"><div class="sk-line sk" style="width:50%"></div><div class="sk-line sk" style="width:50%"></div></div>
+		<div style="display:flex;gap:16px"><div class="sk-line sk" style="width:50%"></div><div class="sk-line sk" style="width:50%"></div></div>
+		<div class="sk-line sk" style="width:30%;height:36px;margin-top:12px;border-radius:6px"></div>
+	</div></div>
+{:else if saved}
 	<div class="card success-card">
 		<p>Created {created.length} tools!</p>
 		<div class="table-wrap" style="margin-top:12px">

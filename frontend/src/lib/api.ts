@@ -45,6 +45,20 @@ export const itemCategories = {
 	},
 };
 
+// Stock Takes
+export const stockTakes = {
+	list: () => request<any[]>('/stock-takes'),
+	get: (id: number) => request<any>(`/stock-takes/${id}`),
+	create: (data: { date: string; notes?: string }) =>
+		request<any>('/stock-takes', { method: 'POST', body: JSON.stringify(data) }),
+	update: (id: number, data: any) =>
+		request<any>(`/stock-takes/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+	remove: (id: number) => request<void>(`/stock-takes/${id}`, { method: 'DELETE' }),
+	updateItem: (stockTakeId: number, itemId: number, data: { physicalQty: number; notes?: string }) =>
+		request<any>(`/stock-takes/${stockTakeId}/items/${itemId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+	reconcile: (id: number) => request<any>(`/stock-takes/${id}/reconcile`, { method: 'POST' }),
+};
+
 // Tool Categories
 export const toolCategories = {
 	list: () => request<any[]>('/tool-categories'),
@@ -52,9 +66,28 @@ export const toolCategories = {
 	remove: (id: number) => request<void>(`/tool-categories/${id}`, { method: 'DELETE' }),
 };
 
+export interface PaginatedResult<T> {
+	data: T[];
+	total: number;
+	page: number;
+	limit: number;
+}
+
 // Items
 export const items = {
-	list: (q?: string) => request<any[]>(`/items${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+	list: (q?: string, filters?: { categoryId?: number; vendorId?: number; locationId?: number; page?: number; limit?: number; sortBy?: string; sortOrder?: string }) => {
+		const params = new URLSearchParams();
+		if (q) params.set('q', q);
+		if (filters?.categoryId) params.set('categoryId', String(filters.categoryId));
+		if (filters?.vendorId) params.set('vendorId', String(filters.vendorId));
+		if (filters?.locationId) params.set('locationId', String(filters.locationId));
+		if (filters?.page) params.set('page', String(filters.page));
+		if (filters?.limit) params.set('limit', String(filters.limit));
+		if (filters?.sortBy) params.set('sortBy', filters.sortBy);
+		if (filters?.sortOrder) params.set('sortOrder', filters.sortOrder);
+		const qs = params.toString();
+		return request<PaginatedResult<any>>(`/items${qs ? `?${qs}` : ''}`);
+	},
 	lowStock: () => request<any[]>('/items/low-stock'),
 	get: (id: number) => request<any>(`/items/${id}`),
 	create: (data: any) => request<any>('/items', { method: 'POST', body: JSON.stringify(data) }),
@@ -89,6 +122,13 @@ export const tools = {
 		request<any>(`/tools/${id}/checkin`, { method: 'POST', body: data ? JSON.stringify(data) : undefined }),
 	checkouts: {
 		list: (toolId: number) => request<any[]>(`/tools/${toolId}/checkouts`),
+	},
+	costing: (filters?: { dateFrom?: string; dateTo?: string }) => {
+		const params = new URLSearchParams();
+		if (filters?.dateFrom) params.set('dateFrom', filters.dateFrom);
+		if (filters?.dateTo) params.set('dateTo', filters.dateTo);
+		const qs = params.toString();
+		return request<any[]>(`/tools/costing${qs ? `?${qs}` : ''}`);
 	},
 	maintenance: {
 		list: (toolId: number) => request<any[]>(`/tools/${toolId}/maintenance`),

@@ -336,9 +336,8 @@
 
 <style>
 	.item-chart {
-		margin-top: 24px;
-		padding-top: 20px;
-		border-top: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent);
+		margin-top: 0;
+		padding-top: 0;
 	}
 
 	.chart-header {
@@ -457,7 +456,36 @@
 		overflow: visible;
 		margin-top: 20px;
 		position: relative;
-	}
+}
+
+.chart-area::before,
+.chart-area::after {
+		content: "";
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 48px; /* adjust fade width */
+		pointer-events: none;
+		z-index: 1;
+}
+
+.chart-area::before {
+		left: 0;
+		background: linear-gradient(
+			to right,
+			var(--bg-alt) 0%,
+			transparent 100%
+		);
+}
+
+.chart-area::after {
+		right: 0;
+		background: linear-gradient(
+			to left,
+			var(--bg-alt) 0%,
+			transparent 100%
+		);
+}
 
 	.chart-scroll {
 		display: flex;

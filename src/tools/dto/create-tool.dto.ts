@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsInt } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsInt, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateToolDto {
@@ -42,6 +42,11 @@ export class CreateToolDto {
   @IsInt()
   @Type(() => Number)
   categoryId?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  purchaseCost?: number;
 
   @IsOptional()
   @IsInt()

@@ -12,10 +12,6 @@ export class CreateItemDto {
 
   @IsOptional()
   @IsString()
-  productType?: string;
-
-  @IsOptional()
-  @IsString()
   unit?: string;
 
   @IsOptional()

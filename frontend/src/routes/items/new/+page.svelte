@@ -1,12 +1,14 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import { items, vendors, locations, itemCategories } from '$lib/api';
+	import { addToast } from '$lib/toast.svelte';
 
 	let vendorsList = $state<any[]>([]);
 	let locationsList = $state<any[]>([]);
 	let catsList = $state<any[]>([]);
+	let loading = $state(true);
 
 	let form = $state({
-		itemNumber: '', description: '', productType: '', unit: '', unitPrice: '',
+		itemNumber: '', description: '', unit: '', unitPrice: '',
 		weightPerUnit: '', analysisCode: '', headType: '', qrCode: '', imageUrl: '', categoryId: '',
 		subCategoryId: '', locationId: '', vendorId: '', onHand: '', minStock: '',
 		lastQtyInOut: '', lastJobNumber: '', totalCost: '',
@@ -15,9 +17,12 @@
 	let saved = $state(false);
 
 	function loadRefs() {
-		vendors.list().then(l => vendorsList = l);
-		locations.list().then(l => locationsList = l);
-		itemCategories.list().then(l => catsList = l);
+		loading = true;
+		Promise.all([
+			vendors.list().then(l => vendorsList = l),
+			locations.list().then(l => locationsList = l),
+			itemCategories.list().then(l => catsList = l),
+		]).finally(() => loading = false);
 	}
 	$effect(loadRefs);
 
@@ -28,15 +33,18 @@
 	}
 
 	async function submit() {
-		const data: any = {};
-		for (const [k, v] of Object.entries(form)) {
-			if (v === '') continue;
-			if (['unitPrice','weightPerUnit','totalCost'].includes(k)) data[k] = Number(v);
-			else if (['categoryId','subCategoryId','locationId','vendorId','onHand','minStock','lastQtyInOut'].includes(k)) data[k] = Number(v);
-			else data[k] = v;
-		}
-		await items.create(data);
-		saved = true;
+		try {
+			const data: any = {};
+			for (const [k, v] of Object.entries(form)) {
+				if (v === '') continue;
+				if (['unitPrice','weightPerUnit','totalCost'].includes(k)) data[k] = Number(v);
+				else if (['categoryId','subCategoryId','locationId','vendorId','onHand','minStock','lastQtyInOut'].includes(k)) data[k] = Number(v);
+				else data[k] = v;
+			}
+			await items.create(data);
+			saved = true;
+			addToast('Item created', 'success');
+		} catch (e: any) { addToast(e.message, 'error'); }
 	}
 </script>
 
@@ -45,7 +53,18 @@
 	<a href="/items" class="btn-ghost btn-sm">Back</a>
 </div>
 
-{#if saved}
+{#if loading}
+	<div class="card"><div class="sk-form">
+		<div class="sk-line sk" style="width:100%"></div>
+		<div class="sk-line sk" style="width:100%"></div>
+		<div style="display:flex;gap:16px"><div class="sk-line sk" style="width:50%"></div><div class="sk-line sk" style="width:50%"></div></div>
+		<div style="display:flex;gap:16px"><div class="sk-line sk" style="width:50%"></div><div class="sk-line sk" style="width:50%"></div></div>
+		<div style="display:flex;gap:16px"><div class="sk-line sk" style="width:50%"></div><div class="sk-line sk" style="width:50%"></div></div>
+		<div style="display:flex;gap:16px"><div class="sk-line sk" style="width:50%"></div><div class="sk-line sk" style="width:50%"></div></div>
+		<div style="display:flex;gap:16px"><div class="sk-line sk" style="width:50%"></div><div class="sk-line sk" style="width:50%"></div></div>
+		<div class="sk-line sk" style="width:25%;height:36px;margin-top:12px;border-radius:6px"></div>
+	</div></div>
+{:else if saved}
 	<div class="card success-card">
 		<p>Item created!</p>
 		<a href="/items" class="btn btn-primary">Back to Items</a>
@@ -56,8 +75,7 @@
 		<div class="form-grid">
 			<div class="full"><label>Item Number *</label><input bind:value={form.itemNumber} required /></div>
 			<div class="full"><label>Description *</label><input bind:value={form.description} required /></div>
-			<div><label>Product Type</label><input bind:value={form.productType} /></div>
-			<div><label>Unit</label><input bind:value={form.unit} placeholder="Each, Box, etc" /></div>
+<div><label>Unit</label><input bind:value={form.unit} placeholder="Each, Box, etc" /></div>
 			<div><label>Unit Price</label><input type="number" step="0.01" bind:value={form.unitPrice} /></div>
 			<div><label>Weight/Unit (g)</label><input type="number" step="0.0001" bind:value={form.weightPerUnit} /></div>
 			<div><label>Analysis Code</label><input bind:value={form.analysisCode} /></div>

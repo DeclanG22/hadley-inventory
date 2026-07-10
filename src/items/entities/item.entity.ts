@@ -2,7 +2,6 @@ export class ItemEntity {
   id: number;
   itemNumber: string;
   description: string;
-  productType: string | null;
   unit: string | null;
   unitPrice: number | null;
   weightPerUnit: number | null;

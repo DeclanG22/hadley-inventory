@@ -8,6 +8,7 @@ import { ItemsModule } from './items/items.module';
 import { ToolsModule } from './tools/tools.module';
 import { ActivityModule } from './activity/activity.module';
 import { ImportModule } from './import/import.module';
+import { StockTakeModule } from './stock-take/stock-take.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ImportModule } from './import/import.module';
     ToolsModule,
     ActivityModule,
     ImportModule,
+    StockTakeModule,
   ],
 })
 export class AppModule {}

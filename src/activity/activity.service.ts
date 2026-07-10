@@ -45,6 +45,7 @@ export class ActivityService {
       })),
       ...maint.map((m) => ({
         type: 'tool_maintenance' as const,
+        subType: m.type,
         id: m.id,
         date: m.createdAt,
         summary: `${m.type} on ${m.tool.toolNumber} — ${m.tool.name}${m.description ? `: ${m.description}` : ''}`,

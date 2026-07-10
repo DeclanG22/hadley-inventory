@@ -1,8 +1,10 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import { tools, locations, toolCategories } from '$lib/api';
+	import { addToast } from '$lib/toast.svelte';
 
 	let locList = $state<any[]>([]);
 	let catList = $state<any[]>([]);
+	let loading = $state(true);
 
 	let form = $state({
 		toolNumber: '', name: '', description: '', brand: '', model: '',
@@ -11,20 +13,26 @@
 	let saved = $state(false);
 
 	function loadRefs() {
-		locations.list().then(l => locList = l);
-		toolCategories.list().then(l => catList = l);
+		loading = true;
+		Promise.all([
+			locations.list().then(l => locList = l),
+			toolCategories.list().then(l => catList = l),
+		]).finally(() => loading = false);
 	}
 	$effect(loadRefs);
 
 	async function submit() {
-		const data: any = {};
-		for (const [k, v] of Object.entries(form)) {
-			if (v === '') continue;
-			if (['categoryId','locationId'].includes(k)) data[k] = Number(v);
-			else data[k] = v;
-		}
-		await tools.create(data);
-		saved = true;
+		try {
+			const data: any = {};
+			for (const [k, v] of Object.entries(form)) {
+				if (v === '') continue;
+				if (['categoryId','locationId'].includes(k)) data[k] = Number(v);
+				else data[k] = v;
+			}
+			await tools.create(data);
+			saved = true;
+			addToast('Tool created', 'success');
+		} catch (e: any) { addToast(e.message, 'error'); }
 	}
 </script>
 
@@ -33,7 +41,17 @@
 	<a href="/tools" class="btn-ghost btn-sm">Back</a>
 </div>
 
-{#if saved}
+{#if loading}
+	<div class="card"><div class="sk-form">
+		<div class="sk-line sk" style="width:100%"></div>
+		<div class="sk-line sk" style="width:100%"></div>
+		<div class="sk-line sk" style="width:100%"></div>
+		<div style="display:flex;gap:16px"><div class="sk-line sk" style="width:50%"></div><div class="sk-line sk" style="width:50%"></div></div>
+		<div style="display:flex;gap:16px"><div class="sk-line sk" style="width:50%"></div><div class="sk-line sk" style="width:50%"></div></div>
+		<div style="display:flex;gap:16px"><div class="sk-line sk" style="width:50%"></div><div class="sk-line sk" style="width:50%"></div></div>
+		<div class="sk-line sk" style="width:30%;height:36px;margin-top:12px;border-radius:6px"></div>
+	</div></div>
+{:else if saved}
 	<div class="card success-card">
 		<p>Tool created!</p>
 		<a href="/tools" class="btn btn-primary">Back to Tools</a>

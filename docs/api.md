@@ -1,6 +1,8 @@
 # API Reference
 
-Base URL: `http://localhost:3000/api`
+Base URL: `http://localhost:3000`
+
+**Global validation behavior:** All DTOs are validated via `ValidationPipe` with `whitelist: true`, `forbidNonWhitelisted: true`, `transform: true`. Unknown fields in request bodies are stripped, extra fields cause errors, and query/param strings are auto-converted to numbers where applicable.
 
 ---
 
@@ -8,15 +10,15 @@ Base URL: `http://localhost:3000/api`
 
 ### `GET /activity/recent`
 
-Returns the latest activity across items and tools.
+Returns the latest activity across items (transactions), tools (checkouts/checkins), and tool maintenance, combined and sorted by date descending.
 
 **Query params**
 
-| Param | Type | Default |
-|-------|------|---------|
-| limit | int  | 20      |
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| limit | int  | 20      | Max items to return |
 
-**Response**
+**Response** — array of activity objects with a `type` discriminator:
 
 ```json
 [
@@ -29,24 +31,59 @@ Returns the latest activity across items and tools.
     "summary": "In 5 x ITM-001 (job 123)",
     "link": "/items/1",
     "itemRef": "ITM-001"
+  },
+  {
+    "type": "tool_checkout",
+    "id": 2,
+    "date": "2026-07-09T18:00:00.000Z",
+    "summary": "Checked out SAW-001 — Dewalt Miter Saw by John D",
+    "link": "/tools/1",
+    "itemRef": "SAW-001"
+  },
+  {
+    "type": "tool_checkin",
+    "id": 2,
+    "date": "2026-07-10T10:00:00.000Z",
+    "summary": "Checked in SAW-001 — Dewalt Miter Saw by John D",
+    "link": "/tools/1",
+    "itemRef": "SAW-001"
+  },
+  {
+    "type": "tool_maintenance",
+    "subType": "repair",
+    "id": 1,
+    "date": "2026-07-09T17:00:00.000Z",
+    "summary": "repair on SAW-001 — Dewalt Miter Saw: Replaced blade",
+    "link": "/tools/1",
+    "itemRef": "SAW-001"
   }
 ]
 ```
 
-`direction` is `"in"` or `"out"` for item transactions, omitted for tool events.
+**Notes:**
+- `direction` is `"in"` or `"out"` for item transactions, omitted for tool events.
+- `subType` is the maintenance type string (`repair`, `service`, `calibration`, `inspection`) for maintenance events.
 
 ---
 
 ## Vendors
 
+Simple reference data — each vendor has an auto-incremented `id` and a unique `name`.
+
 ### `GET /vendors`
-List all vendors.
+```json
+[{ "id": 1, "name": "McMaster-Carr", "createdAt": "...", "updatedAt": "..." }]
+```
 
 ### `POST /vendors`
-Create a vendor.
-
 ```json
 { "name": "McMaster-Carr" }
+```
+
+### `GET /vendors/:id`
+### `PATCH /vendors/:id`
+```json
+{ "name": "McMaster-Carr (updated)" }
 ```
 
 ### `DELETE /vendors/:id`
@@ -55,14 +92,22 @@ Create a vendor.
 
 ## Locations
 
+Reference data for physical storage locations (e.g., "Shelf A3", "Tool Crib").
+
 ### `GET /locations`
-List all locations.
+```json
+[{ "id": 1, "name": "Main Inventory Room", "createdAt": "...", "updatedAt": "..." }]
+```
 
 ### `POST /locations`
-Create a location.
-
 ```json
 { "name": "Shelf A3" }
+```
+
+### `GET /locations/:id`
+### `PATCH /locations/:id`
+```json
+{ "name": "Shelf A3 (moved)" }
 ```
 
 ### `DELETE /locations/:id`
@@ -71,38 +116,68 @@ Create a location.
 
 ## Item Categories
 
+Hierarchical — categories contain sub-categories.
+
 ### `GET /item-categories`
-List categories with their sub-categories.
+```json
+[
+  {
+    "id": 1,
+    "name": "Screws",
+    "subCategories": [{ "id": 1, "name": "Pan Head", "itemCategoryId": 1 }],
+    "createdAt": "...",
+    "updatedAt": "..."
+  }
+]
+```
 
 ### `POST /item-categories`
-Create a category.
-
 ```json
 { "name": "Screws" }
 ```
 
+### `GET /item-categories/:id`
+### `PATCH /item-categories/:id`
+```json
+{ "name": "Screws (renamed)" }
+```
+
 ### `DELETE /item-categories/:id`
 
-### Sub-Categories (nested under category)
+### Sub-Categories
 
 #### `GET /item-categories/:id/sub-categories`
-#### `POST /item-categories/:id/sub-categories`
+```json
+[{ "id": 1, "name": "Pan Head", "itemCategoryId": 1 }]
+```
 
+#### `POST /item-categories/:id/sub-categories`
 ```json
 { "name": "Pan Head" }
 ```
 
-#### `DELETE /item-categories/sub-categories/:id`
+#### `DELETE /item-categories/sub-categories/:subId`
 
 ---
 
 ## Tool Categories
 
-### `GET /tool-categories`
-### `POST /tool-categories`
+Flat reference data for tool types (e.g., "Power Tools", "Hand Tools").
 
+### `GET /tool-categories`
+```json
+[{ "id": 1, "name": "Power Tools", "createdAt": "...", "updatedAt": "..." }]
+```
+
+### `POST /tool-categories`
 ```json
 { "name": "Saws" }
+```
+
+### `GET /tool-categories/:id`
+### `PATCH /tool-categories/:id`
+```json
+{ "name": "Saws (renamed)" }
 ```
 
 ### `DELETE /tool-categories/:id`
@@ -111,26 +186,141 @@ Create a category.
 
 ## Items (Consumables)
 
+The Item model represents consumable/stock-tracked inventory. Each item has an `onHand` quantity, optionally associated with a location, vendor, category, and sub-category. Stock movements are recorded via transactions.
+
+**Item model fields:**
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | int | auto | Primary key |
+| itemNumber | string | **yes** | Unique identifier (user-provided) |
+| description | string | **yes** | Item description |
+| unit | string | no | Unit of measure: "Each", "Bag", "Box", "Lb" |
+| unitPrice | decimal(10,2) | no | Price per unit |
+| weightPerUnit | decimal(10,4) | no | Weight in grams |
+| analysisCode | string | no | GL/account code |
+| removeFlag | boolean | no (default false) | Soft-delete flag for archived items |
+| labelPrinted | boolean | no (default false) | Whether label has been printed |
+| headType | string | no | For fasteners: "Pan", "Flat", "Hex" |
+| qrCode | string | no | QR code data or URL |
+| imageUrl | string | no | Image reference |
+| categoryId | int | no | FK -> ItemCategory |
+| subCategoryId | int | no | FK -> ItemSubCategory (scoped to category) |
+| locationId | int | no | FK -> Location |
+| vendorId | int | no | FK -> Vendor |
+| onHand | int | no (default 0) | Current stock quantity |
+| minStock | int | no | Min stock threshold for low-stock alerts |
+| lastQtyInOut | int | no | Last transaction quantity |
+| lastJobNumber | string | no | Job number from last transaction |
+| dateAdded | date | no | Original date the item was added |
+| dateDisbursed | date | no | Date the item was last disbursed/removed |
+| totalCost | decimal(12,2) | no | Running total cost |
+| createdAt | datetime | auto | Prisma timestamp |
+| updatedAt | datetime | auto | Prisma timestamp |
+
 ### `GET /items`
-List all items with category, sub-category, location, vendor.
+
+Returns a **paginated** list of items with category, sub-category, location, and vendor eagerly loaded.
 
 **Query params**
 
-| Param | Type | Description |
-|-------|------|-------------|
-| q     | str  | Search by item number or description (case-insensitive) |
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| q | string | — | Search by itemNumber or description (case-insensitive contains) |
+| categoryId | int | — | Filter by category ID |
+| vendorId | int | — | Filter by vendor ID |
+| locationId | int | — | Filter by location ID |
+| page | int | 1 | Page number (1-indexed) |
+| limit | int | 2000 | Items per page |
+| sortBy | string | `itemNumber` | Sort column: `itemNumber`, `description`, `onHand`, `unitPrice` |
+| sortOrder | string | `asc` | Sort direction: `asc` or `desc` |
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "itemNumber": "6-32x1/2-PH-SS",
+      "description": "6-32 x 1/2 Panhead Phillips S.S",
+      "unit": "Each",
+      "unitPrice": 0.14,
+      "weightPerUnit": 2.3805,
+      "analysisCode": "A12",
+      "removeFlag": false,
+      "labelPrinted": false,
+      "headType": "Pan",
+      "qrCode": null,
+      "imageUrl": null,
+      "categoryId": 1,
+      "category": { "id": 1, "name": "Screws", "createdAt": "...", "updatedAt": "..." },
+      "subCategoryId": 2,
+      "subCategory": { "id": 2, "name": "Pan Head", "itemCategoryId": 1, "createdAt": "...", "updatedAt": "..." },
+      "locationId": 3,
+      "location": { "id": 3, "name": "Shipping/Receiving", "createdAt": "...", "updatedAt": "..." },
+      "vendorId": 1,
+      "vendor": { "id": 1, "name": "McMaster-Carr", "createdAt": "...", "updatedAt": "..." },
+      "onHand": 68,
+      "minStock": 10,
+      "lastQtyInOut": 10,
+      "lastJobNumber": "JOB-123",
+      "dateAdded": null,
+      "dateDisbursed": null,
+      "totalCost": 9.52,
+      "createdAt": "2026-07-09T18:15:00.000Z",
+      "updatedAt": "2026-07-09T18:15:00.000Z"
+    }
+  ],
+  "total": 1741,
+  "page": 1,
+  "limit": 50
+}
+```
 
 ### `GET /items/low-stock`
-List items where `onHand <= minStock` (minStock must be set).
+
+Returns items where `onHand <= minStock` AND `minStock IS NOT NULL`. Includes the same relations as `GET /items`.
+
+```json
+[
+  { "id": 5, "itemNumber": "...", "onHand": 3, "minStock": 10, ... }
+]
+```
 
 ### `GET /items/:id`
+
+Item detail with all relations (category, subCategory, location, vendor) and transactions eagerly loaded.
+
+```json
+{
+  "id": 1,
+  "itemNumber": "6-32x1/2-PH-SS",
+  "transactions": [
+    {
+      "id": 1,
+      "itemId": 1,
+      "jobNumber": "JOB-456",
+      "date": "2026-07-09T00:00:00.000Z",
+      "quantityInOut": -5,
+      "unitPrice": 0.14,
+      "totalCost": 0.70,
+      "notes": "Used on site",
+      "createdAt": "2026-07-09T18:15:00.000Z"
+    }
+  ],
+  ...other fields
+}
+```
+
 ### `POST /items`
+
+Create a new item.
 
 ```json
 {
   "itemNumber": "6-32x1/2-PH-SS",
   "description": "6-32 x 1/2 Panhead Phillips S.S",
-  "productType": "Screw",
   "unit": "Each",
   "unitPrice": 0.14,
   "weightPerUnit": 2.3805,
@@ -142,6 +332,7 @@ List items where `onHand <= minStock` (minStock must be set).
   "locationId": 3,
   "vendorId": 1,
   "onHand": 68,
+  "minStock": 10,
   "lastQtyInOut": 10,
   "lastJobNumber": "JOB-123",
   "totalCost": 9.52
@@ -149,17 +340,38 @@ List items where `onHand <= minStock` (minStock must be set).
 ```
 
 ### `PATCH /items/:id`
-Partial update — send only the fields to change.
+
+Partial update — send only the fields to change. Same shape as POST but all fields optional.
 
 ### `DELETE /items/:id`
 
-### Transactions
+### Item Transactions
+
+Transactions record stock movements. Positive `quantityInOut` = stock coming in, negative = stock going out. Creating a transaction automatically updates the item's `onHand`, `lastQtyInOut`, and `lastJobNumber`.
 
 #### `GET /items/:id/transactions`
-Transaction history for an item.
+
+Transaction history for a single item, ordered by date descending.
+
+```json
+[
+  {
+    "id": 1,
+    "itemId": 1,
+    "jobNumber": "JOB-456",
+    "date": "2026-07-09T00:00:00.000Z",
+    "quantityInOut": -5,
+    "unitPrice": 0.14,
+    "totalCost": 0.70,
+    "notes": "Used on site",
+    "createdAt": "..."
+  }
+]
+```
 
 #### `POST /items/:id/transactions`
-Record stock movement. Positive `quantityInOut` = stock in, negative = stock out. Also updates the item's `onHand`.
+
+Record a stock movement.
 
 ```json
 {
@@ -172,23 +384,293 @@ Record stock movement. Positive `quantityInOut` = stock in, negative = stock out
 }
 ```
 
----
+Required fields: `date`, `quantityInOut`. Optional: `jobNumber`, `unitPrice`, `totalCost`, `notes`.
 
-## Tools (Assets)
+**Side effects:** Updates the item's `onHand` (incremented by `quantityInOut`), sets `lastQtyInOut` and `lastJobNumber`.
 
-### `GET /tools`
-List all tools with category, location, and current checkout status.
+#### `GET /items/transactions` (Cross-Item Costing View)
+
+Returns all item transactions across all items with optional filters. Used for the costing page.
 
 **Query params**
 
 | Param | Type | Description |
 |-------|------|-------------|
-| q     | str  | Search by tool number, name, brand, model, or description (case-insensitive) |
+| dateFrom | string (ISO date) | Include transactions on or after this date |
+| dateTo | string (ISO date) | Include transactions on or before this date |
+| jobNumber | string | Filter by job number (case-insensitive partial contains match) |
+
+**Response** — array of transaction objects with item details eagerly loaded:
+
+```json
+[
+  {
+    "id": 1,
+    "itemId": 1,
+    "item": { "id": 1, "itemNumber": "6-32x1/2-PH-SS", "description": "6-32 x 1/2 Panhead Phillips S.S" },
+    "jobNumber": "JOB-456",
+    "date": "2026-07-09T00:00:00.000Z",
+    "quantityInOut": -5,
+    "unitPrice": 0.14,
+    "totalCost": 0.70,
+    "notes": "Used on site",
+    "createdAt": "..."
+  }
+]
+```
+
+### Import (CSV/Excel Upload, Two-Phase)
+
+Items can be bulk-imported from CSV or Excel files (.xlsx). The process has two phases:
+
+**Phase 1 — Analyze** (`POST /items/import/analyze`): Upload the file, receive detected columns, suggested mappings, and a `fileToken`.
+
+**Phase 2 — Execute** (`POST /items/import/execute`): Confirm the column mapping to import data.
+
+The import detects column names automatically from 100+ known aliases (e.g., "Part #", "Item No.", "Description", "Qty", "Unit Price", "Vendor Name", "Category", etc.). Column names are normalized: trimmed, lowercased, and spaces around punctuation are removed before matching.
+
+Rows with fewer than 3 recognized column name matches are treated as filler/header rows and skipped.
+
+#### `GET /items/import/fields`
+
+Returns the list of available database fields that CSV columns can be mapped to.
+
+```json
+[
+  { "value": "itemNumber", "label": "Item Number", "required": true },
+  { "value": "description", "label": "Description", "required": true },
+  { "value": "dateAdded", "label": "Date Added", "required": false },
+  { "value": "onHand", "label": "On Hand", "required": false },
+  { "value": "lastQtyInOut", "label": "Last Quantity In or Out", "required": false },
+  { "value": "unitPrice", "label": "Unit Price", "required": false },
+  { "value": "jobNumber", "label": "Job Number", "required": false },
+  { "value": "dateDisbursed", "label": "Date Disbursed", "required": false },
+  { "value": "totalCost", "label": "Total Cost", "required": false },
+  { "value": "unit", "label": "Unit", "required": false },
+  { "value": "locationName", "label": "Location", "required": false },
+  { "value": "analysisCode", "label": "Analysis Code", "required": false },
+  { "value": "vendorName", "label": "Primary Vendor", "required": false },
+  { "value": "weightPerUnit", "label": "Weight/Unit (grams)", "required": false },
+  { "value": "categoryName", "label": "Category", "required": false },
+  { "value": "subCategoryName", "label": "Sub-Category", "required": false },
+  { "value": "headType", "label": "Head Type", "required": false },
+  { "value": "removeFlag", "label": "Remove?", "required": false },
+  { "value": "labelPrinted", "label": "Label Printed", "required": false }
+]
+```
+
+Required fields that must be mapped: `itemNumber`, `description`.
+
+**Special dbFields:** Names ending in `Name` (e.g., `locationName`, `vendorName`, `categoryName`, `subCategoryName`) trigger upsert logic — the import will create or find the referenced entity by name and set the appropriate FK (`locationId`, `vendorId`, etc.). This means you can import a column named "Location" with values like "Shelf A3" and it will auto-create/find the Location and link it.
+
+#### `POST /items/import/analyze`
+
+Upload a CSV or XLSX file. Uses `multipart/form-data` with field name `file`.
+
+**Response:**
+
+```json
+{
+  "fileToken": "abc123-def456",
+  "filename": "inventory.csv",
+  "totalRows": 1500,
+  "columns": ["Item #", "Description", "On Hand", "Unit Price", "Vendor"],
+  "mapping": {
+    "Item #": "itemNumber",
+    "Description": "description",
+    "On Hand": "onHand",
+    "Unit Price": "unitPrice",
+    "Vendor": "vendorName"
+  },
+  "preview": {
+    "Item #": "6-32x1/2-PH-SS",
+    "Description": "6-32 x 1/2 Panhead Phillips",
+    "On Hand": "68",
+    "Unit Price": "0.14",
+    "Vendor": "McMaster-Carr"
+  },
+  "unrecognized": [],
+  "missing": []
+}
+```
+
+`unrecognized` lists CSV columns that could not be auto-mapped to any known field. `missing` lists required dbFields (`itemNumber`, `description`) that have no mapping.
+
+The `fileToken` expires after 10 minutes.
+
+#### `POST /items/import/execute`
+
+Execute the import with the user-confirmed column mapping.
+
+```json
+{
+  "fileToken": "abc123-def456",
+  "columnMap": {
+    "Item #": "itemNumber",
+    "Description": "description",
+    "On Hand": "onHand",
+    "Unit Price": "unitPrice",
+    "Vendor": "vendorName"
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "total": 1500,
+  "created": 1420,
+  "updated": 80,
+  "errors": [
+    { "row": 12, "message": "Missing item number" },
+    { "row": 45, "message": "Invalid value for onHand" }
+  ]
+}
+```
+
+**Import behavior:**
+- Existing items (matched by `itemNumber`) are **updated**; new items are **created**.
+- Vendors, locations, categories, and sub-categories referenced by name are auto-created via upsert if they don't exist.
+- Date fields (`dateAdded`, `dateDisbursed`) accept ISO dates or US format `MM/DD/YYYY`.
+- Numeric fields strip `$` and `,` before parsing.
+
+---
+
+## Tools (Assets)
+
+The Tool model represents unique tracked assets (tools, equipment). Each tool has check-out/check-in history and maintenance logs. Tool status is derived: if there's an open checkout (no `checkedInAt`), the tool is "Checked Out"; otherwise it's "Available".
+
+**Tool model fields:**
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | int | auto | Primary key |
+| toolNumber | string | **yes** | Unique identifier (user-provided, e.g. "SAW-001") |
+| name | string | **yes** | Display name |
+| description | string | no | Details about the tool |
+| brand | string | no | Manufacturer/brand |
+| model | string | no | Model number |
+| serialNumber | string | no | Manufacturer serial number |
+| qrCode | string | no | QR code data or URL |
+| imageUrl | string | no | Image reference |
+| purchaseCost | decimal(10,2) | no | Original purchase cost |
+| notes | string | no | Free-form notes |
+| categoryId | int | no | FK -> ToolCategory |
+| locationId | int | no | FK -> Location (where the tool is stored) |
+| createdAt | datetime | auto | Prisma timestamp |
+| updatedAt | datetime | auto | Prisma timestamp |
+
+### `GET /tools`
+
+List all tools with category, location, and current status (derived from open checkouts).
+
+**Query params**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| q | string | Search by toolNumber, name, brand, model, or description (case-insensitive contains) |
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "toolNumber": "SAW-001",
+    "name": "Dewalt Miter Saw",
+    "description": "DWS780 12-inch",
+    "brand": "Dewalt",
+    "model": "DWS780",
+    "serialNumber": "SN-12345",
+    "qrCode": null,
+    "imageUrl": null,
+    "purchaseCost": 199.99,
+    "notes": null,
+    "categoryId": 1,
+    "category": { "id": 1, "name": "Power Tools", "createdAt": "...", "updatedAt": "..." },
+    "locationId": 2,
+    "location": { "id": 2, "name": "Tool Crib", "createdAt": "...", "updatedAt": "..." },
+    "checkouts": [
+      {
+        "id": 1,
+        "toolId": 1,
+        "checkedOutBy": "John D",
+        "jobNumber": "JOB-789",
+        "jobSite": "Site B",
+        "checkedOutAt": "2026-07-09T18:00:00.000Z",
+        "expectedReturnAt": "2026-07-16T00:00:00.000Z",
+        "checkedInAt": null,
+        "notes": "",
+        "createdAt": "..."
+      }
+    ],
+    "createdAt": "...",
+    "updatedAt": "..."
+  }
+]
+```
+
+The `checkouts` array contains only **open** checkouts (where `checkedInAt` is null). If the array is non-empty, the tool is currently checked out. The latest open checkout is at index 0.
 
 ### `GET /tools/:id`
-Tool details with checkout history and maintenance log.
+
+Tool detail with all checkouts (including closed ones) and all maintenance logs eagerly loaded.
+
+```json
+{
+  "id": 1,
+  "toolNumber": "SAW-001",
+  ...basic fields...,
+  "category": { "id": 1, "name": "Power Tools" },
+  "location": { "id": 2, "name": "Tool Crib" },
+  "checkouts": [
+    {
+      "id": 1,
+      "toolId": 1,
+      "checkedOutBy": "John D",
+      "jobNumber": "JOB-789",
+      "jobSite": "Site B",
+      "checkedOutAt": "2026-07-09T18:00:00.000Z",
+      "expectedReturnAt": "2026-07-16T00:00:00.000Z",
+      "checkedInAt": null,
+      "notes": "",
+      "createdAt": "..."
+    },
+    {
+      "id": 2,
+      "toolId": 1,
+      "checkedOutBy": "Jane S",
+      "jobNumber": "JOB-456",
+      "jobSite": null,
+      "checkedOutAt": "2026-07-01T10:00:00.000Z",
+      "expectedReturnAt": null,
+      "checkedInAt": "2026-07-05T14:00:00.000Z",
+      "notes": "Returned in good condition",
+      "createdAt": "..."
+    }
+  ],
+  "maintenance": [
+    {
+      "id": 1,
+      "toolId": 1,
+      "type": "repair",
+      "description": "Replaced blade",
+      "date": "2026-07-09T00:00:00.000Z",
+      "performedBy": "Jane S",
+      "cost": 45.00,
+      "notes": "",
+      "createdAt": "..."
+    }
+  ],
+  "createdAt": "...",
+  "updatedAt": "..."
+}
+```
 
 ### `POST /tools`
+
+Create a new tool.
 
 ```json
 {
@@ -199,14 +681,18 @@ Tool details with checkout history and maintenance log.
   "model": "DWS780",
   "serialNumber": "SN-12345",
   "qrCode": "http://yourapp/tools/1",
+  "purchaseCost": 199.99,
   "notes": "Purchased 2025",
   "categoryId": 1,
   "locationId": 2
 }
 ```
 
+Required: `toolNumber`, `name`. All other fields are optional.
+
 ### `POST /tools/batch`
-Create multiple identical tools with auto-numbering.
+
+Create multiple identical tools with auto-numbering. Generates `{PREFIX}-001`, `{PREFIX}-002`, etc., picking up the next available sequence number based on existing tools with the same prefix.
 
 ```json
 {
@@ -219,15 +705,19 @@ Create multiple identical tools with auto-numbering.
 }
 ```
 
-Generates `HAM-001`, `HAM-002`, ..., `HAM-010`.
+Required: `quantity` (>= 1), `toolNumberPrefix`, `name`. All other tool optional fields are accepted and applied to all generated tools.
 
 ### `PATCH /tools/:id`
+
+Partial update. Same shape as POST but all fields optional.
+
 ### `DELETE /tools/:id`
 
 ### Checkouts
 
 #### `POST /tools/:id/checkout`
-Check out a tool. Fails if tool is already checked out.
+
+Check out a tool. Fails with 400 if the tool already has an open checkout (checkedInAt is null).
 
 ```json
 {
@@ -239,18 +729,62 @@ Check out a tool. Fails if tool is already checked out.
 }
 ```
 
+Required: `checkedOutBy`. Optional: `jobNumber`, `jobSite`, `expectedReturnAt` (ISO date string), `notes`.
+
+**Response** — the created checkout with tool details:
+```json
+{
+  "id": 1,
+  "toolId": 1,
+  "checkedOutBy": "John D",
+  "jobNumber": "JOB-789",
+  "jobSite": "Site B",
+  "checkedOutAt": "2026-07-10T12:00:00.000Z",
+  "expectedReturnAt": "2026-07-16T00:00:00.000Z",
+  "checkedInAt": null,
+  "notes": "",
+  "createdAt": "...",
+  "tool": { ...tool object... }
+}
+```
+
 #### `POST /tools/:id/checkin`
-Check in the tool. Resolves the latest open checkout.
+
+Check in the tool. Resolves the latest open checkout (by `checkedOutAt` desc). Fails with 400 if the tool is not currently checked out.
 
 ```json
 { "notes": "Returned in good condition" }
 ```
 
+All fields optional. Sets `checkedInAt` to the current server timestamp.
+
+**Response** — the updated checkout record with tool details.
+
 #### `GET /tools/:id/checkouts`
+
+Returns all checkout records for a tool, ordered by `checkedOutAt` descending.
+
+```json
+[
+  {
+    "id": 1,
+    "toolId": 1,
+    "checkedOutBy": "John D",
+    "jobNumber": "JOB-789",
+    "jobSite": "Site B",
+    "checkedOutAt": "2026-07-09T18:00:00.000Z",
+    "expectedReturnAt": "2026-07-16T00:00:00.000Z",
+    "checkedInAt": null,
+    "notes": ""
+  }
+]
+```
 
 ### Maintenance
 
 #### `POST /tools/:id/maintenance`
+
+Record a maintenance event.
 
 ```json
 {
@@ -263,6 +797,285 @@ Check in the tool. Resolves the latest open checkout.
 }
 ```
 
-`type` is one of: `repair`, `service`, `calibration`, `inspection`
+Required: `type` (one of: `repair`, `service`, `calibration`, `inspection`), `date` (ISO date string). Optional: `description`, `performedBy`, `cost` (number), `notes`.
 
 #### `GET /tools/:id/maintenance`
+
+Returns maintenance records for a specific tool, ordered by `date` descending.
+
+```json
+[
+  {
+    "id": 1,
+    "toolId": 1,
+    "type": "repair",
+    "description": "Replaced blade",
+    "date": "2026-07-09T00:00:00.000Z",
+    "performedBy": "Jane S",
+    "cost": 45.00,
+    "notes": "",
+    "createdAt": "..."
+  }
+]
+```
+
+### Tool Costing (Combined Purchase + Maintenance View)
+
+#### `GET /tools/costing`
+
+Returns a unified view of tool purchase costs and maintenance costs, sorted by date descending. Used for the costing page.
+
+**Query params**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| dateFrom | string (ISO date) | Include records on or after this date |
+| dateTo | string (ISO date) | Include records on or before this date |
+
+**Response** — array of records with a `type` discriminator:
+
+```json
+[
+  {
+    "date": "2026-07-09T00:00:00.000Z",
+    "type": "purchase",
+    "toolId": 1,
+    "toolNumber": "SAW-001",
+    "toolName": "Dewalt Miter Saw",
+    "description": "Dewalt DWS780",
+    "performedBy": null,
+    "cost": 199.99
+  },
+  {
+    "date": "2026-07-09T00:00:00.000Z",
+    "type": "repair",
+    "toolId": 1,
+    "toolNumber": "SAW-001",
+    "toolName": "Dewalt Miter Saw",
+    "description": "Replaced blade",
+    "performedBy": "Jane S",
+    "cost": 45.00
+  }
+]
+```
+
+**Notes:**
+- `type` is `"purchase"` for tool purchase records, or one of `repair`, `service`, `calibration`, `inspection` for maintenance records.
+- For purchase records, `cost` is the `purchaseCost` and `date` is the tool's `createdAt`.
+- For maintenance records, `cost` may be `null` if no cost was recorded.
+- Purchase records without a `purchaseCost` are excluded.
+
+#### `GET /tools/maintenance-costing`
+
+Returns maintenance records only, across all tools. Used for filtered maintenance costing views.
+
+**Query params**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| dateFrom | string (ISO date) | Include records on or after this date |
+| dateTo | string (ISO date) | Include records on or before this date |
+| type | string | Filter by maintenance type (`repair`, `service`, `calibration`, `inspection`) |
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "toolId": 1,
+    "type": "repair",
+    "description": "Replaced blade",
+    "date": "2026-07-09T00:00:00.000Z",
+    "performedBy": "Jane S",
+    "cost": 45.00,
+    "notes": "",
+    "createdAt": "...",
+    "tool": { "id": 1, "toolNumber": "SAW-001", "name": "Dewalt Miter Saw", "purchaseCost": 199.99 }
+  }
+]
+```
+
+---
+
+## Stock Takes (Inventory Counts)
+
+Stock takes are physical inventory counts. They compare the system quantity (`systemQty`) against the physically counted quantity (`physicalQty`) and can produce adjustment transactions.
+
+**Workflow:**
+1. `POST /stock-takes` — creates a draft stock take, pre-populating every non-removed item with its current `onHand` as `systemQty`.
+2. `PATCH /stock-takes/:id/items/:itemId` — record the physical count for an item.
+3. `POST /stock-takes/:id/reconcile` — apply adjustments (creates transactions, updates `onHand`, marks as completed).
+4. Optionally `PATCH /stock-takes/:id` — cancel by setting `status: "cancelled"`.
+5. `DELETE /stock-takes/:id` — if completed, reverses all adjustments; otherwise just deletes.
+
+**StockTake status values:** `draft` (initial), `completed` (after reconcile), `cancelled`.
+
+### `GET /stock-takes`
+
+List all stock takes with item count.
+
+```json
+[
+  {
+    "id": 1,
+    "date": "2026-07-10T00:00:00.000Z",
+    "notes": "Monthly count",
+    "status": "draft",
+    "_count": { "items": 1741 },
+    "createdAt": "...",
+    "updatedAt": "..."
+  }
+]
+```
+
+### `POST /stock-takes`
+
+Create a new stock take. Pre-populates all non-removed items with their current `onHand` as `systemQty`.
+
+```json
+{ "date": "2026-07-10", "notes": "Monthly count" }
+```
+
+Required: `date` (ISO date string). Optional: `notes`.
+
+**Response:**
+
+```json
+{
+  "id": 1,
+  "date": "2026-07-10T00:00:00.000Z",
+  "notes": "Monthly count",
+  "status": "draft",
+  "items": [
+    {
+      "id": 1,
+      "stockTakeId": 1,
+      "itemId": 1,
+      "systemQty": 68,
+      "physicalQty": null,
+      "notes": null,
+      "item": { "id": 1, "itemNumber": "6-32x1/2-PH-SS", "description": "...", "onHand": 68 }
+    }
+  ],
+  "createdAt": "...",
+  "updatedAt": "..."
+}
+```
+
+### `GET /stock-takes/:id`
+
+Get stock take details with all items, system quantities, physical quantities, and computed variance (`physicalQty - systemQty`).
+
+```json
+{
+  "id": 1,
+  "date": "2026-07-10T00:00:00.000Z",
+  "notes": "Monthly count",
+  "status": "draft",
+  "items": [
+    {
+      "id": 1,
+      "stockTakeId": 1,
+      "itemId": 1,
+      "systemQty": 68,
+      "physicalQty": null,
+      "notes": null,
+      "item": { "id": 1, "itemNumber": "6-32x1/2-PH-SS", "description": "...", "onHand": 68, "unit": "Each" }
+    }
+  ],
+  "createdAt": "...",
+  "updatedAt": "..."
+}
+```
+
+### `PATCH /stock-takes/:id`
+
+Update stock take notes or status.
+
+```json
+{ "notes": "Updated notes", "status": "cancelled" }
+```
+
+Allowed status transitions: any status can be set manually. Valid statuses: `draft`, `completed`, `cancelled`.
+
+### `DELETE /stock-takes/:id`
+
+Delete a stock take.
+
+**Behavior varies by status:**
+- **Draft / Cancelled:** Simply deletes the stock take and its items (cascade).
+- **Completed:** For each counted item with a variance, creates a **reversal transaction** (`quantityInOut: -variance` with job number `STOCKTAKE-{id}-REVERSED`), updates the item's `onHand` back to the system quantity, then deletes the stock take.
+
+### Counting Items
+
+#### `PATCH /stock-takes/:id/items/:itemId`
+
+Record the physical count for an item. Only allowed on draft stock takes.
+
+```json
+{ "physicalQty": 45, "notes": "Found on shelf B3" }
+```
+
+Required: `physicalQty` (integer >= 0). Optional: `notes`.
+
+**Response:** The updated `StockTakeItem` record.
+
+### Reconcile
+
+#### `POST /stock-takes/:id/reconcile`
+
+Apply all counted adjustments. Only allowed on draft stock takes with at least one item that has a `physicalQty` recorded.
+
+**Actions:**
+1. For each counted item where `physicalQty != systemQty`, creates an item transaction with `quantityInOut = variance` (positive = increase stock, negative = decrease), job number `STOCKTAKE-{id}`.
+2. Updates each affected item's `onHand` (incremented by variance), `lastQtyInOut`, and `lastJobNumber`.
+3. Marks the stock take as `completed`.
+
+**Response:** The full stock take with all items (same shape as `GET /stock-takes/:id`).
+
+---
+
+## Error Responses
+
+All errors follow NestJS default format:
+
+```json
+{
+  "message": "Description of the error",
+  "error": "Bad Request",
+  "statusCode": 400
+}
+```
+
+Common status codes:
+| Code | Meaning |
+|------|---------|
+| 400 | Validation error or business rule violation (e.g., tool already checked out) |
+| 404 | Resource not found |
+| 500 | Internal server error |
+
+---
+
+## Data Model Relationships
+
+```
+Vendor (1) ──< Item (N)
+Location (1) ──< Item (N), Tool (N)
+ItemCategory (1) ──< ItemSubCategory (N), Item (N)
+ItemSubCategory (1) ──< Item (N)
+ToolCategory (1) ──< Tool (N)
+
+Item (1) ──< ItemTransaction (N)
+Item (1) ──< StockTakeItem (N)
+StockTake (1) ──< StockTakeItem (N)
+
+Tool (1) ──< ToolCheckout (N)
+Tool (1) ──< ToolMaintenanceLog (N)
+```
+
+**Key business rules:**
+- A tool can only have one open checkout at a time (checkedInAt is null).
+- Item `onHand` is updated automatically by transactions and stock take adjustments.
+- Stock take delete + reconcile are transactional — all-or-nothing via Prisma `$transaction`.
+- File tokens for import expire after 10 minutes.

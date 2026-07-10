@@ -26,6 +26,21 @@ export class ToolsController {
     return this.toolsService.findAll(q);
   }
 
+  // Static routes — must come before @Get(':id')
+  @Get('costing')
+  costing(@Query('dateFrom') dateFrom?: string, @Query('dateTo') dateTo?: string) {
+    return this.toolsService.findCosting({ dateFrom, dateTo });
+  }
+
+  @Get('maintenance-costing')
+  maintenanceCosting(
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('type') type?: string,
+  ) {
+    return this.toolsService.findMaintenanceCosting({ dateFrom, dateTo, type });
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.toolsService.findOne(id);
