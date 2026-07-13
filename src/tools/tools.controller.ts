@@ -87,6 +87,16 @@ export class ToolsController {
     return this.toolsService.findCheckouts(id);
   }
 
+  @Delete('checkouts/:checkoutId')
+  removeCheckout(@Param('checkoutId', ParseIntPipe) checkoutId: number) {
+    return this.toolsService.removeCheckout(checkoutId);
+  }
+
+  @Delete('maintenance/:maintenanceId')
+  removeMaintenance(@Param('maintenanceId', ParseIntPipe) maintenanceId: number) {
+    return this.toolsService.removeMaintenance(maintenanceId);
+  }
+
   // Maintenance
   @Post(':id/maintenance')
   createMaintenance(@Param('id', ParseIntPipe) id: number, @Body() dto: CreateMaintenanceDto) {

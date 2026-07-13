@@ -182,6 +182,18 @@ export class ToolsService {
     });
   }
 
+  async removeCheckout(checkoutId: number) {
+    const co = await this.prisma.toolCheckout.findUnique({ where: { id: checkoutId } });
+    if (!co) throw new NotFoundException();
+    return this.prisma.toolCheckout.delete({ where: { id: checkoutId }, include: { tool: true } });
+  }
+
+  async removeMaintenance(maintenanceId: number) {
+    const m = await this.prisma.toolMaintenanceLog.findUnique({ where: { id: maintenanceId } });
+    if (!m) throw new NotFoundException();
+    return this.prisma.toolMaintenanceLog.delete({ where: { id: maintenanceId } });
+  }
+
   // Combined costing — purchase records + maintenance records
 
   async findCosting(filters: { dateFrom?: string; dateTo?: string }) {

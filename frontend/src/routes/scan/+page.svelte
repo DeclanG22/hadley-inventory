@@ -233,8 +233,8 @@
 				<img src={result.data.imageUrl} alt="" class="result-img" />
 			{/if}
 			<div class="result-header">
-				<span class="badge badge-{result.type === 'item' ? 'available' : result.data.checkedOut ? 'checked-out' : 'available'}">{result.type === 'item' ? 'Item' : 'Tool'}</span>
 				<span class="result-id">{result.type === 'item' ? result.data.itemNumber : result.data.toolNumber}</span>
+				<span class="badge badge-{result.type === 'item' ? 'available' : result.data.checkedOut ? 'checked-out' : 'available'}">{result.type === 'item' ? 'Item' : 'Tool'}</span>
 			</div>
 			<div class="result-desc">{result.type === 'item' ? result.data.description : result.data.name}</div>
 			{#if result.type === 'item'}
@@ -399,7 +399,7 @@
 	}
 
 	.divider.result-show {
-	opacity: 0;
+	display: none;
 	}
 
 	.anim-inner {

@@ -427,7 +427,7 @@ Returns a **paginated** list of items with category, sub-category, location, and
 | vendorId | int | — | Filter by vendor ID |
 | locationId | int | — | Filter by location ID |
 | page | int | 1 | Page number (1-indexed) |
-| limit | int | 2000 | Items per page |
+| limit | int | 100 | Items per page |
 | sortBy | string | `itemNumber` | Sort column: `itemNumber`, `description`, `onHand`, `unitPrice` |
 | sortOrder | string | `asc` | Sort direction: `asc` or `desc` |
 
@@ -596,6 +596,20 @@ Required fields: `date`, `quantityInOut`. Optional: `jobNumber`, `unitPrice`, `t
 If `unitPrice` is omitted, it defaults to the item's current `unitPrice`. If `totalCost` is omitted, it is auto-calculated as `|quantityInOut| × unitPrice`.
 
 **Side effects:** Updates the item's `onHand` (incremented by `quantityInOut`), sets `lastQtyInOut` and `lastJobNumber`.
+
+#### `DELETE /items/transactions/:transactionId`
+
+Deletes an item transaction and reverses its effect on the item's `onHand`. The reversal is performed atomically inside a Prisma `$transaction`.
+
+**Behavior:**
+- `onHand` is incremented by `-quantityInOut` (e.g., if the transaction removed 5 units, `onHand` increases by 5; if it added 10, `onHand` decreases by 10).
+- The `lastQtyInOut` and `lastJobNumber` fields on the item are **not** updated (they reflect the most recent remaining transaction).
+- Returns 404 if the transaction does not exist.
+
+**Response:**
+```json
+{ "message": "Transaction deleted and onHand reversed" }
+```
 
 #### `GET /items/transactions` (Cross-Item Costing View)
 
@@ -979,6 +993,17 @@ All fields optional. Sets `checkedInAt` to the current server timestamp.
 
 **Response** — the updated checkout record with tool details.
 
+#### `DELETE /tools/checkouts/:checkoutId`
+
+Deletes a checkout record (open or closed). Does **not** change any inventory quantities — tools are not tracked by quantity. Tool availability is derived from the presence of open checkouts, so deleting a checkout implicitly affects the tool's current status.
+
+Returns 404 if the checkout does not exist.
+
+**Response:**
+```json
+{ "message": "Checkout deleted" }
+```
+
 #### `GET /tools/:id/checkouts`
 
 Returns all checkout records for a tool, ordered by `checkedOutAt` descending.
@@ -1017,6 +1042,15 @@ Record a maintenance event.
 ```
 
 Required: `type` (one of: `repair`, `service`, `calibration`, `inspection`), `date` (ISO date string). Optional: `description`, `performedBy`, `cost` (number), `notes`.
+
+#### `DELETE /tools/maintenance/:maintenanceId`
+
+Deletes a maintenance record. Returns 404 if the record does not exist.
+
+**Response:**
+```json
+{ "message": "Maintenance record deleted" }
+```
 
 #### `GET /tools/:id/maintenance`
 

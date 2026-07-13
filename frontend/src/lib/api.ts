@@ -126,6 +126,8 @@ export const items = {
 		list: (itemId: number) => request<any[]>(`/items/${itemId}/transactions`),
 		create: (itemId: number, data: any) =>
 			request<any>(`/items/${itemId}/transactions`, { method: 'POST', body: JSON.stringify(data) }),
+		remove: (transactionId: number) =>
+			request<void>(`/items/transactions/${transactionId}`, { method: 'DELETE' }),
 	},
 };
 
@@ -156,6 +158,8 @@ export const tools = {
 		request<any>(`/tools/${id}/checkin`, { method: 'POST', body: data ? JSON.stringify(data) : undefined }),
 	checkouts: {
 		list: (toolId: number) => request<any[]>(`/tools/${toolId}/checkouts`),
+		remove: (checkoutId: number) =>
+			request<void>(`/tools/checkouts/${checkoutId}`, { method: 'DELETE' }),
 	},
 	costing: (filters?: { dateFrom?: string; dateTo?: string }) => {
 		const params = new URLSearchParams();
@@ -168,5 +172,7 @@ export const tools = {
 		list: (toolId: number) => request<any[]>(`/tools/${toolId}/maintenance`),
 		create: (toolId: number, data: any) =>
 			request<any>(`/tools/${toolId}/maintenance`, { method: 'POST', body: JSON.stringify(data) }),
+		remove: (maintenanceId: number) =>
+			request<void>(`/tools/maintenance/${maintenanceId}`, { method: 'DELETE' }),
 	},
 };

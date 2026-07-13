@@ -1,6 +1,7 @@
 ﻿<script lang="ts">
 	import { tools, locations, toolCategories } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
+	import { confirm } from '$lib/confirmDialog.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	let { params } = $props();
 
@@ -164,6 +165,26 @@
 		URL.revokeObjectURL(url);
 	}
 
+	async function deleteCheckout(coId: number) {
+		const ok = await confirm('Delete Checkout', 'This will permanently remove this checkout record.');
+		if (!ok) return;
+		try {
+			await tools.checkouts.remove(coId);
+			load();
+			addToast('Checkout deleted', 'success');
+		} catch (e: any) { addToast(e.message, 'error'); }
+	}
+
+	async function deleteMaint(maintId: number) {
+		const ok = await confirm('Delete Maintenance Record', 'This will permanently remove this maintenance record.');
+		if (!ok) return;
+		try {
+			await tools.maintenance.remove(maintId);
+			load();
+			addToast('Maintenance record deleted', 'success');
+		} catch (e: any) { addToast(e.message, 'error'); }
+	}
+
 	function maintExportSummary() {
 		const total = filteredMaint.length;
 		const totalCost = filteredMaint.reduce((s, m) => s + (Number(m.cost) || 0), 0);
@@ -291,7 +312,7 @@
 			</div>
 			<div class="table-wrap">
 				<table>
-					<thead><tr><th>Date Out</th><th>By</th><th>Job</th><th>Site</th><th>Date In</th></tr></thead>
+					<thead><tr><th>Date Out</th><th>By</th><th>Job</th><th>Site</th><th>Date In</th><th></th></tr></thead>
 					<tbody>
 						{#each filteredCheckouts as c}
 							<tr>
@@ -300,6 +321,7 @@
 								<td>{c.jobNumber ?? '-'}</td>
 								<td>{c.jobSite ?? '-'}</td>
 								<td>{c.checkedInAt ? new Date(c.checkedInAt).toLocaleString() : 'Out'}</td>
+								<td><button class="btn-del btn-sm" onclick={() => deleteCheckout(c.id)}><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 14 14"><path d="M0 0h14v14H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M1.707.293A1 1 0 0 0 .293 1.707L5.586 7L.293 12.293a1 1 0 1 0 1.414 1.414L7 8.414l5.293 5.293a1 1 0 0 0 1.414-1.414L8.414 7l5.293-5.293A1 1 0 0 0 12.293.293L7 5.586z" clip-rule="evenodd" /></svg></button></td>
 							</tr>
 						{/each}
 					</tbody>
@@ -361,7 +383,7 @@
 			</div>
 			<div class="table-wrap">
 				<table>
-					<thead><tr><th>Date</th><th>Type</th><th>Description</th><th>By</th><th>Cost</th></tr></thead>
+					<thead><tr><th>Date</th><th>Type</th><th>Description</th><th>By</th><th>Cost</th><th></th></tr></thead>
 					<tbody>
 						{#each filteredMaint as m}
 							<tr>
@@ -370,6 +392,7 @@
 								<td>{m.description ?? '-'}</td>
 								<td>{m.performedBy ?? '-'}</td>
 								<td>{m.cost ? `$${Number(m.cost).toFixed(2)}` : '-'}</td>
+								<td><button class="btn-del btn-sm" onclick={() => deleteMaint(m.id)}><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 14 14"><path d="M0 0h14v14H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M1.707.293A1 1 0 0 0 .293 1.707L5.586 7L.293 12.293a1 1 0 1 0 1.414 1.414L7 8.414l5.293 5.293a1 1 0 0 0 1.414-1.414L8.414 7l5.293-5.293A1 1 0 0 0 12.293.293L7 5.586z" clip-rule="evenodd" /></svg></button></td>
 							</tr>
 						{/each}
 					</tbody>

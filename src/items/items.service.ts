@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
@@ -130,7 +130,7 @@ export class ItemsService {
         data: {
           itemId,
           jobNumber: dto.jobNumber,
-          date: new Date(dto.date + 'T00:00:00'),
+          date: dto.date ? new Date(dto.date + 'T' + new Date().toTimeString().slice(0, 8)) : new Date(),
           quantityInOut: dto.quantityInOut,
           unitPrice,
           totalCost,
@@ -179,6 +179,22 @@ export class ItemsService {
       where: { itemId },
       orderBy: { date: 'desc' },
     });
+  }
+
+  async removeTransaction(transactionId: number) {
+    const txn = await this.prisma.itemTransaction.findUnique({
+      where: { id: transactionId },
+      select: { itemId: true, quantityInOut: true },
+    });
+    if (!txn) throw new NotFoundException();
+    await this.prisma.$transaction([
+      this.prisma.item.update({
+        where: { id: txn.itemId },
+        data: { onHand: { increment: -txn.quantityInOut } },
+      }),
+      this.prisma.itemTransaction.delete({ where: { id: transactionId } }),
+    ]);
+    return { message: 'Transaction deleted and quantity reversed' };
   }
 
   // Helpers

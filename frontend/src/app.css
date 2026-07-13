@@ -536,48 +536,44 @@ table a {
 /* Badges */
 .badge {
   display: inline-block;
-  padding: 3px 10px;
-  border-radius: 500px;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 6px;
   font-size: 11px;
   font-weight: 500;
   background: var(--bg-component);
   color: var(--empty-text-primary);
-  border: 1px solid var(--border-color);
 }
 .badge-available {
-  background: color-mix(in srgb, var(--green) 15%, transparent);
-  color: var(--green);
-  border-color: color-mix(in srgb, var(--green) 25%, transparent);
+  background: var(--green);
+  color: var(--green-bg-light);
+  padding-top: 4px;
 }
 .badge-checked-out {
-  background: color-mix(in srgb, var(--red) 15%, transparent);
-  color: var(--red);
-  border-color: color-mix(in srgb, var(--red) 25%, transparent);
+    background: var(--red);
+    color: var(--red-bg-light);
 }
 .badge-warning {
-  background: color-mix(in srgb, var(--orange) 15%, transparent);
-  color: var(--orange);
-  border-color: color-mix(in srgb, var(--orange) 25%, transparent);
+    background: var(--orange);
+    color: var(--orange-bg-light);
 }
 .badge-repair, .badge-cancelled {
-  background: color-mix(in srgb, var(--red) 15%, transparent);
-  color: var(--red);
-  border-color: color-mix(in srgb, var(--red) 25%, transparent);
+    background: var(--red);
+    color: var(--red-bg-light);
 }
 .badge-service, .badge-draft {
-  background: color-mix(in srgb, var(--orange) 15%, transparent);
-  color: var(--orange);
-  border-color: color-mix(in srgb, var(--orange) 25%, transparent);
+    background: var(--orange);
+    color: var(--orange-bg-light);
 }
 .badge-calibration {
-  background: color-mix(in srgb, var(--yellow) 15%, transparent);
-  color: var(--yellow);
-  border-color: color-mix(in srgb, var(--yellow) 25%, transparent);
+    background: var(--yellow);
+    color: var(--yellow-bg-light);
 }
 .badge-inspection, .badge-completed {
-  background: color-mix(in srgb, var(--green) 15%, transparent);
-  color: var(--green);
-  border-color: color-mix(in srgb, var(--green) 25%, transparent);
+    background: var(--green);
+    color: var(--green-bg-light);
 }
 
 /* Page header */

@@ -94,4 +94,9 @@ export class ItemsController {
   findTransactions(@Param('id', ParseIntPipe) id: number) {
     return this.itemsService.findTransactions(id);
   }
+
+  @Delete('transactions/:transactionId')
+  removeTransaction(@Param('transactionId', ParseIntPipe) transactionId: number) {
+    return this.itemsService.removeTransaction(transactionId);
+  }
 }

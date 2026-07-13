@@ -2,6 +2,7 @@
 	import { items, vendors, locations, itemCategories } from '$lib/api';
 	import ItemChart from '$lib/ItemChart.svelte';
 	import { addToast } from '$lib/toast.svelte';
+	import { confirm } from '$lib/confirmDialog.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	let { params } = $props();
 
@@ -152,6 +153,18 @@
 			addToast('Transaction added', 'success');
 		} catch (e: any) { addToast(e.message, 'error'); }
 	}
+
+	async function deleteTxn(txnId: number) {
+		const ok = await confirm('Delete Transaction', 'This will reverse the quantity change. Are you sure?');
+		if (!ok) return;
+		try {
+			await items.transactions.remove(txnId);
+			const id = Number(params.id);
+			items.get(id).then(i => item = i);
+			items.transactions.list(id).then(t => txns = t);
+			addToast('Transaction deleted and quantity reversed', 'success');
+		} catch (e: any) { addToast(e.message, 'error'); }
+	}
 </script>
 
 {#if !item}
@@ -286,7 +299,7 @@
 		{:else}
 			<div class="table-wrap">
 				<table>
-					<thead><tr><th>Date</th><th>In</th><th>Out</th><th>Job</th><th>Unit Price</th><th>Total</th><th>Notes</th></tr></thead>
+					<thead><tr><th>Date</th><th>In</th><th>Out</th><th>Job</th><th>Unit Price</th><th>Total</th><th>Notes</th><th></th></tr></thead>
 					<tbody>
 						{#each filtered as t}
 							<tr>
@@ -297,6 +310,7 @@
 								<td>{t.unitPrice ? `$${Number(t.unitPrice).toFixed(2)}` : '-'}</td>
 								<td>{t.totalCost ? `$${Number(t.totalCost).toFixed(2)}` : '-'}</td>
 								<td>{t.notes ?? ''}</td>
+								<td><button class="btn-del btn-sm" onclick={() => deleteTxn(t.id)}><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 14 14"><path d="M0 0h14v14H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M1.707.293A1 1 0 0 0 .293 1.707L5.586 7L.293 12.293a1 1 0 1 0 1.414 1.414L7 8.414l5.293 5.293a1 1 0 0 0 1.414-1.414L8.414 7l5.293-5.293A1 1 0 0 0 12.293.293L7 5.586z" clip-rule="evenodd" /></svg></button></td>
 							</tr>
 						{/each}
 					</tbody>
