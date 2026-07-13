@@ -1,7 +1,6 @@
 ﻿<script lang="ts">
 	import { itemCategories } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
-	import { confirm } from '$lib/confirmDialog.svelte';
 
 	let list = $state<any[]>([]);
 	let catName = $state('');
@@ -17,8 +16,7 @@
 		itemCategories.create({ name: catName.trim() }).then(() => { catName = ''; load(); addToast('Category added', 'success'); }).catch(e => addToast(e.message, 'error'));
 	}
 
-	async function removeCat(id: number) {
-		if (!await confirm('Delete category?', 'Are you sure you want to delete this category?')) return;
+	function removeCat(id: number) {
 		itemCategories.remove(id).then(() => { load(); addToast('Category removed', 'success'); }).catch(e => addToast(e.message, 'error'));
 	}
 
@@ -27,8 +25,7 @@
 		itemCategories.subCategories.create(selectedCat, { name: subName.trim() }).then(() => { subName = ''; load(); addToast('Sub-category added', 'success'); }).catch(e => addToast(e.message, 'error'));
 	}
 
-	async function removeSub(id: number) {
-		if (!await confirm('Delete sub-category?', 'Are you sure you want to delete this sub-category?')) return;
+	function removeSub(id: number) {
 		itemCategories.subCategories.remove(id).then(() => { load(); addToast('Sub-category removed', 'success'); }).catch(e => addToast(e.message, 'error'));
 	}
 </script>

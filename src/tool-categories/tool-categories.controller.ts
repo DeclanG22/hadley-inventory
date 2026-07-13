@@ -17,6 +17,11 @@ export class ToolCategoriesController {
     return this.toolCategoriesService.findAll();
   }
 
+  @Get('deleted')
+  findDeleted() {
+    return this.toolCategoriesService.findDeleted();
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.toolCategoriesService.findOne(id);
@@ -30,5 +35,15 @@ export class ToolCategoriesController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.toolCategoriesService.remove(id);
+  }
+
+  @Post(':id/restore')
+  restore(@Param('id', ParseIntPipe) id: number) {
+    return this.toolCategoriesService.restore(id);
+  }
+
+  @Delete(':id/permanent')
+  permanentRemove(@Param('id', ParseIntPipe) id: number) {
+    return this.toolCategoriesService.permanentRemove(id);
   }
 }

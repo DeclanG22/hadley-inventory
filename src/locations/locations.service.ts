@@ -12,7 +12,7 @@ export class LocationsService {
   }
 
   findAll() {
-    return this.prisma.location.findMany({ orderBy: { name: 'asc' } });
+    return this.prisma.location.findMany({ where: { deletedAt: null }, orderBy: { name: 'asc' } });
   }
 
   findOne(id: number) {
@@ -24,6 +24,21 @@ export class LocationsService {
   }
 
   remove(id: number) {
+    return this.prisma.location.update({ where: { id }, data: { deletedAt: new Date() } });
+  }
+
+  findDeleted() {
+    return this.prisma.location.findMany({
+      where: { deletedAt: { not: null } },
+      orderBy: { deletedAt: 'desc' },
+    });
+  }
+
+  restore(id: number) {
+    return this.prisma.location.update({ where: { id }, data: { deletedAt: null } });
+  }
+
+  permanentRemove(id: number) {
     return this.prisma.location.delete({ where: { id } });
   }
 }

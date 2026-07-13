@@ -2,7 +2,6 @@
 	import { goto } from '$app/navigation';
 	import { tools } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
-	import { confirm } from '$lib/confirmDialog.svelte';
 
 	let list = $state<any[]>([]);
 	let search = $state('');
@@ -23,7 +22,6 @@
 	$effect(load);
 
 	async function remove(id: number) {
-		if (!await confirm('Delete tool?', 'Are you sure you want to delete this tool?')) return;
 		tools.remove(id).then(() => { load(); addToast('Tool deleted', 'success'); }).catch(e => addToast(e.message, 'error'));
 	}
 

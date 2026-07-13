@@ -256,9 +256,9 @@
 		<div class="txn-form">
 			{#if result.type === 'item'}
 				<div class="txn-row">
-					<div class="segmented">
-						<button type="button" class="segment" class:active={direction === 'out'} onclick={() => direction = 'out'}>Out</button>
-						<button type="button" class="segment" class:active={direction === 'in'} onclick={() => direction = 'in'}>In</button>
+					<div class="segmented2">
+						<button type="button" class="segment2" class:active={direction === 'out'} onclick={() => direction = 'out'}>Out</button>
+						<button type="button" class="segment2" class:active={direction === 'in'} onclick={() => direction = 'in'}>In</button>
 					</div>
 					<input type="number" bind:value={quantity} min="1" class="qty-input" />
 				</div>
@@ -429,10 +429,10 @@
 		border-style: solid;
 		border-width: 0;
 	}
-	.corner.tl { top: 18px; left: 18px; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 14px; }
-	.corner.tr { top: 18px; right: 18px; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 14px; }
-	.corner.bl { bottom: 18px; left: 18px; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 14px; }
-	.corner.br { bottom: 18px; right: 18px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 14px; }
+	.corner.tl { top: 30px; left: 30px; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 18px; }
+	.corner.tr { top: 30px; right: 30px; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 18px; }
+	.corner.bl { bottom: 30px; left: 30px; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 18px; }
+	.corner.br { bottom: 30px; right: 30px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 18px; }
 
 	/* Laser line */
 	.laser {
@@ -591,6 +591,41 @@
 	.checkin-btn:hover {
 		opacity: 0.88;
 	}
+
+
+	.segmented2 {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+}
+
+.segment2 {
+  padding: 7px 12px;
+  font-weight: 400;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+border: 1px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11.5px;
+  opacity: 0.7;
+  transform: scale(0.96);
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+}
+.segment2.active {
+  background: var(--bg-component);
+  border: 1px solid color-mix(in srgb, var(--border-color) 40%, transparent);
+  color: var(--text-primary);
+  opacity: 1;
+}
+.segment2:hover {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
 
 	@media (max-width: 899px) {
 		.page-header h1 {

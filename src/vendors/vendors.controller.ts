@@ -17,6 +17,11 @@ export class VendorsController {
     return this.vendorsService.findAll();
   }
 
+  @Get('deleted')
+  findDeleted() {
+    return this.vendorsService.findDeleted();
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.vendorsService.findOne(id);
@@ -30,5 +35,15 @@ export class VendorsController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.vendorsService.remove(id);
+  }
+
+  @Post(':id/restore')
+  restore(@Param('id', ParseIntPipe) id: number) {
+    return this.vendorsService.restore(id);
+  }
+
+  @Delete(':id/permanent')
+  permanentRemove(@Param('id', ParseIntPipe) id: number) {
+    return this.vendorsService.permanentRemove(id);
   }
 }

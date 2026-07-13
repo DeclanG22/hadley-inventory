@@ -446,7 +446,7 @@ export class ImportService {
       }
     }
 
-    const existing = await this.prisma.item.findUnique({ where: { itemNumber: mapped.itemNumber } });
+    const existing = await this.prisma.item.findFirst({ where: { itemNumber: mapped.itemNumber, deletedAt: null } });
 
     const data: any = {
       description: mapped.description,

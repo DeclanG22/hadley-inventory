@@ -40,6 +40,12 @@ export class ItemsController {
     return this.itemsService.findLowStock();
   }
 
+  // Static routes — must come before @Get(':id')
+  @Get('deleted')
+  findDeleted() {
+    return this.itemsService.findDeleted();
+  }
+
   // All transactions (costing view) — must come before @Get(':id')
   @Get('transactions')
   findAllTransactions(
@@ -63,6 +69,16 @@ export class ItemsController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.itemsService.remove(id);
+  }
+
+  @Post(':id/restore')
+  restore(@Param('id', ParseIntPipe) id: number) {
+    return this.itemsService.restore(id);
+  }
+
+  @Delete(':id/permanent')
+  permanentRemove(@Param('id', ParseIntPipe) id: number) {
+    return this.itemsService.permanentRemove(id);
   }
 
   // Transactions nested under item

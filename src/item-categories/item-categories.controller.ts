@@ -18,6 +18,11 @@ export class ItemCategoriesController {
     return this.itemCategoriesService.findAll();
   }
 
+  @Get('deleted')
+  findDeleted() {
+    return this.itemCategoriesService.findDeleted();
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.itemCategoriesService.findOne(id);
@@ -31,6 +36,16 @@ export class ItemCategoriesController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.itemCategoriesService.remove(id);
+  }
+
+  @Post(':id/restore')
+  restore(@Param('id', ParseIntPipe) id: number) {
+    return this.itemCategoriesService.restore(id);
+  }
+
+  @Delete(':id/permanent')
+  permanentRemove(@Param('id', ParseIntPipe) id: number) {
+    return this.itemCategoriesService.permanentRemove(id);
   }
 
   // SubCategories nested under category
@@ -50,5 +65,20 @@ export class ItemCategoriesController {
   @Delete('sub-categories/:subId')
   removeSubCategory(@Param('subId', ParseIntPipe) subId: number) {
     return this.itemCategoriesService.removeSubCategory(subId);
+  }
+
+  @Get('sub-categories/deleted')
+  findDeletedSubCategories() {
+    return this.itemCategoriesService.findDeletedSubCategories();
+  }
+
+  @Post('sub-categories/:subId/restore')
+  restoreSubCategory(@Param('subId', ParseIntPipe) subId: number) {
+    return this.itemCategoriesService.restoreSubCategory(subId);
+  }
+
+  @Delete('sub-categories/:subId/permanent')
+  permanentRemoveSubCategory(@Param('subId', ParseIntPipe) subId: number) {
+    return this.itemCategoriesService.permanentRemoveSubCategory(subId);
   }
 }

@@ -202,12 +202,15 @@ Returns the latest activity across items (transactions), tools (checkouts/checki
 
 ## Vendors
 
-Simple reference data — each vendor has an auto-incremented `id` and a unique `name`.
+Simple reference data — each vendor has an auto-incremented `id` and a unique `name`. Vendors support soft-delete: `DELETE` sets `deletedAt`, `GET /vendors/deleted` lists soft-deleted records.
+
+**Model fields:** `id`, `name`, `createdAt`, `updatedAt`, `deletedAt`.
 
 ### `GET /vendors`
 ```json
 [{ "id": 1, "name": "McMaster-Carr", "createdAt": "...", "updatedAt": "..." }]
 ```
+Returns only active (non-deleted) vendors.
 
 ### `POST /vendors`
 ```json
@@ -221,17 +224,30 @@ Simple reference data — each vendor has an auto-incremented `id` and a unique 
 ```
 
 ### `DELETE /vendors/:id`
+Soft-deletes the vendor (sets `deletedAt`). The vendor will no longer appear in `GET /vendors` but can be restored via `POST /vendors/:id/restore`.
+
+### `GET /vendors/deleted`
+Returns all soft-deleted vendors, ordered by `deletedAt` descending.
+
+### `POST /vendors/:id/restore`
+Restores a soft-deleted vendor (clears `deletedAt`).
+
+### `DELETE /vendors/:id/permanent`
+Permanently deletes the vendor from the database. Cannot be undone.
 
 ---
 
 ## Locations
 
-Reference data for physical storage locations (e.g., "Shelf A3", "Tool Crib").
+Reference data for physical storage locations (e.g., "Shelf A3", "Tool Crib"). Supports soft-delete.
+
+**Model fields:** `id`, `name`, `createdAt`, `updatedAt`, `deletedAt`.
 
 ### `GET /locations`
 ```json
 [{ "id": 1, "name": "Main Inventory Room", "createdAt": "...", "updatedAt": "..." }]
 ```
+Returns only active locations.
 
 ### `POST /locations`
 ```json
@@ -245,12 +261,24 @@ Reference data for physical storage locations (e.g., "Shelf A3", "Tool Crib").
 ```
 
 ### `DELETE /locations/:id`
+Soft-deletes the location (sets `deletedAt`).
+
+### `GET /locations/deleted`
+Returns all soft-deleted locations, ordered by `deletedAt` descending.
+
+### `POST /locations/:id/restore`
+Restores a soft-deleted location.
+
+### `DELETE /locations/:id/permanent`
+Permanently deletes the location.
 
 ---
 
 ## Item Categories
 
-Hierarchical — categories contain sub-categories.
+Hierarchical — categories contain sub-categories. Both support soft-delete.
+
+**Model fields:** `id`, `name`, `createdAt`, `updatedAt`, `deletedAt`.
 
 ### `GET /item-categories`
 ```json
@@ -264,6 +292,7 @@ Hierarchical — categories contain sub-categories.
   }
 ]
 ```
+Returns only active categories with active sub-categories.
 
 ### `POST /item-categories`
 ```json
@@ -277,6 +306,16 @@ Hierarchical — categories contain sub-categories.
 ```
 
 ### `DELETE /item-categories/:id`
+Soft-deletes the category (sets `deletedAt`).
+
+### `GET /item-categories/deleted`
+Returns all soft-deleted categories.
+
+### `POST /item-categories/:id/restore`
+Restores a soft-deleted category.
+
+### `DELETE /item-categories/:id/permanent`
+Permanently deletes the category.
 
 ### Sub-Categories
 
@@ -291,17 +330,30 @@ Hierarchical — categories contain sub-categories.
 ```
 
 #### `DELETE /item-categories/sub-categories/:subId`
+Soft-deletes the sub-category.
+
+#### `GET /item-categories/sub-categories/deleted`
+Returns all soft-deleted sub-categories.
+
+#### `POST /item-categories/sub-categories/:subId/restore`
+Restores a soft-deleted sub-category.
+
+#### `DELETE /item-categories/sub-categories/:subId/permanent`
+Permanently deletes the sub-category.
 
 ---
 
 ## Tool Categories
 
-Flat reference data for tool types (e.g., "Power Tools", "Hand Tools").
+Flat reference data for tool types (e.g., "Power Tools", "Hand Tools"). Supports soft-delete.
+
+**Model fields:** `id`, `name`, `createdAt`, `updatedAt`, `deletedAt`.
 
 ### `GET /tool-categories`
 ```json
 [{ "id": 1, "name": "Power Tools", "createdAt": "...", "updatedAt": "..." }]
 ```
+Returns only active categories.
 
 ### `POST /tool-categories`
 ```json
@@ -315,6 +367,16 @@ Flat reference data for tool types (e.g., "Power Tools", "Hand Tools").
 ```
 
 ### `DELETE /tool-categories/:id`
+Soft-deletes the category (sets `deletedAt`).
+
+### `GET /tool-categories/deleted`
+Returns all soft-deleted categories.
+
+### `POST /tool-categories/:id/restore`
+Restores a soft-deleted category.
+
+### `DELETE /tool-categories/:id/permanent`
+Permanently deletes the category.
 
 ---
 
@@ -350,6 +412,7 @@ The Item model represents consumable/stock-tracked inventory. Each item has an `
 | totalCost | decimal(12,2) | no | Running total cost (auto-managed by transactions) |
 | createdAt | datetime | auto | Prisma timestamp |
 | updatedAt | datetime | auto | Prisma timestamp |
+| deletedAt | datetime | no | Soft-delete timestamp (null if active) |
 
 ### `GET /items`
 
@@ -472,6 +535,20 @@ Create a new item.
 Partial update — send only the fields to change. Same shape as POST but all fields optional.
 
 ### `DELETE /items/:id`
+
+Soft-deletes the item (sets `deletedAt` and `removeFlag: true`). The item no longer appears in `GET /items` or `GET /items/low-stock` but can be restored.
+
+### `GET /items/deleted`
+
+Returns all soft-deleted items (where `deletedAt` is not null), ordered by `deletedAt` descending. Includes category, location, and vendor relations.
+
+### `POST /items/:id/restore`
+
+Restores a soft-deleted item (clears `deletedAt` and sets `removeFlag: false`).
+
+### `DELETE /items/:id/permanent`
+
+Permanently deletes the item from the database. Cannot be undone.
 
 ### Item Transactions
 
@@ -689,6 +766,7 @@ The Tool model represents unique tracked assets (tools, equipment). Each tool ha
 | locationId | int | no | FK -> Location (where the tool is stored) |
 | createdAt | datetime | auto | Prisma timestamp |
 | updatedAt | datetime | auto | Prisma timestamp |
+| deletedAt | datetime | no | Soft-delete timestamp (null if active) |
 
 ### `GET /tools`
 
@@ -839,6 +917,20 @@ Required: `quantity` (>= 1), `toolNumberPrefix`, `name`. All other tool optional
 Partial update. Same shape as POST but all fields optional.
 
 ### `DELETE /tools/:id`
+
+Soft-deletes the tool (sets `deletedAt`). The tool no longer appears in `GET /tools` but can be restored.
+
+### `GET /tools/deleted`
+
+Returns all soft-deleted tools, ordered by `deletedAt` descending. Includes category and location relations.
+
+### `POST /tools/:id/restore`
+
+Restores a soft-deleted tool (clears `deletedAt`).
+
+### `DELETE /tools/:id/permanent`
+
+Permanently deletes the tool from the database. Cannot be undone.
 
 ### Checkouts
 

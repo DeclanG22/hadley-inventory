@@ -19,7 +19,7 @@ export class ItemsService {
     page?: number; limit?: number;
     sortBy?: string; sortOrder?: 'asc' | 'desc';
   }) {
-    const where: any = {};
+    const where: any = { deletedAt: null };
     if (q) {
       where.OR = [
         { itemNumber: { contains: q, mode: 'insensitive' } },
@@ -31,7 +31,7 @@ export class ItemsService {
     if (filters?.locationId) where.locationId = filters.locationId;
 
     const page = filters?.page ?? 1;
-    const limit = filters?.limit ?? 2000;
+    const limit = filters?.limit ?? 100;
     const skip = (page - 1) * limit;
 
     const allowedSorts = ['itemNumber', 'description', 'onHand', 'unitPrice'];
@@ -59,7 +59,7 @@ export class ItemsService {
 
   async findLowStock() {
     const rows = await this.prisma.$queryRaw<{ id: number }[]>`
-      SELECT id FROM items WHERE min_stock IS NOT NULL AND on_hand <= min_stock ORDER BY item_number ASC
+      SELECT id FROM items WHERE min_stock IS NOT NULL AND on_hand <= min_stock AND deleted_at IS NULL ORDER BY item_number ASC
     `;
     if (rows.length === 0) return [];
     return this.prisma.item.findMany({
@@ -93,6 +93,28 @@ export class ItemsService {
   }
 
   remove(id: number) {
+    return this.prisma.item.update({
+      where: { id },
+      data: { deletedAt: new Date(), removeFlag: true },
+    });
+  }
+
+  findDeleted() {
+    return this.prisma.item.findMany({
+      where: { deletedAt: { not: null } },
+      orderBy: { deletedAt: 'desc' },
+      include: { category: true, location: true, vendor: true },
+    });
+  }
+
+  restore(id: number) {
+    return this.prisma.item.update({
+      where: { id },
+      data: { deletedAt: null, removeFlag: false },
+    });
+  }
+
+  permanentRemove(id: number) {
     return this.prisma.item.delete({ where: { id } });
   }
 

@@ -53,18 +53,18 @@ export class ToolsService {
   }
 
   findAll(q?: string) {
+    const where: any = { deletedAt: null };
+    if (q) {
+      where.OR = [
+        { toolNumber: { contains: q, mode: 'insensitive' } },
+        { name: { contains: q, mode: 'insensitive' } },
+        { brand: { contains: q, mode: 'insensitive' } },
+        { model: { contains: q, mode: 'insensitive' } },
+        { description: { contains: q, mode: 'insensitive' } },
+      ];
+    }
     return this.prisma.tool.findMany({
-      where: q
-        ? {
-            OR: [
-              { toolNumber: { contains: q, mode: 'insensitive' } },
-              { name: { contains: q, mode: 'insensitive' } },
-              { brand: { contains: q, mode: 'insensitive' } },
-              { model: { contains: q, mode: 'insensitive' } },
-              { description: { contains: q, mode: 'insensitive' } },
-            ],
-          }
-        : undefined,
+      where,
       orderBy: { name: 'asc' },
       include: {
         category: true,
@@ -99,6 +99,28 @@ export class ToolsService {
   }
 
   remove(id: number) {
+    return this.prisma.tool.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  findDeleted() {
+    return this.prisma.tool.findMany({
+      where: { deletedAt: { not: null } },
+      orderBy: { deletedAt: 'desc' },
+      include: { category: true, location: true },
+    });
+  }
+
+  restore(id: number) {
+    return this.prisma.tool.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
+  }
+
+  permanentRemove(id: number) {
     return this.prisma.tool.delete({ where: { id } });
   }
 

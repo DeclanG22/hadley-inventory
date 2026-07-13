@@ -12,7 +12,7 @@ export class VendorsService {
   }
 
   findAll() {
-    return this.prisma.vendor.findMany({ orderBy: { name: 'asc' } });
+    return this.prisma.vendor.findMany({ where: { deletedAt: null }, orderBy: { name: 'asc' } });
   }
 
   findOne(id: number) {
@@ -24,6 +24,21 @@ export class VendorsService {
   }
 
   remove(id: number) {
+    return this.prisma.vendor.update({ where: { id }, data: { deletedAt: new Date() } });
+  }
+
+  findDeleted() {
+    return this.prisma.vendor.findMany({
+      where: { deletedAt: { not: null } },
+      orderBy: { deletedAt: 'desc' },
+    });
+  }
+
+  restore(id: number) {
+    return this.prisma.vendor.update({ where: { id }, data: { deletedAt: null } });
+  }
+
+  permanentRemove(id: number) {
     return this.prisma.vendor.delete({ where: { id } });
   }
 }

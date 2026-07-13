@@ -27,6 +27,11 @@ export class ToolsController {
   }
 
   // Static routes — must come before @Get(':id')
+  @Get('deleted')
+  findDeleted() {
+    return this.toolsService.findDeleted();
+  }
+
   @Get('costing')
   costing(@Query('dateFrom') dateFrom?: string, @Query('dateTo') dateTo?: string) {
     return this.toolsService.findCosting({ dateFrom, dateTo });
@@ -54,6 +59,16 @@ export class ToolsController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.toolsService.remove(id);
+  }
+
+  @Post(':id/restore')
+  restore(@Param('id', ParseIntPipe) id: number) {
+    return this.toolsService.restore(id);
+  }
+
+  @Delete(':id/permanent')
+  permanentRemove(@Param('id', ParseIntPipe) id: number) {
+    return this.toolsService.permanentRemove(id);
   }
 
   // Checkouts

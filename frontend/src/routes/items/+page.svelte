@@ -1,11 +1,16 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { items, locations, vendors, itemCategories } from '$lib/api';
-	import type { PaginatedResult } from '$lib/api';
-	import { confirm } from '$lib/confirmDialog.svelte';
 
-	let result = $state<PaginatedResult<any> | null>(null);
+	const PAGE_SIZE = 50;
+
+	let allItems = $state<any[]>([]);
+	let total = $state(0);
 	let loading = $state(true);
+	let loadingMore = $state(false);
+	let loadError = $state('');
+	let hasMore = $state(true);
+	let loadId = 0;
 	let search = $state('');
 	let categoryId = $state('');
 	let vendorId = $state('');
@@ -19,21 +24,63 @@
 	let viewMode = $state<'table' | 'cards'>('table');
 	let debounce: any;
 
-	function load() {
-		loading = true;
-		items.list(search || undefined, {
-			categoryId: categoryId ? Number(categoryId) : undefined,
-			vendorId: vendorId ? Number(vendorId) : undefined,
-			locationId: locationId ? Number(locationId) : undefined,
-			sortBy, sortOrder,
-		}).then(r => { result = r; }).finally(() => loading = false);
+	function observeSentinel(element: HTMLElement) {
+		const observer = new IntersectionObserver((entries) => {
+			if (entries[0].isIntersecting) loadMore();
+		}, { rootMargin: '400px' });
+		observer.observe(element);
+		return { destroy() { observer.disconnect(); } };
 	}
-	$effect(() => {
-		locations.list().then(l => locList = l);
-		vendors.list().then(l => venList = l);
-		itemCategories.list().then(l => catList = l);
+
+	import { onMount } from 'svelte';
+
+	onMount(() => {
+		locations.list().then(l => locList = l).catch(() => {});
+		vendors.list().then(l => venList = l).catch(() => {});
+		itemCategories.list().then(l => catList = l).catch(() => {});
 		load();
 	});
+
+	async function load(reset = true) {
+		const id = ++loadId;
+		if (reset) {
+			allItems = [];
+			hasMore = true;
+			loadError = '';
+			loading = true;
+			loadingMore = false;
+		}
+		try {
+			const r = await items.list(search || undefined, {
+				categoryId: categoryId ? Number(categoryId) : undefined,
+				vendorId: vendorId ? Number(vendorId) : undefined,
+				locationId: locationId ? Number(locationId) : undefined,
+				page: reset ? 1 : (Math.floor(allItems.length / PAGE_SIZE) + 1),
+				limit: PAGE_SIZE,
+				sortBy, sortOrder,
+			});
+			if (id !== loadId) return;
+			allItems = [...allItems, ...r.data];
+			total = r.total;
+			hasMore = allItems.length < r.total;
+		} catch {
+			if (id === loadId) {
+				loadError = 'Failed to load items';
+				hasMore = false;
+			}
+		} finally {
+			if (id === loadId) {
+				loading = false;
+				loadingMore = false;
+			}
+		}
+	}
+
+	function loadMore() {
+		if (!hasMore || loadingMore || loading) return;
+		loadingMore = true;
+		load(false);
+	}
 
 	function onSearchInput() {
 		clearTimeout(debounce);
@@ -47,7 +94,6 @@
 	}
 
 	async function remove(id: number) {
-		if (!await confirm('Delete item?', 'Are you sure you want to delete this item?')) return;
 		items.remove(id).then(load);
 	}
 
@@ -109,7 +155,7 @@
 			<div class="sk-row"><div class="sk-cell sk" style="width:15%"></div><div class="sk-cell sk" style="width:32%"></div><div class="sk-cell sk" style="width:14%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:8%"></div></div>
 			<div class="sk-row"><div class="sk-cell sk" style="width:13%"></div><div class="sk-cell sk" style="width:36%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:14%"></div><div class="sk-cell sk" style="width:8%"></div><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:8%"></div></div>
 		</div>
-	{:else if result && result.data.length > 0}
+	{:else if allItems.length > 0}
 		{#if viewMode === 'table'}
 			<div class="table-wrap">
 				<table style="table-layout:fixed">
@@ -125,7 +171,7 @@
 						</tr>
 					</thead>
 					<tbody>
-						{#each result.data as i}
+						{#each allItems as i}
 							<tr onclick={() => goto(`/items/${i.id}`)}>
 								<td>
 									{#if i.imageUrl}
@@ -146,7 +192,7 @@
 			</div>
 		{:else}
 			<div class="card-grid">
-				{#each result.data as i}
+				{#each allItems as i}
 					<div class="item-card" role="button" tabindex={0} onclick={() => goto(`/items/${i.id}`)} onkeydown={(e) => e.key === 'Enter' && goto(`/items/${i.id}`)}>
 						{#if i.imageUrl}
 							<img src={i.imageUrl} alt="" class="item-card-img" />
@@ -166,8 +212,19 @@
 				{/each}
 			</div>
 		{/if}
+		<div style="display:flex;align-items:center;justify-content:center;padding:16px;gap:8px;color:var(--text-secondary);font-size:13px">
+			{#if loadingMore}
+				<span class="spinner" style="width:16px;height:16px"></span>
+				<span>Loading more...</span>
+			{:else if loadError}
+				<span style="color:var(--red)">{loadError}</span>
+			{:else if !hasMore}
+				<span>Showing all {total} items</span>
+			{/if}
+		</div>
+		<div use:observeSentinel style="height:1px"></div>
 	{:else}
-		<div class="empty-state">No items found.</div>
+		<div class="empty-state">{loadError || 'No items found.'}</div>
 	{/if}
 </div>
 
@@ -250,5 +307,17 @@
 		position: absolute;
 		top: 8px;
 		right: 8px;
+	}
+
+	.spinner {
+		border: 2px solid var(--border-color);
+		border-top-color: var(--text-secondary);
+		border-radius: 50%;
+		animation: spin 0.6s linear infinite;
+		display: inline-block;
+	}
+
+	@keyframes spin {
+		to { transform: rotate(360deg); }
 	}
 </style>

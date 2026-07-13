@@ -1,7 +1,6 @@
 ﻿<script lang="ts">
 	import { locations } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
-	import { confirm } from '$lib/confirmDialog.svelte';
 
 	let list = $state<any[]>([]);
 	let name = $state('');
@@ -16,7 +15,6 @@
 	}
 
 	async function remove(id: number) {
-		if (!await confirm('Delete location?', 'Are you sure you want to delete this location?')) return;
 		locations.remove(id).then(() => { load(); addToast('Location removed', 'success'); }).catch(e => addToast(e.message, 'error'));
 	}
 </script>

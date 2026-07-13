@@ -12,7 +12,7 @@ export class ToolCategoriesService {
   }
 
   findAll() {
-    return this.prisma.toolCategory.findMany({ orderBy: { name: 'asc' } });
+    return this.prisma.toolCategory.findMany({ where: { deletedAt: null }, orderBy: { name: 'asc' } });
   }
 
   findOne(id: number) {
@@ -24,6 +24,21 @@ export class ToolCategoriesService {
   }
 
   remove(id: number) {
+    return this.prisma.toolCategory.update({ where: { id }, data: { deletedAt: new Date() } });
+  }
+
+  findDeleted() {
+    return this.prisma.toolCategory.findMany({
+      where: { deletedAt: { not: null } },
+      orderBy: { deletedAt: 'desc' },
+    });
+  }
+
+  restore(id: number) {
+    return this.prisma.toolCategory.update({ where: { id }, data: { deletedAt: null } });
+  }
+
+  permanentRemove(id: number) {
     return this.prisma.toolCategory.delete({ where: { id } });
   }
 }

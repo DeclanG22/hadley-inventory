@@ -17,6 +17,11 @@ export class LocationsController {
     return this.locationsService.findAll();
   }
 
+  @Get('deleted')
+  findDeleted() {
+    return this.locationsService.findDeleted();
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.locationsService.findOne(id);
@@ -30,5 +35,15 @@ export class LocationsController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.locationsService.remove(id);
+  }
+
+  @Post(':id/restore')
+  restore(@Param('id', ParseIntPipe) id: number) {
+    return this.locationsService.restore(id);
+  }
+
+  @Delete(':id/permanent')
+  permanentRemove(@Param('id', ParseIntPipe) id: number) {
+    return this.locationsService.permanentRemove(id);
   }
 }

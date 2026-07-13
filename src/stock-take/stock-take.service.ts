@@ -10,7 +10,7 @@ export class StockTakeService {
 
   async create(dto: CreateStockTakeDto) {
     const items = await this.prisma.item.findMany({
-      where: { removeFlag: false },
+      where: { removeFlag: false, deletedAt: null },
       select: { id: true, onHand: true },
     });
 

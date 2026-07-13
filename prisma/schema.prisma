@@ -15,6 +15,7 @@ model Vendor {
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@map("vendors")
 }
@@ -27,6 +28,7 @@ model Location {
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@map("locations")
 }
@@ -41,6 +43,7 @@ model ItemCategory {
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@map("item_categories")
 }
@@ -54,6 +57,7 @@ model ItemSubCategory {
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@unique([name, itemCategoryId])
   @@map("item_sub_categories")
@@ -95,6 +99,7 @@ model Item {
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@map("items")
 }
@@ -154,6 +159,7 @@ model ToolCategory {
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@map("tool_categories")
 }
@@ -181,6 +187,7 @@ model Tool {
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@map("tools")
 }

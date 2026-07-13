@@ -45,6 +45,18 @@
 				<span>Scan &amp; Transact</span>
 			</a>
 
+			<a href="/trash" class="tab-link" class:active={path === '/trash'}>
+				<span class="tab-link-icon" aria-hidden="true">
+				<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 512 512">
+					<path d="M0 0h512v512H0z" fill="none" />
+					<path fill="currentColor" d="M96 472a23.82 23.82 0 0 0 23.579 24h272.842A23.82 23.82 0 0 0 416 472V152H96Zm32-288h256v280H128Z" />
+					<path fill="currentColor" d="M168 216h32v200h-32zm72 0h32v200h-32zm72 0h32v200h-32zm16-128V40c0-13.458-9.488-24-21.6-24H205.6C193.488 16 184 26.542 184 40v48H64v32h384V88ZM216 48h80v40h-80Z" />
+</svg>
+
+				</span>
+				<span>Recently Deleted</span>
+			</a>
+
 		<span class="nav-label">Items</span>
 
 			<a href="/items" class="tab-link" class:active={path === '/items' || (path.startsWith('/items/') && path !== '/items/new' && path !== '/items/low-stock' && path !== '/items/costing' && path !== '/items/import')}>

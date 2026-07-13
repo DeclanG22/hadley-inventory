@@ -1,7 +1,6 @@
 ﻿<script lang="ts">
 	import { toolCategories } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
-	import { confirm } from '$lib/confirmDialog.svelte';
 
 	let list = $state<any[]>([]);
 	let name = $state('');
@@ -15,8 +14,7 @@
 		toolCategories.create({ name: name.trim() }).then(() => { name = ''; load(); addToast('Category added', 'success'); }).catch(e => addToast(e.message, 'error'));
 	}
 
-	async function remove(id: number) {
-		if (!await confirm('Delete category?', 'Are you sure you want to delete this category?')) return;
+	function remove(id: number) {
 		toolCategories.remove(id).then(() => { load(); addToast('Category removed', 'success'); }).catch(e => addToast(e.message, 'error'));
 	}
 </script>

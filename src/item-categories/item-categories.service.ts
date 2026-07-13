@@ -14,15 +14,18 @@ export class ItemCategoriesService {
 
   findAll() {
     return this.prisma.itemCategory.findMany({
+      where: { deletedAt: null },
       orderBy: { name: 'asc' },
-      include: { subCategories: true },
+      include: {
+        subCategories: { where: { deletedAt: null } },
+      },
     });
   }
 
   findOne(id: number) {
     return this.prisma.itemCategory.findUniqueOrThrow({
       where: { id },
-      include: { subCategories: true },
+      include: { subCategories: { where: { deletedAt: null } } },
     });
   }
 
@@ -31,6 +34,21 @@ export class ItemCategoriesService {
   }
 
   remove(id: number) {
+    return this.prisma.itemCategory.update({ where: { id }, data: { deletedAt: new Date() } });
+  }
+
+  findDeleted() {
+    return this.prisma.itemCategory.findMany({
+      where: { deletedAt: { not: null } },
+      orderBy: { deletedAt: 'desc' },
+    });
+  }
+
+  restore(id: number) {
+    return this.prisma.itemCategory.update({ where: { id }, data: { deletedAt: null } });
+  }
+
+  permanentRemove(id: number) {
     return this.prisma.itemCategory.delete({ where: { id } });
   }
 
@@ -45,7 +63,7 @@ export class ItemCategoriesService {
 
   findSubCategories(categoryId: number) {
     return this.prisma.itemSubCategory.findMany({
-      where: { itemCategoryId: categoryId },
+      where: { itemCategoryId: categoryId, deletedAt: null },
       orderBy: { name: 'asc' },
     });
   }
@@ -53,6 +71,22 @@ export class ItemCategoriesService {
   async removeSubCategory(id: number) {
     const sub = await this.prisma.itemSubCategory.findUnique({ where: { id } });
     if (!sub) throw new NotFoundException();
+    return this.prisma.itemSubCategory.update({ where: { id }, data: { deletedAt: new Date() } });
+  }
+
+  findDeletedSubCategories() {
+    return this.prisma.itemSubCategory.findMany({
+      where: { deletedAt: { not: null } },
+      orderBy: { deletedAt: 'desc' },
+      include: { itemCategory: true },
+    });
+  }
+
+  restoreSubCategory(id: number) {
+    return this.prisma.itemSubCategory.update({ where: { id }, data: { deletedAt: null } });
+  }
+
+  permanentRemoveSubCategory(id: number) {
     return this.prisma.itemSubCategory.delete({ where: { id } });
   }
 }
