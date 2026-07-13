@@ -5,11 +5,23 @@
 	import logo from '$lib/assets/logo.png';
 	let { children } = $props();
 	let path = $derived($page.url.pathname);
+	let sidebarOpen = $state(false);
 </script>
 
 <div class="app-shell">
-	<aside class="sidebar">
-		<div class="logo"><img src={logo} alt="" class="logo-img" />Hadley Inventory</div>
+	{#if sidebarOpen}
+		<div class="sidebar-backdrop" onclick={() => sidebarOpen = false}></div>
+	{/if}
+	<aside class="sidebar" class:open={sidebarOpen}>
+		<div class="sidebar-header">
+			<div class="logo"><img src={logo} alt="" class="logo-img" />Hadley Inventory</div>
+			<button class="sidebar-close" onclick={() => sidebarOpen = false} aria-label="Close sidebar">
+				<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+					<path d="M0 0h24v24H0z" fill="none" />
+					<path fill="currentColor" fill-rule="evenodd" d="M6.416 4.767a2.65 2.65 0 0 0-2.65 2.65v8.832a2.65 2.65 0 0 0 2.65 2.65h1.461V4.767h-1.46Zm0-1.767A4.416 4.416 0 0 0 2 7.416v8.833a4.416 4.416 0 0 0 4.416 4.417h11.168A4.416 4.416 0 0 0 22 16.248V7.416A4.416 4.416 0 0 0 17.584 3zm3.228 1.767v14.132h7.94a2.65 2.65 0 0 0 2.65-2.65V7.416a2.65 2.65 0 0 0-2.65-2.65h-7.94Z" clip-rule="evenodd" />
+				</svg>
+			</button>
+		</div>
 		<nav>
 
 			<a href="/" class="tab-link" class:active={path === '/'}>
@@ -173,6 +185,12 @@
 		</nav>
 	</aside>
 	<main class="main">
+		<button class="menu-toggle" onclick={() => sidebarOpen = true} aria-label="Open sidebar">
+			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+				<path d="M0 0h24v24H0z" fill="none" />
+				<path fill="currentColor" fill-rule="evenodd" d="M6.416 3A4.416 4.416 0 0 0 2 7.416v8.833a4.416 4.416 0 0 0 4.416 4.417h11.168A4.416 4.416 0 0 0 22 16.248V7.416A4.416 4.416 0 0 0 17.584 3zm3.228 1.767v14.132h7.94a2.65 2.65 0 0 0 2.65-2.65V7.416a2.65 2.65 0 0 0-2.65-2.65h-7.94Z" clip-rule="evenodd" />
+			</svg>
+		</button>
 		{@render children()}
 	</main>
 </div>
@@ -194,6 +212,22 @@
 		flex-direction: column;
 		gap: 2px;
 		height: 100dvh;
+	}
+	.sidebar-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding-right: 4px;
+		flex-shrink: 0;
+	}
+	.sidebar-close {
+		display: none;
+	}
+	.sidebar-backdrop {
+		display: none;
+	}
+	.menu-toggle {
+		display: none;
 	}
 	.logo {
 		font-size: 13px;
@@ -239,16 +273,16 @@
 		color: var(--text-secondary);
 	}
 	.tab-link.active {
-	background: color-mix(in srgb, var(--empty-text-secondary) 20%, transparent);
-	color: var(--text-secondary);
+		background: color-mix(in srgb, var(--empty-text-secondary) 20%, transparent);
+		color: var(--text-secondary);
 	}
 
 	.tab-link-icon svg{
-	height: 13px;
-	width: 13px;
-	margin-right: 2px;
-	color: var(--empty-text-primary);
-	transform: translateY(1px);
+		height: 13px;
+		width: 13px;
+		margin-right: 2px;
+		color: var(--empty-text-primary);
+		transform: translateY(1px);
 	}
 	.main {
 		flex: 1;
@@ -258,5 +292,73 @@
 		overflow-y: auto;
 		height: 100dvh;
 		box-sizing: border-box;
+	}
+
+	@media (max-width: 899px) {
+		.sidebar {
+			position: fixed;
+			left: 0;
+			top: 0;
+			width: 280px;
+			padding: 20px 12px;
+			transform: translateX(-100%);
+			transition: transform 0.25s ease;
+			z-index: 100;
+			box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+		}
+		.sidebar.open {
+			transform: translateX(0);
+		}
+		.sidebar-close {
+			display: flex;
+			background: transparent;
+			border: none;
+			color: var(--empty-text-primary);
+			cursor: pointer;
+			padding: 8px;
+			border-radius: 8px;
+			font-size: 20px;
+			align-items: center;
+			justify-content: center;
+		}
+		.sidebar-backdrop {
+			display: block;
+			position: fixed;
+			inset: 0;
+			background: rgba(0,0,0,0.35);
+			z-index: 99;
+		}
+		.menu-toggle {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			position: fixed;
+			top: 12px;
+			left: 12px;
+			z-index: 50;
+			padding: 8px;
+			border-radius: 8px;
+			background: transparent;
+			color: var(--empty-text-primary);
+			border: none;
+			cursor: pointer;
+			font-size: 20px;
+		}
+		.tab-link {
+			font-size: 15px;
+			padding: 8px 10px;
+			margin-bottom: 2px;
+		}
+		.tab-link-icon svg {
+			height: 16px;
+			width: 16px;
+		}
+		.nav-label {
+			font-size: 10px;
+			padding: 6px 10px;
+		}
+		.main {
+			padding: 60px 12px 12px;
+		}
 	}
 </style>

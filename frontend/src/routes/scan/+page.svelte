@@ -86,7 +86,7 @@
 	}
 
 	$effect(() => {
-		const c = $page.url.searchParams.get('code');
+		const c = $page.url.searchParams.get('code') || ($page.url.hash ? decodeURIComponent($page.url.hash.slice(1)) : '');
 		if (c) {
 			code = c;
 			doLookup();
@@ -201,9 +201,9 @@
 			</button>
 		</div>
 	</div>
-	<div class="divider">
+	<div class="divider" class:result-show={resultVisible}>
     <span>Or Scan Item/Tool Bin QR Code</span>
-</div>
+	</div>
 	<div class="scan-anim" class:result-shown={resultVisible}>
 		<div class="anim-inner">
 			<img src={qrCode} alt="" class="qr-image" />
@@ -223,6 +223,9 @@
 
 	{#if result}
 		<div class="scan-result">
+			{#if result.data.imageUrl}
+				<img src={result.data.imageUrl} alt="" class="result-img" />
+			{/if}
 			<div class="result-header">
 				<span class="badge badge-{result.type === 'item' ? 'available' : result.data.checkedOut ? 'checked-out' : 'available'}">{result.type === 'item' ? 'Item' : 'Tool'}</span>
 				<span class="result-id">{result.type === 'item' ? result.data.itemNumber : result.data.toolNumber}</span>
@@ -382,6 +385,10 @@
 		position: absolute;
 	}
 
+	.divider.result-show {
+	opacity: 0;
+	}
+
 	.anim-inner {
 		position: relative;
 		width: 100%;
@@ -506,6 +513,15 @@
 		font-weight: 500;
 	}
 
+	.result-img {
+		margin: -14px -14px 10px -14px;
+		width: calc(100% + 28px);
+		max-height: 180px;
+		object-fit: cover;
+		display: block;
+		border-radius: 12px 12px 0 0;
+	}
+
 	.txn-form {
 		margin-top: 14px;
 		display: flex;
@@ -549,5 +565,34 @@
 	}
 	.checkin-btn:hover {
 		opacity: 0.88;
+	}
+
+	@media (max-width: 899px) {
+		.page-header h1 {
+			font-size: 18px;
+		}
+		.scan-card {
+			max-width: 100%;
+		}
+		.scan-input {
+			font-size: 16px;
+			padding: 12px 48px 12px 12px;
+		}
+		.scan-btn {
+			width: 40px;
+			height: 40px;
+			font-size: 20px;
+		}
+		.result-id {
+			font-size: 14px;
+		}
+		.txn-submit {
+			font-size: 14px;
+			padding: 14px;
+		}
+		.qty-input {
+			width: 70px;
+			font-size: 14px;
+		}
 	}
 </style>
