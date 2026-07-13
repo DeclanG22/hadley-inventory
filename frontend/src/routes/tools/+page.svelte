@@ -2,20 +2,28 @@
 	import { goto } from '$app/navigation';
 	import { tools } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
+	import { confirm } from '$lib/confirmDialog.svelte';
 
 	let list = $state<any[]>([]);
 	let search = $state('');
 	let loading = $state(true);
 	let viewMode = $state<'table' | 'cards'>('table');
+	let debounce: any;
 
 	function load() {
-		if (list.length === 0) loading = true;
+		loading = true;
 		tools.list(search || undefined).then(l => list = l).finally(() => loading = false);
 	}
+
+	function onSearchInput() {
+		clearTimeout(debounce);
+		debounce = setTimeout(load, 300);
+	}
+
 	$effect(load);
 
-	function remove(id: number) {
-		if (!confirm('Delete this tool?')) return;
+	async function remove(id: number) {
+		if (!await confirm('Delete tool?', 'Are you sure you want to delete this tool?')) return;
 		tools.remove(id).then(() => { load(); addToast('Tool deleted', 'success'); }).catch(e => addToast(e.message, 'error'));
 	}
 
@@ -38,7 +46,7 @@
 
 <div class="card">
 	<div class="search-bar">
-		<input type="search" bind:value={search} placeholder="Search tools by number, name, brand, or model..." oninput={load} />
+		<input type="search" bind:value={search} placeholder="Search tools by number, name, brand, or model..." oninput={onSearchInput} />
 	</div>
 	{#if loading && list.length === 0}
 		<div class="sk-table">

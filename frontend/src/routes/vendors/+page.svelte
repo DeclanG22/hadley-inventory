@@ -1,6 +1,7 @@
 ﻿<script lang="ts">
 	import { vendors } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
+	import { confirm } from '$lib/confirmDialog.svelte';
 
 	let list = $state<any[]>([]);
 	let name = $state('');
@@ -14,7 +15,8 @@
 		vendors.create({ name: name.trim() }).then(() => { name = ''; load(); addToast('Vendor added', 'success'); }).catch(e => addToast(e.message, 'error'));
 	}
 
-	function remove(id: number) {
+	async function remove(id: number) {
+		if (!await confirm('Delete vendor?', 'Are you sure you want to delete this vendor?')) return;
 		vendors.remove(id).then(() => { load(); addToast('Vendor removed', 'success'); }).catch(e => addToast(e.message, 'error'));
 	}
 </script>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { stockTakes } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
+	import { confirm } from '$lib/confirmDialog.svelte';
 	let { params } = $props();
 
 	let st = $state<any>(null);
@@ -26,7 +27,7 @@
 	}
 
 	async function doReconcile() {
-		if (!confirm('Apply all adjustments and mark as completed?')) return;
+		if (!await confirm('Reconcile stock take?', 'Apply all adjustments and mark as completed?')) return;
 		reconciling = true;
 		try {
 			st = await stockTakes.reconcile(st.id);

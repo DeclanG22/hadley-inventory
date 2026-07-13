@@ -13,6 +13,8 @@
 	let direction = $state<'in' | 'out'>('out');
 	let checkedOutBy = $state('');
 	let jobNumber = $state('');
+	let jobSite = $state('');
+	let expectedReturnAt = $state('');
 	let submitting = $state(false);
 	let resultVisible = $state(false);
 
@@ -101,6 +103,8 @@
 		quantity = 1;
 		direction = 'out';
 		jobNumber = '';
+		jobSite = '';
+		expectedReturnAt = '';
 		setTimeout(focusScan, 50);
 	}
 
@@ -153,6 +157,8 @@
 			await tools.checkout(result!.data.id, {
 				checkedOutBy,
 				jobNumber: jobNumber || undefined,
+				jobSite: jobSite || undefined,
+				expectedReturnAt: expectedReturnAt || undefined,
 			});
 			addToast(`Checked out ${result!.data.toolNumber}`, 'success');
 			clear();
@@ -274,6 +280,13 @@
 					</div>
 					<div class="txn-row">
 						<input bind:value={jobNumber} placeholder="Job number (optional)" class="txn-field" />
+					</div>
+					<div class="txn-row">
+						<input bind:value={jobSite} placeholder="Job site (optional)" class="txn-field" />
+					</div>
+					<div class="txn-row txn-date-row">
+						<span class="txn-label">Expected return date (optional)</span>
+						<input bind:value={expectedReturnAt} type="date" class="txn-field" />
 					</div>
 					<button onclick={submitToolCheckout} disabled={submitting || !checkedOutBy.trim()} class="btn-primary txn-submit">
 						{submitting ? 'Checking out...' : 'Check Out'}
@@ -543,6 +556,18 @@
 
 	.txn-field {
 		flex: 1;
+	}
+
+	.txn-date-row {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 4px;
+	}
+
+	.txn-label {
+		font-size: 12px;
+		color: var(--empty-text-primary);
+		font-weight: 400;
 	}
 
 	.txn-info {

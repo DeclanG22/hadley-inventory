@@ -37,7 +37,6 @@ export class ToolsService {
         brand: dto.brand,
         model: dto.model,
         serialNumber: dto.serialNumber,
-        qrCode: dto.qrCode,
         imageUrl: dto.imageUrl,
         notes: dto.notes,
         categoryId: dto.categoryId,

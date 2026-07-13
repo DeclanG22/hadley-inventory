@@ -8,12 +8,7 @@ export class LookupController {
   @Get(':code')
   async lookup(@Param('code') code: string) {
     let item = await this.prisma.item.findFirst({
-      where: {
-        OR: [
-          { itemNumber: { equals: code, mode: 'insensitive' } },
-          { qrCode: { equals: code, mode: 'insensitive' } },
-        ],
-      },
+      where: { itemNumber: { equals: code, mode: 'insensitive' } },
       include: {
         category: true,
         subCategory: true,
@@ -50,12 +45,7 @@ export class LookupController {
     }
 
     let tool = await this.prisma.tool.findFirst({
-      where: {
-        OR: [
-          { toolNumber: { equals: code, mode: 'insensitive' } },
-          { qrCode: { equals: code, mode: 'insensitive' } },
-        ],
-      },
+      where: { toolNumber: { equals: code, mode: 'insensitive' } },
       include: {
         category: true,
         checkouts: {

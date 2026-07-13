@@ -2,6 +2,7 @@
 	import '../app.css';
 	import { page } from '$app/stores';
 	import Toast from '$lib/ToastNotification.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import logo from '$lib/assets/logo.png';
 	let { children } = $props();
 	let path = $derived($page.url.pathname);
@@ -76,6 +77,17 @@
 			<span>Categories</span>
 			</a>
 
+			<a href="/items/costing" class="tab-link" class:active={path === '/items/costing'}>
+    			<span class="tab-link-icon" aria-hidden="true">
+         			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16">
+                        <path d="M0 0h16v16H0z" fill="none" />
+                        <path fill="currentColor" d="M4 9h4v2H4z" />
+                        <path fill="currentColor" d="M16 2h-1V0H5v2H3v1.25L2.4 4H1v1.75L0 7v9h12l4-5zM2 5h8v2H2zm9 10H1V8h10zm1-8h-1V4H4V3h8zm2-2.5l-1 1.25V2H6V1h8z" />
+         			</svg>
+    			</span>
+			<span>Costing</span>
+			</a>
+
 			<a href="/items/low-stock" class="tab-link" class:active={path === '/items/low-stock'}>
     			<span class="tab-link-icon" aria-hidden="true">
          			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
@@ -87,17 +99,6 @@
          			</svg>
     			</span>
 			<span>Low Stock</span>
-			</a>
-
-			<a href="/items/costing" class="tab-link" class:active={path === '/items/costing'}>
-    			<span class="tab-link-icon" aria-hidden="true">
-         			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16">
-                        <path d="M0 0h16v16H0z" fill="none" />
-                        <path fill="currentColor" d="M4 9h4v2H4z" />
-                        <path fill="currentColor" d="M16 2h-1V0H5v2H3v1.25L2.4 4H1v1.75L0 7v9h12l4-5zM2 5h8v2H2zm9 10H1V8h10zm1-8h-1V4H4V3h8zm2-2.5l-1 1.25V2H6V1h8z" />
-         			</svg>
-    			</span>
-			<span>Costing</span>
 			</a>
 
 			<a href="/stock-takes" class="tab-link" class:active={path === '/stock-takes' || path.startsWith('/stock-takes/')}>
@@ -139,6 +140,16 @@
 			<span>New Tool</span>
 			</a>
 
+			<a href="/tool-categories" class="tab-link" class:active={path === '/tool-categories'}>
+    			<span class="tab-link-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none" />
+                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 3h6m-3-3v6" />
+                    </svg>
+    			</span>
+			<span>Categories</span>
+			</a>
+
 			<a href="/tools/costing" class="tab-link" class:active={path === '/tools/costing'}>
     			<span class="tab-link-icon" aria-hidden="true">
          			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16">
@@ -148,16 +159,6 @@
          			</svg>
     			</span>
 			<span>Costing</span>
-			</a>
-
-			<a href="/tool-categories" class="tab-link" class:active={path === '/tool-categories'}>
-    			<span class="tab-link-icon" aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-                        <path d="M0 0h24v24H0z" fill="none" />
-                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 3h6m-3-3v6" />
-                    </svg>
-    			</span>
-			<span>Categories</span>
 			</a>
 
 		<span class="nav-label">Reference</span>
@@ -191,10 +192,11 @@
 				<path fill="currentColor" fill-rule="evenodd" d="M6.416 3A4.416 4.416 0 0 0 2 7.416v8.833a4.416 4.416 0 0 0 4.416 4.417h11.168A4.416 4.416 0 0 0 22 16.248V7.416A4.416 4.416 0 0 0 17.584 3zm3.228 1.767v14.132h7.94a2.65 2.65 0 0 0 2.65-2.65V7.416a2.65 2.65 0 0 0-2.65-2.65h-7.94Z" clip-rule="evenodd" />
 			</svg>
 		</button>
-		{@render children()}
-	</main>
+	{@render children()}
+</main>
 </div>
 <Toast />
+<ConfirmDialog />
 
 <style>
 	.app-shell {

@@ -28,10 +28,6 @@ export class CreateToolDto {
 
   @IsOptional()
   @IsString()
-  qrCode?: string;
-
-  @IsOptional()
-  @IsString()
   imageUrl?: string;
 
   @IsOptional()

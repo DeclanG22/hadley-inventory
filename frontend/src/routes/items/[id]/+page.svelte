@@ -2,6 +2,7 @@
 	import { items, vendors, locations, itemCategories } from '$lib/api';
 	import ItemChart from '$lib/ItemChart.svelte';
 	import { addToast } from '$lib/toast.svelte';
+	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	let { params } = $props();
 
 	let item = $state<any>(null);
@@ -64,6 +65,30 @@
 		URL.revokeObjectURL(url);
 	}
 
+	let totalCostSum = $derived.by(() => {
+		let sum = 0;
+		for (const t of filtered) {
+			const up = Number(t.unitPrice) || 0;
+			const cost = t.totalCost ? Number(t.totalCost) : up ? Math.abs(t.quantityInOut) * up : 0;
+			sum += cost;
+		}
+		return sum;
+	});
+
+	function exportSummary() {
+		const jobs = [...new Set(filtered.map((t: any) => t.jobNumber).filter(Boolean))];
+		const rows = [['Job #','Date From','Date To','Total Cost']];
+		rows.push([jobs.length ? jobs.join(', ') : '(none)', filterDateFrom || 'Any', filterDateTo || 'Any', totalCostSum.toFixed(2)]);
+		const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+		const blob = new Blob([csv], { type: 'text/csv' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `${item.itemNumber}_summary.csv`;
+		a.click();
+		URL.revokeObjectURL(url);
+	}
+
 	function load() {
 		const id = Number(params.id);
 		items.get(id).then(i => { item = i; resetForm(i); });
@@ -78,11 +103,10 @@
 		form = {
 			itemNumber: i.itemNumber, description: i.description,
 			unit: i.unit ?? '', unitPrice: i.unitPrice ?? '', weightPerUnit: i.weightPerUnit ?? '',
-			analysisCode: i.analysisCode ?? '', headType: i.headType ?? '', qrCode: i.qrCode ?? '', imageUrl: i.imageUrl ?? '',
+			analysisCode: i.analysisCode ?? '', headType: i.headType ?? '', imageUrl: i.imageUrl ?? '',
 			categoryId: i.categoryId ?? '', subCategoryId: i.subCategoryId ?? '',
 			locationId: i.locationId ?? '', vendorId: i.vendorId ?? '',
-			onHand: i.onHand ?? '', minStock: i.minStock ?? '', lastQtyInOut: i.lastQtyInOut ?? '',
-			lastJobNumber: i.lastJobNumber ?? '', totalCost: i.totalCost ?? '',
+		onHand: i.onHand ?? '', minStock: i.minStock ?? '',
 		};
 		if (i.categoryId) itemCategories.subCategories.list(i.categoryId).then(l => subCats = l);
 	}
@@ -99,8 +123,8 @@
 			const data: any = {};
 			for (const [k, v] of Object.entries(form)) {
 				if (v === '') continue;
-				if (['unitPrice','weightPerUnit','totalCost'].includes(k)) data[k] = Number(v);
-				else if (['categoryId','subCategoryId','locationId','vendorId','onHand','minStock','lastQtyInOut'].includes(k)) data[k] = Number(v);
+				if (['unitPrice','weightPerUnit'].includes(k)) data[k] = Number(v);
+				else if (['categoryId','subCategoryId','locationId','vendorId','onHand','minStock'].includes(k)) data[k] = Number(v);
 				else data[k] = v;
 			}
 			await items.update(id, data);
@@ -166,8 +190,7 @@
 				<div><label>Weight/Unit (g)</label><input type="number" step="0.0001" bind:value={form.weightPerUnit} /></div>
 				<div><label>Analysis Code</label><input bind:value={form.analysisCode} /></div>
 				<div><label>Head Type</label><input bind:value={form.headType} /></div>
-				<div><label>QR Code</label><input bind:value={form.qrCode} placeholder="Optional QR data" /></div>
-				<div><label>Image URL</label><input bind:value={form.imageUrl} placeholder="https://..." /></div>
+				<ImageUpload bind:value={form.imageUrl} label="Image URL" />
 				<div><label>Category</label>
 					<select bind:value={form.categoryId} onchange={onCategoryChange}>
 						<option value="">--</option>
@@ -194,9 +217,6 @@
 				</div>
 				<div><label>On Hand</label><input type="number" bind:value={form.onHand} /></div>
 				<div><label>Min Stock</label><input type="number" bind:value={form.minStock} placeholder="Low stock alert threshold" /></div>
-				<div><label>Last Qty In/Out</label><input type="number" bind:value={form.lastQtyInOut} /></div>
-				<div><label>Last Job Number</label><input bind:value={form.lastJobNumber} /></div>
-				<div><label>Total Cost</label><input type="number" step="0.01" bind:value={form.totalCost} /></div>
 			</div>
 			<button type="submit" style="margin-top:12px">Save Changes</button>
 		</form>
@@ -213,9 +233,7 @@
 				<span>Unit Price:</span><span>{item.unitPrice ? `$${Number(item.unitPrice).toFixed(2)}` : '-'}</span>
 				<span>Min Stock:</span><span>{item.minStock ?? '-'}</span>
 				<span>Vendor:</span><span>{item.vendor?.name ?? '-'}</span>
-				<span>Location:</span><span>{item.location?.name ?? '-'}</span>
-				<span>Total Cost:</span><span>{item.totalCost ? `$${Number(item.totalCost).toFixed(2)}` : '-'}</span>
-				<span>QR Code:</span><span>{item.qrCode ?? '-'}</span>
+			<span>Location:</span><span>{item.location?.name ?? '-'}</span>
 			</div>
 		</div>
 	{/if}
@@ -246,15 +264,16 @@
 			<h2>Transaction History</h2>
 			<div class="page-header-actions">
 				{#if filtered.length > 0}
+					<button class="btn-ghost btn-sm" onclick={exportSummary}>Export Summary</button>
 					<button class="btn-ghost btn-sm" onclick={exportCsv}>Export CSV</button>
 				{/if}
 			</div>
 		</div>
 		<div class="filter-bar">
-			<input type="date" bind:value={filterDateFrom} placeholder="From" title="From date" />
-			<input type="date" bind:value={filterDateTo} placeholder="To" title="To date" />
-			<input type="search" bind:value={filterJob} placeholder="Job #" style="flex:1;max-width:160px" />
-			<select bind:value={filterDirection}>
+			<input type="search" bind:value={filterJob} placeholder="Job #" style="flex:1;min-width:120px" />
+			<input type="date" bind:value={filterDateFrom} placeholder="From" title="From date" style="width:130px" />
+			<input type="date" bind:value={filterDateTo} placeholder="To" title="To date" style="width:130px" />
+			<select bind:value={filterDirection} style="width:75px">
 				<option value="all">All</option>
 				<option value="in">In</option>
 				<option value="out">Out</option>

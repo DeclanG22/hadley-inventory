@@ -39,11 +39,6 @@ const COLUMNS: Record<string, string> = {
   'in stock': 'onHand',
   'current stock': 'onHand',
   'balance': 'onHand',
-  'last quantity in or out': 'lastQtyInOut',
-  'last qty': 'lastQtyInOut',
-  'last quantity': 'lastQtyInOut',
-  'last in/out': 'lastQtyInOut',
-  'last movement': 'lastQtyInOut',
   'unit price': 'unitPrice',
   'price': 'unitPrice',
   'unit price $': 'unitPrice',
@@ -66,11 +61,6 @@ const COLUMNS: Record<string, string> = {
   'removed': 'dateDisbursed',
   'issued': 'dateDisbursed',
   'date issued': 'dateDisbursed',
-  'total cost': 'totalCost',
-  'total': 'totalCost',
-  'total $': 'totalCost',
-  'total price': 'totalCost',
-  'amount': 'totalCost',
   'unit': 'unit',
   'uom': 'unit',
   'unit of measure': 'unit',
@@ -135,11 +125,9 @@ const FIELDS = [
   { value: 'description', label: 'Description', required: true },
   { value: 'dateAdded', label: 'Date Added', required: false },
   { value: 'onHand', label: 'On Hand', required: false },
-  { value: 'lastQtyInOut', label: 'Last Quantity In or Out', required: false },
   { value: 'unitPrice', label: 'Unit Price', required: false },
   { value: 'jobNumber', label: 'Job Number', required: false },
   { value: 'dateDisbursed', label: 'Date Disbursed', required: false },
-  { value: 'totalCost', label: 'Total Cost', required: false },
   { value: 'unit', label: 'Unit', required: false },
   { value: 'locationName', label: 'Location', required: false },
   { value: 'analysisCode', label: 'Analysis Code', required: false },
@@ -165,11 +153,9 @@ interface ImportRow {
   description: string;
   dateAdded?: string;
   onHand?: number;
-  lastQtyInOut?: number;
   unitPrice?: number;
   jobNumber?: string;
   dateDisbursed?: string;
-  totalCost?: number;
   unit?: string;
   locationName?: string;
   analysisCode?: string;
@@ -394,11 +380,9 @@ export class ImportService {
       description: str('description') ?? '',
       dateAdded: str('dateAdded'),
       onHand: num('onHand'),
-      lastQtyInOut: num('lastQtyInOut'),
       unitPrice: num('unitPrice'),
       jobNumber: str('jobNumber'),
       dateDisbursed: str('dateDisbursed'),
-      totalCost: num('totalCost'),
       unit: str('unit'),
       locationName: str('locationName'),
       analysisCode: str('analysisCode'),
@@ -478,11 +462,9 @@ export class ImportService {
       locationId,
       vendorId,
       onHand: mapped.onHand ?? 0,
-      lastQtyInOut: mapped.lastQtyInOut,
       lastJobNumber: mapped.jobNumber,
       dateAdded: this.parseDate(mapped.dateAdded),
       dateDisbursed: this.parseDate(mapped.dateDisbursed),
-      totalCost: mapped.totalCost,
     };
 
     if (existing) {

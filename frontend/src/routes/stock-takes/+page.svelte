@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { stockTakes } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
+	import { confirm } from '$lib/confirmDialog.svelte';
 
 	let list = $state<any[]>([]);
 	let loading = $state(true);
@@ -13,7 +14,7 @@
 	$effect(load);
 
 	async function remove(id: number) {
-		if (!confirm('Delete this stock take?')) return;
+		if (!await confirm('Delete stock take?', 'Are you sure you want to delete this stock take?')) return;
 		try {
 			await stockTakes.remove(id);
 			load();

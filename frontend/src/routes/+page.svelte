@@ -39,30 +39,30 @@
 		<div class="stat-card"><div class="sk-stat"><div class="sk-circle sk"></div><div class="sk-line sk" style="width:55%"></div></div></div>
 		<div class="stat-card"><div class="sk-stat"><div class="sk-circle sk"></div><div class="sk-line sk" style="width:60%"></div></div></div>
 	{:else}
-		<div class="stat-card">
+		<a href="/items" class="stat-card">
 			<span class="stat-value">{itemCount}</span>
 			<span class="stat-label">Items</span>
-		</div>
-		<div class="stat-card warn">
+		</a>
+		<a href="/items/low-stock" class="stat-card warn">
 			<span class="stat-value">{lowStock}</span>
 			<span class="stat-label">Low Stock Items</span>
-		</div>
-		<div class="stat-card">
+		</a>
+		<a href="/tools" class="stat-card">
 			<span class="stat-value">{toolCount}</span>
 			<span class="stat-label">Tools</span>
-		</div>
-		<div class="stat-card">
+		</a>
+		<a href="/tools/checked-out" class="stat-card">
 			<span class="stat-value">{checkedOut}</span>
 			<span class="stat-label">Checked Out Tools</span>
-		</div>
-		<div class="stat-card">
+		</a>
+		<a href="/vendors" class="stat-card">
 			<span class="stat-value">{vendorCount}</span>
 			<span class="stat-label">Vendors</span>
-		</div>
-		<div class="stat-card">
+		</a>
+		<a href="/locations" class="stat-card">
 			<span class="stat-value">{locationCount}</span>
 			<span class="stat-label">Locations</span>
-		</div>
+		</a>
 	{/if}
 </div>
 

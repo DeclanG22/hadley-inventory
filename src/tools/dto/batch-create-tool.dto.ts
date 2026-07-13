@@ -33,10 +33,6 @@ export class BatchCreateToolDto {
 
   @IsOptional()
   @IsString()
-  qrCode?: string;
-
-  @IsOptional()
-  @IsString()
   imageUrl?: string;
 
   @IsOptional()

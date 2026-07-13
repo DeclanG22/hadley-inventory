@@ -1,6 +1,7 @@
 ﻿<script lang="ts">
 	import { tools, locations, toolCategories } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
+	import ImageUpload from '$lib/components/ImageUpload.svelte';
 
 	let locList = $state<any[]>([]);
 	let catList = $state<any[]>([]);
@@ -10,7 +11,7 @@
 		quantity: '',
 		toolNumberPrefix: '',
 		name: '', description: '', brand: '', model: '',
-		serialNumber: '', qrCode: '', imageUrl: '', notes: '', categoryId: '', locationId: '',
+		serialNumber: '', imageUrl: '', notes: '', categoryId: '', locationId: '',
 	});
 	let saved = $state(false);
 	let created = $state<any[]>([]);
@@ -36,7 +37,6 @@
 		if (form.brand) data.brand = form.brand;
 		if (form.model) data.model = form.model;
 		if (form.serialNumber) data.serialNumber = form.serialNumber;
-		if (form.qrCode) data.qrCode = form.qrCode;
 		if (form.imageUrl) data.imageUrl = form.imageUrl;
 		if (form.notes) data.notes = form.notes;
 		if (form.categoryId) data.categoryId = Number(form.categoryId);
@@ -96,8 +96,7 @@
 			<div><label>Brand</label><input bind:value={form.brand} /></div>
 			<div><label>Model</label><input bind:value={form.model} /></div>
 			<div><label>Serial Number</label><input bind:value={form.serialNumber} /></div>
-			<div><label>QR Code</label><input bind:value={form.qrCode} placeholder="Optional QR data" /></div>
-			<div><label>Image URL</label><input bind:value={form.imageUrl} placeholder="https://..." /></div>
+			<ImageUpload bind:value={form.imageUrl} label="Image URL" />
 			<div><label>Category</label>
 				<select bind:value={form.categoryId}>
 					<option value="">--</option>

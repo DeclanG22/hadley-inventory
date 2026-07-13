@@ -10,6 +10,7 @@ import { ActivityModule } from './activity/activity.module';
 import { ImportModule } from './import/import.module';
 import { StockTakeModule } from './stock-take/stock-take.module';
 import { LookupModule } from './lookup/lookup.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { LookupModule } from './lookup/lookup.module';
     ImportModule,
     StockTakeModule,
     LookupModule,
+    UploadModule,
   ],
 })
 export class AppModule {}

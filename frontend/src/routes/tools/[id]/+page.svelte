@@ -1,6 +1,7 @@
 ﻿<script lang="ts">
 	import { tools, locations, toolCategories } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
+	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	let { params } = $props();
 
 	let tool = $state<any>(null);
@@ -36,7 +37,7 @@
 		form = {
 			toolNumber: t.toolNumber, name: t.name, description: t.description ?? '',
 			brand: t.brand ?? '', model: t.model ?? '', serialNumber: t.serialNumber ?? '',
-			qrCode: t.qrCode ?? '', imageUrl: t.imageUrl ?? '', notes: t.notes ?? '',
+			imageUrl: t.imageUrl ?? '', notes: t.notes ?? '',
 			categoryId: t.categoryId ?? '', locationId: t.locationId ?? '',
 		};
 	}
@@ -213,8 +214,7 @@
 				<div><label>Brand</label><input bind:value={form.brand} /></div>
 				<div><label>Model</label><input bind:value={form.model} /></div>
 				<div><label>Serial Number</label><input bind:value={form.serialNumber} /></div>
-				<div><label>QR Code</label><input bind:value={form.qrCode} placeholder="Optional QR data" /></div>
-				<div><label>Image URL</label><input bind:value={form.imageUrl} placeholder="https://..." /></div>
+				<ImageUpload bind:value={form.imageUrl} label="Image URL" />
 				<div><label>Category</label>
 					<select bind:value={form.categoryId}>
 						<option value="">--</option>

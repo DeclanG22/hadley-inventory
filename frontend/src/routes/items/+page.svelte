@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { items, locations, vendors, itemCategories } from '$lib/api';
 	import type { PaginatedResult } from '$lib/api';
+	import { confirm } from '$lib/confirmDialog.svelte';
 
 	let result = $state<PaginatedResult<any> | null>(null);
 	let loading = $state(true);
@@ -45,8 +46,8 @@
 		load();
 	}
 
-	function remove(id: number) {
-		if (!confirm('Delete this item?')) return;
+	async function remove(id: number) {
+		if (!await confirm('Delete item?', 'Are you sure you want to delete this item?')) return;
 		items.remove(id).then(load);
 	}
 

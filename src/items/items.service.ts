@@ -99,6 +99,10 @@ export class ItemsService {
   // Transactions
 
   async createTransaction(itemId: number, dto: CreateTransactionDto) {
+    const item = await this.prisma.item.findUniqueOrThrow({ where: { id: itemId }, select: { unitPrice: true } });
+    const unitPrice = dto.unitPrice ?? item.unitPrice ?? undefined;
+    const qtyAbs = Math.abs(dto.quantityInOut);
+    const totalCost = dto.totalCost ?? (unitPrice ? Number(unitPrice) * qtyAbs : undefined);
     const [transaction] = await this.prisma.$transaction([
       this.prisma.itemTransaction.create({
         data: {
@@ -106,8 +110,8 @@ export class ItemsService {
           jobNumber: dto.jobNumber,
           date: new Date(dto.date + 'T00:00:00'),
           quantityInOut: dto.quantityInOut,
-          unitPrice: dto.unitPrice,
-          totalCost: dto.totalCost,
+          unitPrice,
+          totalCost,
           notes: dto.notes,
         },
       }),
@@ -143,7 +147,7 @@ export class ItemsService {
       where,
       orderBy: { date: 'desc' },
       include: {
-        item: { select: { id: true, itemNumber: true, description: true } },
+        item: { select: { id: true, itemNumber: true, description: true, unitPrice: true } },
       },
     });
   }

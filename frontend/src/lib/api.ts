@@ -111,7 +111,17 @@ export const items = {
 	},
 };
 
-// Tools
+export const upload = {
+	image: async (file: File): Promise<string> => {
+		const form = new FormData();
+		form.set('file', file);
+		const res = await fetch('/api/upload', { method: 'POST', body: form });
+		if (!res.ok) throw new Error(await res.text());
+		const data = await res.json();
+		return data.url;
+	},
+};
+
 export const tools = {
 	list: (q?: string) => request<any[]>(`/tools${q ? `?q=${encodeURIComponent(q)}` : ''}`),
 	get: (id: number) => request<any>(`/tools/${id}`),

@@ -54,10 +54,6 @@ export class CreateItemDto {
 
   @IsOptional()
   @IsString()
-  qrCode?: string;
-
-  @IsOptional()
-  @IsString()
   imageUrl?: string;
 
   @IsOptional()
@@ -83,24 +79,10 @@ export class CreateItemDto {
   minStock?: number;
 
   @IsOptional()
-  @IsInt()
-  @Type(() => Number)
-  lastQtyInOut?: number;
-
-  @IsOptional()
-  @IsString()
-  lastJobNumber?: string;
-
-  @IsOptional()
   @IsString()
   dateAdded?: string;
 
   @IsOptional()
   @IsString()
   dateDisbursed?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  totalCost?: number;
 }

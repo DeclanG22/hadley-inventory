@@ -1,8 +1,142 @@
 # API Reference
 
-Base URL: `http://localhost:3000`
+Base URL: `http://localhost:3000/api`
 
 **Global validation behavior:** All DTOs are validated via `ValidationPipe` with `whitelist: true`, `forbidNonWhitelisted: true`, `transform: true`. Unknown fields in request bodies are stripped, extra fields cause errors, and query/param strings are auto-converted to numbers where applicable.
+
+---
+
+## Lookup (Unified Item/Tool Search)
+
+### `GET /lookup/:code`
+
+Scans a barcode/QR code value or free-text search and returns the **first matching entity** — either an item or a tool — in a single unified response. Designed for scan-and-transact workflows (e.g., scanning a QR code on a bin or tool tag).
+
+**Search algorithm (two-phase per entity):**
+
+1. **Phase 1 – Exact match** on the primary identifier:
+   - Items: `itemNumber` (case-insensitive)
+   - Tools: `toolNumber` (case-insensitive)
+2. **Phase 2 – Contains match** on the description/name (only if Phase 1 misses):
+   - Items: `description` (case-insensitive contains)
+   - Tools: `name` (case-insensitive contains)
+
+**Entity priority:** Items are searched first. Only if no item matches does the endpoint fall through to tools. If neither matches, returns 404.
+
+**Response shape** — the response has a `type` discriminator (`"item"` or `"tool"`) and a `data` object whose fields differ by type:
+
+**Item match (`type: "item"`):**
+
+```json
+{
+  "type": "item",
+  "data": {
+    "id": 1,
+    "itemNumber": "6-32x1/2-PH-SS",
+    "description": "6-32 x 1/2 Panhead Phillips S.S",
+    "onHand": 68,
+    "unit": "Each",
+    "category": "Screws",
+    "imageUrl": "https://example.com/screw.jpg"
+  }
+}
+```
+
+| Field | Type | Notes |
+|-------|------|-------|
+| id | int | Item primary key |
+| itemNumber | string | Unique item identifier |
+| description | string | Item description |
+| onHand | int | Current stock quantity |
+| unit | string or null | Unit of measure |
+| category | string or null | Category name |
+| imageUrl | string or null | Image URL |
+
+**Tool match (`type: "tool"`):**
+
+```json
+{
+  "type": "tool",
+  "data": {
+    "id": 1,
+    "toolNumber": "SAW-001",
+    "name": "Dewalt Miter Saw",
+    "brand": "Dewalt",
+    "model": "DWS780",
+    "category": "Power Tools",
+    "imageUrl": "https://example.com/saw.jpg",
+    "checkedOut": true,
+    "checkedOutBy": "John D",
+    "checkedOutAt": "2026-07-09T18:00:00.000Z"
+  }
+}
+```
+
+| Field | Type | Notes |
+|-------|------|-------|
+| id | int | Tool primary key |
+| toolNumber | string | Unique tool identifier |
+| name | string | Display name |
+| brand | string or null | Manufacturer |
+| model | string or null | Model number |
+| category | string or null | Category name |
+| imageUrl | string or null | Image URL |
+| checkedOut | boolean | Whether the tool is currently checked out |
+| checkedOutBy | string or null | Name of who checked it out (null if available) |
+| checkedOutAt | ISO datetime or null | When it was checked out (null if available) |
+
+**Error response (404):**
+
+```json
+{
+  "message": "No item or tool found matching \"SEARCH-CODE\"",
+  "error": "Not Found",
+  "statusCode": 404
+}
+```
+
+**Typical workflow:**
+
+1. User scans a QR code (or types a number) on the scan page.
+2. Call `GET /lookup/<code>`.
+3. If the result's `type` is `"item"`, show the item details and prompt for a stock movement (in/out, quantity, job number).
+4. If the result's `type` is `"tool"`, check `checkedOut`: if false, show check-out form (name, job number, job site, expected return date); if true, show check-in button.
+5. On 404, show a "not found" message.
+
+---
+
+## Upload
+
+### `POST /upload`
+
+Accepts an image file via `multipart/form-data` and returns a URL that can be used as `imageUrl` on items and tools.
+
+**Request:** `multipart/form-data` with field name `file`.
+
+- Only image MIME types allowed (`image/*`)
+- Max file size: 5MB
+- Files are saved to the `uploads/` directory and served statically at `/uploads/<filename>`
+
+**Response:**
+
+```json
+{
+  "url": "/uploads/1740012345678-987654321.jpg"
+}
+```
+
+**Typical usage:**
+
+1. Upload an image file.
+2. Store the returned `url` in the item's or tool's `imageUrl` field.
+3. Display the image by prefixing with the API base URL: `http://localhost:3000/uploads/1740012345678-987654321.jpg` (or via the `/api` proxy in frontend: `fetch('/api/uploads/...')`).
+
+**Error responses:**
+
+```json
+{ "message": "Only image files are allowed", "error": "Bad Request", "statusCode": 400 }
+{ "message": "No file provided", "error": "Bad Request", "statusCode": 400 }
+```
 
 ---
 
@@ -202,7 +336,6 @@ The Item model represents consumable/stock-tracked inventory. Each item has an `
 | removeFlag | boolean | no (default false) | Soft-delete flag for archived items |
 | labelPrinted | boolean | no (default false) | Whether label has been printed |
 | headType | string | no | For fasteners: "Pan", "Flat", "Hex" |
-| qrCode | string | no | QR code data or URL |
 | imageUrl | string | no | Image reference |
 | categoryId | int | no | FK -> ItemCategory |
 | subCategoryId | int | no | FK -> ItemSubCategory (scoped to category) |
@@ -210,11 +343,11 @@ The Item model represents consumable/stock-tracked inventory. Each item has an `
 | vendorId | int | no | FK -> Vendor |
 | onHand | int | no (default 0) | Current stock quantity |
 | minStock | int | no | Min stock threshold for low-stock alerts |
-| lastQtyInOut | int | no | Last transaction quantity |
-| lastJobNumber | string | no | Job number from last transaction |
 | dateAdded | date | no | Original date the item was added |
 | dateDisbursed | date | no | Date the item was last disbursed/removed |
-| totalCost | decimal(12,2) | no | Running total cost |
+| lastQtyInOut | int | no | Last transaction quantity (auto-managed by transactions) |
+| lastJobNumber | string | no | Job number from last transaction (auto-managed) |
+| totalCost | decimal(12,2) | no | Running total cost (auto-managed by transactions) |
 | createdAt | datetime | auto | Prisma timestamp |
 | updatedAt | datetime | auto | Prisma timestamp |
 
@@ -251,7 +384,6 @@ Returns a **paginated** list of items with category, sub-category, location, and
       "removeFlag": false,
       "labelPrinted": false,
       "headType": "Pan",
-      "qrCode": null,
       "imageUrl": null,
       "categoryId": 1,
       "category": { "id": 1, "name": "Screws", "createdAt": "...", "updatedAt": "..." },
@@ -263,11 +395,8 @@ Returns a **paginated** list of items with category, sub-category, location, and
       "vendor": { "id": 1, "name": "McMaster-Carr", "createdAt": "...", "updatedAt": "..." },
       "onHand": 68,
       "minStock": 10,
-      "lastQtyInOut": 10,
-      "lastJobNumber": "JOB-123",
       "dateAdded": null,
       "dateDisbursed": null,
-      "totalCost": 9.52,
       "createdAt": "2026-07-09T18:15:00.000Z",
       "updatedAt": "2026-07-09T18:15:00.000Z"
     }
@@ -326,7 +455,6 @@ Create a new item.
   "weightPerUnit": 2.3805,
   "analysisCode": "A12",
   "headType": "Pan",
-  "qrCode": "optional QR data/link",
   "imageUrl": "https://example.com/screw.jpg",
   "categoryId": 1,
   "subCategoryId": 2,
@@ -334,11 +462,8 @@ Create a new item.
   "vendorId": 1,
   "onHand": 68,
   "minStock": 10,
-  "lastQtyInOut": 10,
-  "lastJobNumber": "JOB-123",
   "dateAdded": "2026-01-15",
-  "dateDisbursed": null,
-  "totalCost": 9.52
+  "dateDisbursed": null
 }
 ```
 
@@ -351,6 +476,8 @@ Partial update — send only the fields to change. Same shape as POST but all fi
 ### Item Transactions
 
 Transactions record stock movements. Positive `quantityInOut` = stock coming in, negative = stock going out. Creating a transaction automatically updates the item's `onHand`, `lastQtyInOut`, and `lastJobNumber`.
+
+**Auto-calculation:** If `unitPrice` is not provided, the backend falls back to the item's current `unitPrice`. `totalCost` is auto-calculated as `|quantityInOut| × unitPrice` if not provided. Stock take adjustment transactions explicitly set `unitPrice: 0, totalCost: 0` (cost-neutral).
 
 #### `GET /items/:id/transactions`
 
@@ -388,6 +515,8 @@ Record a stock movement.
 ```
 
 Required fields: `date`, `quantityInOut`. Optional: `jobNumber`, `unitPrice`, `totalCost`, `notes`.
+
+If `unitPrice` is omitted, it defaults to the item's current `unitPrice`. If `totalCost` is omitted, it is auto-calculated as `|quantityInOut| × unitPrice`.
 
 **Side effects:** Updates the item's `onHand` (incremented by `quantityInOut`), sets `lastQtyInOut` and `lastJobNumber`.
 
@@ -444,11 +573,9 @@ Returns the list of available database fields that CSV columns can be mapped to.
   { "value": "description", "label": "Description", "required": true },
   { "value": "dateAdded", "label": "Date Added", "required": false },
   { "value": "onHand", "label": "On Hand", "required": false },
-  { "value": "lastQtyInOut", "label": "Last Quantity In or Out", "required": false },
   { "value": "unitPrice", "label": "Unit Price", "required": false },
   { "value": "jobNumber", "label": "Job Number", "required": false },
   { "value": "dateDisbursed", "label": "Date Disbursed", "required": false },
-  { "value": "totalCost", "label": "Total Cost", "required": false },
   { "value": "unit", "label": "Unit", "required": false },
   { "value": "locationName", "label": "Location", "required": false },
   { "value": "analysisCode", "label": "Analysis Code", "required": false },
@@ -555,7 +682,6 @@ The Tool model represents unique tracked assets (tools, equipment). Each tool ha
 | brand | string | no | Manufacturer/brand |
 | model | string | no | Model number |
 | serialNumber | string | no | Manufacturer serial number |
-| qrCode | string | no | QR code data or URL |
 | imageUrl | string | no | Image reference |
 | purchaseCost | decimal(10,2) | no | Original purchase cost |
 | notes | string | no | Free-form notes |
@@ -586,7 +712,6 @@ List all tools with category, location, and current status (derived from open ch
     "brand": "Dewalt",
     "model": "DWS780",
     "serialNumber": "SN-12345",
-    "qrCode": null,
     "imageUrl": null,
     "purchaseCost": 199.99,
     "notes": null,
@@ -683,7 +808,6 @@ Create a new tool.
   "brand": "Dewalt",
   "model": "DWS780",
   "serialNumber": "SN-12345",
-  "qrCode": "http://yourapp/tools/1",
   "purchaseCost": 199.99,
   "notes": "Purchased 2025",
   "categoryId": 1,
@@ -1031,8 +1155,8 @@ Required: `physicalQty` (integer >= 0). Optional: `notes`.
 Apply all counted adjustments. Only allowed on draft stock takes with at least one item that has a `physicalQty` recorded.
 
 **Actions:**
-1. For each counted item where `physicalQty != systemQty`, creates an item transaction with `quantityInOut = variance` (positive = increase stock, negative = decrease), job number `STOCKTAKE-{id}`.
-2. Updates each affected item's `onHand` (incremented by variance), `lastQtyInOut`, and `lastJobNumber`.
+1. For each counted item where `physicalQty != systemQty`, creates an item transaction with `quantityInOut = variance` (positive = increase stock, negative = decrease), job number `STOCKTAKE-{id}`, and `unitPrice: 0, totalCost: 0` (cost-neutral).
+2. Updates each affected item's `onHand` (incremented by variance).
 3. Marks the stock take as `completed`.
 
 **Response:** The full stock take with all items (same shape as `GET /stock-takes/:id`).
