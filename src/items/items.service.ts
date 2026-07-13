@@ -82,6 +82,7 @@ export class ItemsService {
         subCategory: true,
         location: true,
         vendor: true,
+        transactions: { orderBy: { date: 'desc' } },
       },
     });
   }

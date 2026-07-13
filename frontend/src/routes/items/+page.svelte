@@ -184,6 +184,7 @@
 	.item-card {
 		display: flex;
 		flex-direction: column;
+
 		background: color-mix(in srgb, var(--bg-secondary), 50% transparent);
 		border: 1px solid var(--border-color);
 		border-radius: 18px;
@@ -191,7 +192,7 @@
 		overflow: hidden;
 		text-align: left;
 		cursor: pointer;
-		transition: border-color 0.15s ease;
+		transition: all var(--transition-normal);
 		position: relative;
 		font-family: inherit;
 		font-size: inherit;
@@ -200,7 +201,7 @@
 	}
 
 	.item-card:hover {
-		border-color: var(--text-secondary);
+	background: var(--bg-darker);
 	}
 
 	.item-card-img {

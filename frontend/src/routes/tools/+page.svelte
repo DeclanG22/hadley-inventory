@@ -128,7 +128,7 @@
 		overflow: hidden;
 		text-align: left;
 		cursor: pointer;
-		transition: border-color 0.15s ease;
+		transition: all var(--transition-normal);
 		position: relative;
 		font-family: inherit;
 		font-size: inherit;
@@ -137,7 +137,7 @@
 	}
 
 	.tool-card:hover {
-		border-color: var(--text-secondary);
+	background: var(--bg-darker);
 	}
 
 	.tool-card-img {

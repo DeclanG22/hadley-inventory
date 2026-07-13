@@ -9,6 +9,7 @@ import { ToolsModule } from './tools/tools.module';
 import { ActivityModule } from './activity/activity.module';
 import { ImportModule } from './import/import.module';
 import { StockTakeModule } from './stock-take/stock-take.module';
+import { LookupModule } from './lookup/lookup.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { StockTakeModule } from './stock-take/stock-take.module';
     ActivityModule,
     ImportModule,
     StockTakeModule,
+    LookupModule,
   ],
 })
 export class AppModule {}

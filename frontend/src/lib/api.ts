@@ -74,6 +74,9 @@ export interface PaginatedResult<T> {
 }
 
 // Items
+export const lookup = {
+	byCode: (code: string) => request<{ type: 'item' | 'tool'; data: any }>(`/lookup/${encodeURIComponent(code)}`),
+};
 export const items = {
 	list: (q?: string, filters?: { categoryId?: number; vendorId?: number; locationId?: number; page?: number; limit?: number; sortBy?: string; sortOrder?: string }) => {
 		const params = new URLSearchParams();

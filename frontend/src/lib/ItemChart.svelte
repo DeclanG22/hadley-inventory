@@ -478,6 +478,7 @@
 		);
 }
 
+
 .chart-area::after {
 		right: 0;
 		background: linear-gradient(

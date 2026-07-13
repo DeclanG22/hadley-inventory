@@ -244,16 +244,17 @@ export class ImportService {
     }
     this.fileStore.delete(fileToken);
 
-    const { rows } = this.parseFile(stored.buffer);
+    const { rows, headerRowIndex } = this.parseFile(stored.buffer);
     const colMap = this.validateColumnMap(columnMap);
 
     const result: ImportResult = { total: rows.length, created: 0, updated: 0, errors: [] };
+    const rowOffset = headerRowIndex + 2;
 
     for (let i = 0; i < rows.length; i++) {
       try {
         const mapped = this.mapRow(rows[i], colMap);
         if (!mapped.itemNumber) {
-          result.errors.push({ row: i + 2, message: 'Missing item number' });
+          result.errors.push({ row: i + rowOffset, message: 'Missing item number' });
           continue;
         }
         await this.upsertItem(mapped);
@@ -264,14 +265,14 @@ export class ImportService {
           result.created++;
         }
       } catch (err: any) {
-        result.errors.push({ row: i + 2, message: err.message ?? 'Unknown error' });
+        result.errors.push({ row: i + rowOffset, message: err.message ?? 'Unknown error' });
       }
     }
 
     return result;
   }
 
-  private parseFile(buffer: Buffer): { headerKeys: string[]; rows: Record<string, unknown>[] } {
+  private parseFile(buffer: Buffer): { headerKeys: string[]; rows: Record<string, unknown>[]; headerRowIndex: number } {
     const workbook = XLSX.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     if (!sheetName) {
@@ -315,7 +316,7 @@ export class ImportService {
       return obj;
     });
 
-    return { headerKeys, rows };
+    return { headerKeys, rows, headerRowIndex };
   }
 
   private normalizeCol(name: string): string {

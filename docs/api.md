@@ -327,6 +327,7 @@ Create a new item.
   "analysisCode": "A12",
   "headType": "Pan",
   "qrCode": "optional QR data/link",
+  "imageUrl": "https://example.com/screw.jpg",
   "categoryId": 1,
   "subCategoryId": 2,
   "locationId": 3,
@@ -335,6 +336,8 @@ Create a new item.
   "minStock": 10,
   "lastQtyInOut": 10,
   "lastJobNumber": "JOB-123",
+  "dateAdded": "2026-01-15",
+  "dateDisbursed": null,
   "totalCost": 9.52
 }
 ```

@@ -28,7 +28,7 @@ export class ActivityService {
       ...txns.map((t) => ({
         type: 'item_transaction' as const,
         id: t.id,
-        date: t.createdAt,
+        date: t.date ?? t.createdAt,
         direction: t.quantityInOut > 0 ? 'in' : 'out',
         qty: Math.abs(t.quantityInOut),
         summary: `${t.quantityInOut > 0 ? 'In' : 'Out'} ${Math.abs(t.quantityInOut)} x ${t.item.itemNumber}${t.jobNumber ? ` (job ${t.jobNumber})` : ''}`,
@@ -47,7 +47,7 @@ export class ActivityService {
         type: 'tool_maintenance' as const,
         subType: m.type,
         id: m.id,
-        date: m.createdAt,
+        date: m.date ?? m.createdAt,
         summary: `${m.type} on ${m.tool.toolNumber} — ${m.tool.name}${m.description ? `: ${m.description}` : ''}`,
         link: `/tools/${m.tool.id}`,
         itemRef: m.tool.toolNumber,
