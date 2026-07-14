@@ -134,6 +134,7 @@ export class ItemsService {
     const unitPrice = dto.unitPrice ?? item.unitPrice ?? undefined;
     const qtyAbs = Math.abs(dto.quantityInOut);
     const totalCost = dto.totalCost ?? (unitPrice ? Number(unitPrice) * qtyAbs : undefined);
+    const previousUnitPrice = dto.unitPrice !== undefined ? item.unitPrice : undefined;
     const [transaction] = await this.prisma.$transaction([
       this.prisma.itemTransaction.create({
         data: {
@@ -143,6 +144,7 @@ export class ItemsService {
           quantityInOut: dto.quantityInOut,
           unitPrice,
           totalCost,
+          previousUnitPrice,
           notes: dto.notes,
         },
       }),
@@ -152,6 +154,7 @@ export class ItemsService {
           onHand: { increment: dto.quantityInOut },
           lastQtyInOut: dto.quantityInOut,
           lastJobNumber: dto.jobNumber,
+          ...(dto.unitPrice !== undefined ? { unitPrice: dto.unitPrice } : {}),
         },
       }),
     ]);
@@ -193,14 +196,15 @@ export class ItemsService {
   async removeTransaction(transactionId: number) {
     const txn = await this.prisma.itemTransaction.findUnique({
       where: { id: transactionId },
-      select: { itemId: true, quantityInOut: true },
+      select: { itemId: true, quantityInOut: true, previousUnitPrice: true },
     });
     if (!txn) throw new NotFoundException();
+    const updateData: any = { onHand: { increment: -txn.quantityInOut } };
+    if (txn.previousUnitPrice !== null) {
+      updateData.unitPrice = txn.previousUnitPrice;
+    }
     await this.prisma.$transaction([
-      this.prisma.item.update({
-        where: { id: txn.itemId },
-        data: { onHand: { increment: -txn.quantityInOut } },
-      }),
+      this.prisma.item.update({ where: { id: txn.itemId }, data: updateData }),
       this.prisma.itemTransaction.delete({ where: { id: transactionId } }),
     ]);
     return { message: 'Transaction deleted and quantity reversed' };

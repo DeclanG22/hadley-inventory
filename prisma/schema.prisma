@@ -114,6 +114,7 @@ model ItemTransaction {
   unitPrice     Decimal? @map("unit_price") @db.Decimal(10, 2)
   totalCost     Decimal? @map("total_cost") @db.Decimal(12, 2)
   notes         String?
+  previousUnitPrice Decimal? @map("previous_unit_price") @db.Decimal(10, 2)
 
   createdAt DateTime @default(now()) @map("created_at")
 

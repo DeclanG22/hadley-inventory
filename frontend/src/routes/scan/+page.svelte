@@ -15,6 +15,7 @@
 	let jobNumber = $state('');
 	let jobSite = $state('');
 	let expectedReturnAt = $state('');
+	let totalCost = $state('');
 	let submitting = $state(false);
 	let resultVisible = $state(false);
 
@@ -105,6 +106,7 @@
 		jobNumber = '';
 		jobSite = '';
 		expectedReturnAt = '';
+		totalCost = '';
 		setTimeout(focusScan, 50);
 	}
 
@@ -136,11 +138,17 @@
 		submitting = true;
 		try {
 			const qty = direction === 'out' ? -Math.abs(quantity) : Math.abs(quantity);
-			await items.transactions.create(result!.data.id, {
+			const data: any = {
 				date: new Date().toISOString().slice(0, 10),
 				quantityInOut: qty,
 				jobNumber: jobNumber || undefined,
-			});
+			};
+			const tc = parseFloat(totalCost);
+			if (tc && quantity > 0) {
+				data.totalCost = tc;
+				data.unitPrice = parseFloat((tc / quantity).toFixed(4));
+			}
+			await items.transactions.create(result!.data.id, data);
 			addToast(`${direction === 'in' ? 'In' : 'Out'} ${quantity} x ${result!.data.itemNumber}`, 'success');
 			clear();
 		} catch (e: any) {
@@ -264,6 +272,9 @@
 				</div>
 				<div class="txn-row">
 					<input bind:value={jobNumber} placeholder="Job number (optional)" class="txn-field" />
+				</div>
+				<div class="txn-row">
+					<input bind:value={totalCost} type="number" step="0.01" min="0" placeholder="Total cost (optional)" class="txn-field" />
 				</div>
 				<button onclick={submitItem} disabled={submitting || quantity < 1} class="btn-primary txn-submit">
 					{submitting ? 'Recording...' : `${direction === 'in' ? 'Receive' : 'Issue'} ${quantity} unit${quantity !== 1 ? 's' : ''}`}

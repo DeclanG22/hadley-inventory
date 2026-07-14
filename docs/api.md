@@ -677,6 +677,8 @@ Transactions record stock movements. Positive `quantityInOut` = stock coming in,
 
 **Auto-calculation:** If `unitPrice` is not provided, the backend falls back to the item's current `unitPrice`. `totalCost` is auto-calculated as `|quantityInOut| × unitPrice` if not provided. Stock take adjustment transactions explicitly set `unitPrice: 0, totalCost: 0` (cost-neutral).
 
+**Unit price persistence:** When `unitPrice` is provided in the request body, it updates the item's `unitPrice` field AND stores the item's previous `unitPrice` on the transaction as `previousUnitPrice`. If the transaction is later deleted, the item's `unitPrice` reverts to that stored previous value.
+
 #### `GET /items/:id/transactions`
 
 Transaction history for a single item, ordered by date descending.
@@ -716,7 +718,7 @@ Required fields: `date`, `quantityInOut`. Optional: `jobNumber`, `unitPrice`, `t
 
 If `unitPrice` is omitted, it defaults to the item's current `unitPrice`. If `totalCost` is omitted, it is auto-calculated as `|quantityInOut| × unitPrice`.
 
-**Side effects:** Updates the item's `onHand` (incremented by `quantityInOut`), sets `lastQtyInOut` and `lastJobNumber`.
+**Side effects:** Updates the item's `onHand` (incremented by `quantityInOut`), sets `lastQtyInOut` and `lastJobNumber`. If `unitPrice` is provided, the item's `unitPrice` is also updated and the prior value is stored on the transaction for rollback on delete.
 
 #### `DELETE /items/transactions/:transactionId`
 
@@ -725,6 +727,7 @@ Deletes an item transaction and reverses its effect on the item's `onHand`. The 
 **Behavior:**
 - `onHand` is incremented by `-quantityInOut` (e.g., if the transaction removed 5 units, `onHand` increases by 5; if it added 10, `onHand` decreases by 10).
 - The `lastQtyInOut` and `lastJobNumber` fields on the item are **not** updated (they reflect the most recent remaining transaction).
+- If the transaction had a `previousUnitPrice` stored, the item's `unitPrice` is restored to that value (i.e., reverted to what it was before the transaction was created).
 - Returns 404 if the transaction does not exist.
 
 **Response:**
