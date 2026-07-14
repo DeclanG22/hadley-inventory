@@ -52,7 +52,10 @@ export class ToolsService {
     });
   }
 
-  findAll(q?: string) {
+  async findAll(q?: string, filters?: {
+    page?: number; limit?: number;
+    sortBy?: string; sortOrder?: 'asc' | 'desc';
+  }) {
     const where: any = { deletedAt: null };
     if (q) {
       where.OR = [
@@ -63,19 +66,35 @@ export class ToolsService {
         { description: { contains: q, mode: 'insensitive' } },
       ];
     }
-    return this.prisma.tool.findMany({
-      where,
-      orderBy: { name: 'asc' },
-      include: {
-        category: true,
-        location: true,
-        checkouts: {
-          where: { checkedInAt: null },
-          take: 1,
-          orderBy: { checkedOutAt: 'desc' },
+
+    const page = filters?.page ?? 1;
+    const limit = filters?.limit ?? 100;
+    const skip = (page - 1) * limit;
+
+    const allowedSorts = ['toolNumber', 'name', 'brand', 'model'];
+    const sortBy = allowedSorts.includes(filters?.sortBy ?? '') ? filters!.sortBy! : 'name';
+    const sortOrder = filters?.sortOrder === 'desc' ? 'desc' : 'asc';
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.tool.findMany({
+        where,
+        orderBy: { [sortBy]: sortOrder },
+        skip,
+        take: limit,
+        include: {
+          category: true,
+          location: true,
+          checkouts: {
+            where: { checkedInAt: null },
+            take: 1,
+            orderBy: { checkedOutAt: 'desc' },
+          },
         },
-      },
-    });
+      }),
+      this.prisma.tool.count({ where }),
+    ]);
+
+    return { data, total, page, limit };
   }
 
   findOne(id: number) {
@@ -102,6 +121,19 @@ export class ToolsService {
     return this.prisma.tool.update({
       where: { id },
       data: { deletedAt: new Date() },
+    });
+  }
+
+  findOverdue() {
+    return this.prisma.toolCheckout.findMany({
+      where: {
+        checkedInAt: null,
+        expectedReturnAt: { not: null, lt: new Date() },
+      },
+      orderBy: { expectedReturnAt: 'asc' },
+      include: {
+        tool: { select: { id: true, toolNumber: true, name: true } },
+      },
     });
   }
 

@@ -42,6 +42,7 @@
 	}
 
 	let filteredItems = $derived(st ? st.items.filter((i: any) => {
+		if (st.status !== 'draft' && (i.physicalQty === null || i.physicalQty === i.systemQty)) return false;
 		if (!search) return true;
 		const q = search.toLowerCase();
 		return i.item.itemNumber.toLowerCase().includes(q) || i.item.description.toLowerCase().includes(q);
@@ -92,10 +93,9 @@
 	<div class="card" style="margin-top:0">
 		<div style="display:flex;gap:8px;align-items:center;padding:0 0 8px">
 			<input type="search" bind:value={search} placeholder="Search items by # or description..." style="flex:1;min-width:140px" />
-			<span style="font-size:12px;color:var(--text-secondary);white-space:nowrap">{filteredCounted}/{filteredItems.length} counted</span>
 		</div>
 		{#if filteredItems.length === 0}
-			<div class="empty-state">No items match your search.</div>
+			<div class="empty-state">{st.status !== 'draft' ? 'All items matched — no variances.' : 'No items match your search.'}</div>
 		{:else}
 		<div class="table-wrap">
 			<table>

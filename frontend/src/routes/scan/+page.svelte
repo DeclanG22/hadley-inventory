@@ -636,7 +636,7 @@ border: 1px solid transparent;
 		}
 		.scan-input {
 			font-size: 16px;
-			padding: 12px 48px 12px 12px;
+			padding: 13px 48px 13px 12px;
 		}
 		.scan-btn {
 			width: 40px;

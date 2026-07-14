@@ -22,11 +22,27 @@ export class ToolsController {
   }
 
   @Get()
-  findAll(@Query('q') q?: string) {
-    return this.toolsService.findAll(q);
+  findAll(
+    @Query('q') q?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string,
+  ) {
+    return this.toolsService.findAll(q, {
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      sortBy,
+      sortOrder: sortOrder as 'asc' | 'desc' | undefined,
+    });
   }
 
   // Static routes — must come before @Get(':id')
+  @Get('overdue')
+  findOverdue() {
+    return this.toolsService.findOverdue();
+  }
+
   @Get('deleted')
   findDeleted() {
     return this.toolsService.findDeleted();

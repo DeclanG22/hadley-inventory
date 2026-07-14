@@ -143,7 +143,16 @@ export const upload = {
 };
 
 export const tools = {
-	list: (q?: string) => request<any[]>(`/tools${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+	list: (q?: string, filters?: { page?: number; limit?: number; sortBy?: string; sortOrder?: string }) => {
+		const params = new URLSearchParams();
+		if (q) params.set('q', q);
+		if (filters?.page) params.set('page', String(filters.page));
+		if (filters?.limit) params.set('limit', String(filters.limit));
+		if (filters?.sortBy) params.set('sortBy', filters.sortBy);
+		if (filters?.sortOrder) params.set('sortOrder', filters.sortOrder);
+		const qs = params.toString();
+		return request<PaginatedResult<any>>(`/tools${qs ? `?${qs}` : ''}`);
+	},
 	get: (id: number) => request<any>(`/tools/${id}`),
 	create: (data: any) => request<any>('/tools', { method: 'POST', body: JSON.stringify(data) }),
 	batchCreate: (data: any) => request<any[]>('/tools/batch', { method: 'POST', body: JSON.stringify(data) }),
@@ -152,6 +161,7 @@ export const tools = {
 	restore: (id: number) => request<any>(`/tools/${id}/restore`, { method: 'POST' }),
 	permanentRemove: (id: number) => request<void>(`/tools/${id}/permanent`, { method: 'DELETE' }),
 	deleted: () => request<any[]>('/tools/deleted'),
+	overdue: () => request<any[]>('/tools/overdue'),
 	checkout: (id: number, data: any) =>
 		request<any>(`/tools/${id}/checkout`, { method: 'POST', body: JSON.stringify(data) }),
 	checkin: (id: number, data?: any) =>

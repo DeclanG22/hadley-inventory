@@ -156,7 +156,7 @@
 			</table>
 		</div>
 		<div style="padding:10px 6px;font-size:13px;color:var(--empty-text-primary);text-align:right">
-			{filtered.length} transactions &middot; Total: <strong style="color:var(--text-primary)">${(totalCostSum ?? 0).toFixed(2)}</strong>
+			{filtered.length} transaction(s) &middot; Total: <strong style="color:var(--text-primary)">${(totalCostSum ?? 0).toFixed(2)}</strong>
 		</div>
 	{/if}
 </div>

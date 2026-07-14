@@ -56,7 +56,7 @@
 	.img-upload {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: 0px;
 	}
 	.img-input-row {
 		display: flex;
@@ -69,8 +69,8 @@
 		border-bottom-right-radius: 0;
 	}
 	.file-btn {
-		width: 38px;
-		height: 38px;
+		width: 31px;
+		height: 31px;
 		padding: 0;
 		display: flex;
 		align-items: center;
@@ -81,7 +81,6 @@
 		font-size: 18px;
 		background: var(--bg-component);
 		color: var(--empty-text-primary);
-		border: 1px solid var(--border-color);
 		cursor: pointer;
 		flex-shrink: 0;
 		transition: background 0.15s ease, color 0.15s ease;

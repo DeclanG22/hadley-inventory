@@ -1,4 +1,5 @@
 ﻿<script lang="ts">
+	import { goto } from '$app/navigation';
 	import { items, tools, vendors, locations, activity } from '$lib/api';
 
 	let itemCount = $state(0);
@@ -8,20 +9,40 @@
 	let checkedOut = $state(0);
 	let lowStock = $state(0);
 	let recentActivity = $state<any[]>([]);
+	let overdueCheckouts = $state<any[]>([]);
 	let loading = $state(true);
-	let page = $state(1);
-	const pageSize = 15;
-	let totalPages = $derived(Math.max(1, Math.ceil(recentActivity.length / pageSize)));
-	let paginated = $derived(recentActivity.slice((page - 1) * pageSize, page * pageSize));
+
+	const PAGE_SIZE = 15;
+	let displayCount = $state(PAGE_SIZE);
+	let loadingMore = $state(false);
+
+	let hasMore = $derived(displayCount < recentActivity.length);
+	let paginated = $derived(recentActivity.slice(0, displayCount));
+
+	function observeSentinel(element: HTMLElement) {
+		const observer = new IntersectionObserver((entries) => {
+			if (entries[0].isIntersecting) loadMore();
+		}, { rootMargin: '400px' });
+		observer.observe(element);
+		return { destroy() { observer.disconnect(); } };
+	}
+
+	function loadMore() {
+		if (!hasMore || loadingMore || loading) return;
+		loadingMore = true;
+		displayCount = Math.min(displayCount + PAGE_SIZE, recentActivity.length);
+		loadingMore = false;
+	}
 
 	$effect(() => {
 		Promise.all([
 			items.list(undefined, { limit: 1 }).then(r => itemCount = r.total),
 			items.lowStock().then(l => lowStock = l.length),
-			tools.list().then(l => { toolCount = l.length; checkedOut = l.filter((t: any) => t.checkouts?.length > 0).length; }),
+			tools.list().then(l => { toolCount = l.total; checkedOut = l.data.filter((t: any) => t.checkouts?.length > 0).length; }),
 			vendors.list().then(l => vendorCount = l.length),
 			locations.list().then(l => locationCount = l.length),
-			activity.recent(100).then(l => { recentActivity = l; page = 1; }),
+			activity.recent(100).then(l => { recentActivity = l; displayCount = PAGE_SIZE; }),
+			tools.overdue().then(l => overdueCheckouts = l).catch(() => {}),
 		]).finally(() => loading = false);
 	});
 </script>
@@ -54,6 +75,10 @@
 		<a href="/tools/checked-out" class="stat-card">
 			<span class="stat-value">{checkedOut}</span>
 			<span class="stat-label">Checked Out Tools</span>
+		</a>
+		<a href="/tools/checked-out?overdue=true" class="stat-card warn">
+			<span class="stat-value">{overdueCheckouts.length}</span>
+			<span class="stat-label">Overdue Returns</span>
 		</a>
 		<a href="/vendors" class="stat-card">
 			<span class="stat-value">{vendorCount}</span>
@@ -112,12 +137,34 @@
 				</tbody>
 			</table>
 		</div>
-		{#if recentActivity.length > pageSize}
-			<div class="pagination">
-				<button class="btn-ghost btn-sm" disabled={page <= 1} onclick={() => page--}>Prev</button>
-				<span class="page-indicator">Page {page} of {totalPages}</span>
-				<button class="btn-ghost btn-sm" disabled={page >= totalPages} onclick={() => page++}>Next</button>
-			</div>
-		{/if}
+		<div style="display:flex;align-items:center;justify-content:center;padding:16px;gap:8px;color:var(--text-secondary);font-size:13px">
+			{#if !hasMore && recentActivity.length > 0}
+				<span>Showing all {recentActivity.length} events</span>
+			{/if}
+		</div>
+		<div use:observeSentinel style="height:1px"></div>
 	{/if}
 </div>
+
+{#if overdueCheckouts.length > 0}
+	<div class="card" style="margin-top:16px">
+		<div class="card-header"><h2>Overdue Returns</h2></div>
+		<div class="table-wrap">
+			<table>
+				<thead><tr><th>Tool</th><th>Checked Out By</th><th>Job</th><th>Due</th><th>Overdue</th></tr></thead>
+				<tbody>
+					{#each overdueCheckouts as co}
+						{@const days = Math.floor((Date.now() - new Date(co.expectedReturnAt).getTime()) / 86400000)}
+						<tr onclick={() => goto(`/tools/${co.tool.id}`)} role="button" tabindex={0}>
+							<td><a href="/tools/{co.tool.id}" onclick={(e) => e.stopPropagation()}>{co.tool.toolNumber} — {co.tool.name}</a></td>
+							<td>{co.checkedOutBy}</td>
+							<td>{co.jobNumber ?? '-'}</td>
+							<td style="white-space:nowrap">{new Date(co.expectedReturnAt).toLocaleDateString()}</td>
+							<td style="color:var(--red);font-weight:500">{days}d</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	</div>
+{/if}

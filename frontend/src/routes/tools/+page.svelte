@@ -3,15 +3,69 @@
 	import { tools } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
 
-	let list = $state<any[]>([]);
-	let search = $state('');
+	const PAGE_SIZE = 50;
+
+	let allTools = $state<any[]>([]);
+	let total = $state(0);
 	let loading = $state(true);
+	let loadingMore = $state(false);
+	let loadError = $state('');
+	let hasMore = $state(true);
+	let loadId = 0;
+	let search = $state('');
+	let sortBy = $state('name');
+	let sortOrder = $state<'asc' | 'desc'>('asc');
 	let viewMode = $state<'table' | 'cards'>('table');
 	let debounce: any;
 
-	function load() {
-		loading = true;
-		tools.list(search || undefined).then(l => list = l).finally(() => loading = false);
+	function observeSentinel(element: HTMLElement) {
+		const observer = new IntersectionObserver((entries) => {
+			if (entries[0].isIntersecting) loadMore();
+		}, { rootMargin: '400px' });
+		observer.observe(element);
+		return { destroy() { observer.disconnect(); } };
+	}
+
+	import { onMount } from 'svelte';
+
+	onMount(() => { load(); });
+
+	async function load(reset = true) {
+		const id = ++loadId;
+		if (reset) {
+			allTools = [];
+			hasMore = true;
+			loadError = '';
+			loading = true;
+			loadingMore = false;
+		}
+		try {
+			const r = await tools.list(search || undefined, {
+				page: reset ? 1 : (Math.floor(allTools.length / PAGE_SIZE) + 1),
+				limit: PAGE_SIZE,
+				sortBy, sortOrder,
+			});
+			if (id !== loadId) return;
+			allTools = [...allTools, ...r.data];
+			total = r.total;
+			hasMore = allTools.length < r.total;
+		} catch {
+			if (id === loadId) {
+				loadError = 'Failed to load tools';
+				hasMore = false;
+			}
+		} finally {
+			if (id === loadId) {
+				loading = false;
+				loadingMore = false;
+			}
+		}
+	}
+
+	function loadMore() {
+		if (!hasMore || loadingMore || loading) return;
+		loadingMore = true;
+		load(false);
 	}
 
 	function onSearchInput() {
@@ -19,7 +73,11 @@
 		debounce = setTimeout(load, 300);
 	}
 
-	$effect(load);
+	function setSort(col: string) {
+		if (sortBy === col) { sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; }
+		else { sortBy = col; sortOrder = 'asc'; }
+		load();
+	}
 
 	async function remove(id: number) {
 		tools.remove(id).then(() => { load(); addToast('Tool deleted', 'success'); }).catch(e => addToast(e.message, 'error'));
@@ -28,6 +86,8 @@
 	function status(t: any): string {
 		return t.checkouts?.length > 0 ? 'Checked Out' : 'Available';
 	}
+
+	const sortArrow = (col: string) => sortBy === col ? (sortOrder === 'asc' ? ' ▲' : ' ▼') : '';
 </script>
 
 <div class="page-header">
@@ -46,7 +106,7 @@
 	<div class="search-bar">
 		<input type="search" bind:value={search} placeholder="Search tools by number, name, brand, or model..." oninput={onSearchInput} />
 	</div>
-	{#if loading && list.length === 0}
+	{#if loading && allTools.length === 0}
 		<div class="sk-table">
 			<div class="sk-row"><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:25%"></div><div class="sk-cell sk" style="width:15%"></div><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:15%"></div><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:8%"></div></div>
 			<div class="sk-row"><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:30%"></div><div class="sk-cell sk" style="width:18%"></div><div class="sk-cell sk" style="width:14%"></div><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:8%"></div></div>
@@ -54,24 +114,24 @@
 			<div class="sk-row"><div class="sk-cell sk" style="width:11%"></div><div class="sk-cell sk" style="width:28%"></div><div class="sk-cell sk" style="width:14%"></div><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:16%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:8%"></div></div>
 			<div class="sk-row"><div class="sk-cell sk" style="width:13%"></div><div class="sk-cell sk" style="width:26%"></div><div class="sk-cell sk" style="width:16%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:14%"></div><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:8%"></div></div>
 		</div>
-	{:else if list.length === 0}
-		<div class="empty-state">No tools found.</div>
+	{:else if allTools.length === 0}
+		<div class="empty-state">{loadError || 'No tools found.'}</div>
 	{:else if viewMode === 'table'}
 		<div class="table-wrap">
 			<table style="table-layout:fixed">
 				<thead>
 					<tr>
-						<th style="width:180px">Tool #</th>
-						<th style="width:auto">Name</th>
-						<th style="width:120px">Brand</th>
-						<th style="width:120px">Model</th>
+						<th role="button" tabindex={0} onclick={() => setSort('toolNumber')} style="cursor:pointer;width:180px">Tool #{sortArrow('toolNumber')}</th>
+						<th role="button" tabindex={0} onclick={() => setSort('name')} style="cursor:pointer;width:auto">Name{sortArrow('name')}</th>
+						<th role="button" tabindex={0} onclick={() => setSort('brand')} style="cursor:pointer;width:120px">Brand{sortArrow('brand')}</th>
+						<th role="button" tabindex={0} onclick={() => setSort('model')} style="cursor:pointer;width:120px">Model{sortArrow('model')}</th>
 						<th style="width:120px">Category</th>
 						<th style="width:100px">Status</th>
 						<th style="width:40px"></th>
 					</tr>
 				</thead>
 				<tbody>
-					{#each list as t}
+					{#each allTools as t}
 						<tr onclick={() => goto(`/tools/${t.id}`)}>
 							<td>
 								{#if t.imageUrl}
@@ -90,9 +150,20 @@
 				</tbody>
 			</table>
 		</div>
+		<div style="display:flex;align-items:center;justify-content:center;padding:16px;gap:8px;color:var(--text-secondary);font-size:13px">
+			{#if loadingMore}
+				<span class="spinner" style="width:16px;height:16px"></span>
+				<span>Loading more...</span>
+			{:else if loadError}
+				<span style="color:var(--red)">{loadError}</span>
+			{:else if !hasMore}
+				<span>Showing all {total} tools</span>
+			{/if}
+		</div>
+		<div use:observeSentinel style="height:1px"></div>
 	{:else}
 		<div class="card-grid">
-			{#each list as t}
+			{#each allTools as t}
 				<div class="tool-card" role="button" tabindex={0} onclick={() => goto(`/tools/${t.id}`)} onkeydown={(e) => e.key === 'Enter' && goto(`/tools/${t.id}`)}>
 					{#if t.imageUrl}
 						<img src={t.imageUrl} alt="" class="tool-card-img" />
@@ -113,6 +184,17 @@
 				</div>
 			{/each}
 		</div>
+		<div style="display:flex;align-items:center;justify-content:center;padding:16px;gap:8px;color:var(--text-secondary);font-size:13px">
+			{#if loadingMore}
+				<span class="spinner" style="width:16px;height:16px"></span>
+				<span>Loading more...</span>
+			{:else if loadError}
+				<span style="color:var(--red)">{loadError}</span>
+			{:else if !hasMore}
+				<span>Showing all {total} tools</span>
+			{/if}
+		</div>
+		<div use:observeSentinel style="height:1px"></div>
 	{/if}
 </div>
 
@@ -127,6 +209,7 @@
 	.tool-card {
 		display: flex;
 		flex-direction: column;
+
 		background: color-mix(in srgb, var(--bg-secondary), 50% transparent);
 		border: 1px solid var(--border-color);
 		border-radius: 18px;
@@ -198,5 +281,17 @@
 		position: absolute;
 		top: 8px;
 		right: 8px;
+	}
+
+	.spinner {
+		border: 2px solid var(--border-color);
+		border-top-color: var(--text-secondary);
+		border-radius: 50%;
+		animation: spin 0.6s linear infinite;
+		display: inline-block;
+	}
+
+	@keyframes spin {
+		to { transform: rotate(360deg); }
 	}
 </style>
