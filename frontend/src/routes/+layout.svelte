@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import Toast from '$lib/ToastNotification.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import CommandPalette from '$lib/components/CommandPalette.svelte';
 	import logo from '$lib/assets/logo.png';
 	let { children } = $props();
 	let path = $derived($page.url.pathname);
@@ -209,6 +210,7 @@
 </div>
 <Toast />
 <ConfirmDialog />
+<CommandPalette />
 
 <style>
 	.app-shell {

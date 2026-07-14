@@ -53,6 +53,11 @@ export class ToolsController {
     return this.toolsService.findCosting({ dateFrom, dateTo });
   }
 
+  @Get('maintenance-search')
+  maintenanceSearch(@Query('q') q?: string) {
+    return this.toolsService.maintenanceSearch(q);
+  }
+
   @Get('maintenance-costing')
   maintenanceCosting(
     @Query('dateFrom') dateFrom?: string,

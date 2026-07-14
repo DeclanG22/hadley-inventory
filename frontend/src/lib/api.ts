@@ -178,6 +178,7 @@ export const tools = {
 		const qs = params.toString();
 		return request<any[]>(`/tools/costing${qs ? `?${qs}` : ''}`);
 	},
+	maintenanceSearch: (q: string) => request<any[]>(`/tools/maintenance-search?q=${encodeURIComponent(q)}`),
 	maintenance: {
 		list: (toolId: number) => request<any[]>(`/tools/${toolId}/maintenance`),
 		create: (toolId: number, data: any) =>

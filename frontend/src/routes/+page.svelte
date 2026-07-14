@@ -11,13 +11,19 @@
 	let recentActivity = $state<any[]>([]);
 	let overdueCheckouts = $state<any[]>([]);
 	let loading = $state(true);
+	let activitySearch = $state('');
 
 	const PAGE_SIZE = 15;
 	let displayCount = $state(PAGE_SIZE);
 	let loadingMore = $state(false);
 
-	let hasMore = $derived(displayCount < recentActivity.length);
-	let paginated = $derived(recentActivity.slice(0, displayCount));
+	let filteredActivity = $derived(recentActivity.filter(a => {
+		if (!activitySearch) return true;
+		const q = activitySearch.toLowerCase();
+		return a.summary?.toLowerCase().includes(q) || a.itemRef?.toLowerCase().includes(q) || new Date(a.date).toLocaleString().includes(q);
+	}));
+	let hasMore = $derived(displayCount < filteredActivity.length);
+	let paginated = $derived(filteredActivity.slice(0, displayCount));
 
 	function observeSentinel(element: HTMLElement) {
 		const observer = new IntersectionObserver((entries) => {
@@ -41,7 +47,7 @@
 			tools.list().then(l => { toolCount = l.total; checkedOut = l.data.filter((t: any) => t.checkouts?.length > 0).length; }),
 			vendors.list().then(l => vendorCount = l.length),
 			locations.list().then(l => locationCount = l.length),
-			activity.recent(100).then(l => { recentActivity = l; displayCount = PAGE_SIZE; }),
+			activity.recent(100).then(l => { recentActivity = l; displayCount = PAGE_SIZE; activitySearch = ''; }),
 			tools.overdue().then(l => overdueCheckouts = l).catch(() => {}),
 		]).finally(() => loading = false);
 	});
@@ -91,8 +97,11 @@
 	{/if}
 </div>
 
-<div class="card" style="margin-top:16px">
-	<div class="card-header"><h2>Recent Activity</h2></div>
+	<div class="card" style="margin-top:16px">
+	<div class="card-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+		<h2 style="flex:1">Recent Activity</h2>
+		<input type="search" bind:value={activitySearch} placeholder="Search activity..." style="min-width:160px;max-width:260px" />
+	</div>
 	{#if loading}
 		<div class="sk-table">
 			<div class="sk-row"><div class="sk-cell sk" style="width:18%"></div><div class="sk-cell sk" style="width:50%"></div><div class="sk-cell sk" style="width:12%"></div></div>

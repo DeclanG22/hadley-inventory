@@ -341,4 +341,21 @@ export class ToolsService {
       orderBy: { date: 'desc' },
     });
   }
+
+  maintenanceSearch(q?: string) {
+    if (!q) return [];
+    return this.prisma.toolMaintenanceLog.findMany({
+      where: {
+        OR: [
+          { type: { contains: q, mode: 'insensitive' } },
+          { description: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      orderBy: { date: 'desc' },
+      take: 10,
+      include: {
+        tool: { select: { id: true, toolNumber: true, name: true } },
+      },
+    });
+  }
 }
