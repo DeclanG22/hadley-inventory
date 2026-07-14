@@ -11,6 +11,13 @@ import { BatchCreateToolDto } from './dto/batch-create-tool.dto';
 export class ToolsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  markPrinted(ids: number[]) {
+    return this.prisma.tool.updateMany({
+      where: { id: { in: ids } },
+      data: { labelPrinted: true },
+    });
+  }
+
   create(dto: CreateToolDto) {
     return this.prisma.tool.create({ data: dto });
   }
@@ -53,6 +60,7 @@ export class ToolsService {
   }
 
   async findAll(q?: string, filters?: {
+    labelPrinted?: boolean;
     page?: number; limit?: number;
     sortBy?: string; sortOrder?: 'asc' | 'desc';
   }) {
@@ -66,6 +74,7 @@ export class ToolsService {
         { description: { contains: q, mode: 'insensitive' } },
       ];
     }
+    if (filters?.labelPrinted !== undefined) where.labelPrinted = filters.labelPrinted;
 
     const page = filters?.page ?? 1;
     const limit = filters?.limit ?? 100;

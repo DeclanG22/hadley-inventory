@@ -1,4 +1,5 @@
 ﻿<script lang="ts">
+	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { itemCategories } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
@@ -63,7 +64,7 @@
 	{#each list as cat}
 		<div class="card cat-card" data-id={cat.id} class:highlight={cat.id === highlightId}>
 			<div class="cat-header">
-				<strong>{cat.name}</strong>
+				<a href="/item-categories/{cat.id}" class="cat-name" onclick={(e) => e.stopPropagation()}>{cat.name}</a>
 				<button class="btn-del btn-sm" onclick={() => removeCat(cat.id)}><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 14 14"><path d="M0 0h14v14H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M1.707.293A1 1 0 0 0 .293 1.707L5.586 7L.293 12.293a1 1 0 1 0 1.414 1.414L7 8.414l5.293 5.293a1 1 0 0 0 1.414-1.414L8.414 7l5.293-5.293A1 1 0 0 0 12.293.293L7 5.586z" clip-rule="evenodd" /></svg></button>
 			</div>
 
@@ -81,6 +82,9 @@
 						</span>
 					{/each}
 				</div>
+			{/if}
+		</div>
+	{/each}
 {/if}
 
 <style>
@@ -91,7 +95,13 @@
 		0% { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 		100% { background: transparent; }
 	}
+	.cat-name {
+		color: inherit;
+		text-decoration: none;
+		font-weight: 600;
+		flex: 1;
+	}
+	.cat-name:hover {
+		color: var(--accent);
+	}
 </style>
-		</div>
-	{/each}
-{/if}

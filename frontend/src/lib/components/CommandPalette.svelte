@@ -67,7 +67,23 @@
 		{ label: 'Locations', sub: 'Manage locations', href: '/locations' },
 		{ label: 'Recently Deleted', sub: 'View trashed items and tools', href: '/trash' },
 		{ label: 'Scan & Transact', sub: 'Scan barcode to transact', href: '/scan' },
+		{ label: 'QR Code Generator', sub: 'Print QR code labels', href: '/labels' },
 	];
+
+	const typeAll: Record<string, string[]> = {
+		pages: ['page', 'pages'],
+		items: ['item', 'items'],
+		tools: ['tool', 'tools'],
+		vendors: ['vendor', 'vendors'],
+		locations: ['location', 'locations', 'loc'],
+		itemCats: ['category', 'categories', 'cat', 'item category'],
+		toolCats: ['tool category', 'tool categories'],
+		stockTakes: ['stock', 'stocktake', 'stocktakes', 'stock take', 'stock takes'],
+	};
+
+	function showAllOf(lq: string, key: string): boolean {
+		return typeAll[key]?.some(k => lq === k || lq.startsWith(k)) ?? false;
+	}
 
 	function doSearch(q: string) {
 		query = q;
@@ -76,15 +92,22 @@
 		loading = true;
 		debounce = setTimeout(async () => {
 			selectedIdx = 0;
+			const lq = q.toLowerCase();
+			const allItems = showAllOf(lq, 'items');
+			const allTools = showAllOf(lq, 'tools');
+
 			const [itemsRes, toolsRes, maintRes] = await Promise.all([
-				items.list(q, { limit: 5 }).catch(() => null),
-				tools.list(q, { limit: 5 }).catch(() => null),
+				items.list(q, { limit: allItems ? 50 : 5 }).catch(() => null),
+				tools.list(q, { limit: allTools ? 50 : 5 }).catch(() => null),
 				tools.maintenanceSearch(q).catch(() => []),
 			]);
 			const r: typeof results = [];
-			const lq = q.toLowerCase();
 
-			for (const p of pages) if (p.label.toLowerCase().includes(lq) || p.sub.toLowerCase().includes(lq)) r.push({ type: 'Page', label: p.label, sub: p.sub, href: p.href });
+			if (showAllOf(lq, 'pages')) {
+				for (const p of pages) r.push({ type: 'Page', label: p.label, sub: p.sub, href: p.href });
+			} else {
+				for (const p of pages) if (p.label.toLowerCase().includes(lq) || p.sub.toLowerCase().includes(lq)) r.push({ type: 'Page', label: p.label, sub: p.sub, href: p.href });
+			}
 
 			if (itemsRes) for (const i of itemsRes.data) r.push({ type: 'Item', label: i.itemNumber, sub: i.description, href: `/items/${i.id}` });
 			if (toolsRes) for (const t of toolsRes.data) {
@@ -92,13 +115,41 @@
 				r.push({ type: 'Tool', label: t.toolNumber, sub: `${t.name} — ${status}`, href: `/tools/${t.id}` });
 			}
 			for (const m of (maintRes as any[])) r.push({ type: 'Maintenance', label: `${m.tool.toolNumber} — ${m.type}`, sub: m.description ?? '', href: `/tools/${m.tool.id}` });
-			for (const v of cache.vendors) if (v.name.toLowerCase().includes(lq)) r.push({ type: 'Vendor', label: v.name, sub: '', href: `/vendors?highlight=${v.id}` });
-			for (const l of cache.locations) if (l.name.toLowerCase().includes(lq)) r.push({ type: 'Location', label: l.name, sub: '', href: `/locations?highlight=${l.id}` });
-			for (const c of cache.itemCats) if (c.name.toLowerCase().includes(lq)) r.push({ type: 'Item Category', label: c.name, sub: '', href: `/item-categories?highlight=${c.id}` });
-			for (const c of cache.toolCats) if (c.name.toLowerCase().includes(lq)) r.push({ type: 'Tool Category', label: c.name, sub: '', href: `/tool-categories?highlight=${c.id}` });
-			for (const s of cache.stockTakes) {
-				const d = new Date(s.date).toLocaleDateString();
-				if (d.includes(lq) || s.status?.toLowerCase().includes(lq)) r.push({ type: 'Stock Take', label: d, sub: `Status: ${s.status}`, href: `/stock-takes/${s.id}` });
+
+			if (showAllOf(lq, 'vendors')) {
+				for (const v of cache.vendors) r.push({ type: 'Vendor', label: v.name, sub: '', href: `/vendors/${v.id}` });
+			} else {
+				for (const v of cache.vendors) if (v.name.toLowerCase().includes(lq)) r.push({ type: 'Vendor', label: v.name, sub: '', href: `/vendors/${v.id}` });
+			}
+
+			if (showAllOf(lq, 'locations')) {
+				for (const l of cache.locations) r.push({ type: 'Location', label: l.name, sub: '', href: `/locations/${l.id}` });
+			} else {
+				for (const l of cache.locations) if (l.name.toLowerCase().includes(lq)) r.push({ type: 'Location', label: l.name, sub: '', href: `/locations/${l.id}` });
+			}
+
+			if (showAllOf(lq, 'itemCats')) {
+				for (const c of cache.itemCats) r.push({ type: 'Item Category', label: c.name, sub: '', href: `/item-categories?highlight=${c.id}` });
+			} else {
+				for (const c of cache.itemCats) if (c.name.toLowerCase().includes(lq)) r.push({ type: 'Item Category', label: c.name, sub: '', href: `/item-categories?highlight=${c.id}` });
+			}
+
+			if (showAllOf(lq, 'toolCats')) {
+				for (const c of cache.toolCats) r.push({ type: 'Tool Category', label: c.name, sub: '', href: `/tool-categories?highlight=${c.id}` });
+			} else {
+				for (const c of cache.toolCats) if (c.name.toLowerCase().includes(lq)) r.push({ type: 'Tool Category', label: c.name, sub: '', href: `/tool-categories?highlight=${c.id}` });
+			}
+
+			if (showAllOf(lq, 'stockTakes')) {
+				for (const s of cache.stockTakes) {
+					const d = new Date(s.date).toLocaleDateString();
+					r.push({ type: 'Stock Take', label: d, sub: `Status: ${s.status}`, href: `/stock-takes/${s.id}` });
+				}
+			} else {
+				for (const s of cache.stockTakes) {
+					const d = new Date(s.date).toLocaleDateString();
+					if (d.includes(lq) || s.status?.toLowerCase().includes(lq)) r.push({ type: 'Stock Take', label: d, sub: `Status: ${s.status}`, href: `/stock-takes/${s.id}` });
+				}
 			}
 
 			results = r;

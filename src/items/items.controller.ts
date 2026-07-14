@@ -23,11 +23,13 @@ export class ItemsController {
     @Query('limit') limit?: string,
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: string,
+    @Query('labelPrinted') labelPrinted?: string,
   ) {
     return this.itemsService.findAll(q, {
       categoryId: categoryId ? Number(categoryId) : undefined,
       vendorId: vendorId ? Number(vendorId) : undefined,
       locationId: locationId ? Number(locationId) : undefined,
+      labelPrinted: labelPrinted !== undefined ? labelPrinted === 'true' : undefined,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
       sortBy,
@@ -41,6 +43,11 @@ export class ItemsController {
   }
 
   // Static routes — must come before @Get(':id')
+  @Post('mark-printed')
+  markPrinted(@Body('ids') ids: number[]) {
+    return this.itemsService.markPrinted(ids);
+  }
+
   @Get('deleted')
   findDeleted() {
     return this.itemsService.findDeleted();

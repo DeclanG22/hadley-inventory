@@ -21,6 +21,7 @@ export const activity = {
 // Vendors
 export const vendors = {
 	list: () => request<any[]>('/vendors'),
+	get: (id: number) => request<any>(`/vendors/${id}`),
 	create: (data: { name: string }) => request<any>('/vendors', { method: 'POST', body: JSON.stringify(data) }),
 	remove: (id: number) => request<void>(`/vendors/${id}`, { method: 'DELETE' }),
 	deleted: () => request<any[]>('/vendors/deleted'),
@@ -31,6 +32,7 @@ export const vendors = {
 // Locations
 export const locations = {
 	list: () => request<any[]>('/locations'),
+	get: (id: number) => request<any>(`/locations/${id}`),
 	create: (data: { name: string }) => request<any>('/locations', { method: 'POST', body: JSON.stringify(data) }),
 	remove: (id: number) => request<void>(`/locations/${id}`, { method: 'DELETE' }),
 	deleted: () => request<any[]>('/locations/deleted'),
@@ -41,6 +43,7 @@ export const locations = {
 // Item Categories
 export const itemCategories = {
 	list: () => request<any[]>('/item-categories'),
+	get: (id: number) => request<any>(`/item-categories/${id}`),
 	create: (data: { name: string }) => request<any>('/item-categories', { method: 'POST', body: JSON.stringify(data) }),
 	remove: (id: number) => request<void>(`/item-categories/${id}`, { method: 'DELETE' }),
 	restore: (id: number) => request<any>(`/item-categories/${id}/restore`, { method: 'POST' }),
@@ -74,6 +77,7 @@ export const stockTakes = {
 // Tool Categories
 export const toolCategories = {
 	list: () => request<any[]>('/tool-categories'),
+	get: (id: number) => request<any>(`/tool-categories/${id}`),
 	create: (data: { name: string }) => request<any>('/tool-categories', { method: 'POST', body: JSON.stringify(data) }),
 	remove: (id: number) => request<void>(`/tool-categories/${id}`, { method: 'DELETE' }),
 	deleted: () => request<any[]>('/tool-categories/deleted'),
@@ -93,12 +97,13 @@ export const lookup = {
 	byCode: (code: string) => request<{ type: 'item' | 'tool'; data: any }>(`/lookup/${encodeURIComponent(code)}`),
 };
 export const items = {
-	list: (q?: string, filters?: { categoryId?: number; vendorId?: number; locationId?: number; page?: number; limit?: number; sortBy?: string; sortOrder?: string }) => {
+	list: (q?: string, filters?: { categoryId?: number; vendorId?: number; locationId?: number; labelPrinted?: boolean; page?: number; limit?: number; sortBy?: string; sortOrder?: string }) => {
 		const params = new URLSearchParams();
 		if (q) params.set('q', q);
 		if (filters?.categoryId) params.set('categoryId', String(filters.categoryId));
 		if (filters?.vendorId) params.set('vendorId', String(filters.vendorId));
 		if (filters?.locationId) params.set('locationId', String(filters.locationId));
+		if (filters?.labelPrinted !== undefined) params.set('labelPrinted', String(filters.labelPrinted));
 		if (filters?.page) params.set('page', String(filters.page));
 		if (filters?.limit) params.set('limit', String(filters.limit));
 		if (filters?.sortBy) params.set('sortBy', filters.sortBy);
@@ -106,6 +111,7 @@ export const items = {
 		const qs = params.toString();
 		return request<PaginatedResult<any>>(`/items${qs ? `?${qs}` : ''}`);
 	},
+	markPrinted: (ids: number[]) => request<void>('/items/mark-printed', { method: 'POST', body: JSON.stringify({ ids }) }),
 	lowStock: () => request<any[]>('/items/low-stock'),
 	get: (id: number) => request<any>(`/items/${id}`),
 	create: (data: any) => request<any>('/items', { method: 'POST', body: JSON.stringify(data) }),
@@ -143,9 +149,10 @@ export const upload = {
 };
 
 export const tools = {
-	list: (q?: string, filters?: { page?: number; limit?: number; sortBy?: string; sortOrder?: string }) => {
+	list: (q?: string, filters?: { labelPrinted?: boolean; page?: number; limit?: number; sortBy?: string; sortOrder?: string }) => {
 		const params = new URLSearchParams();
 		if (q) params.set('q', q);
+		if (filters?.labelPrinted !== undefined) params.set('labelPrinted', String(filters.labelPrinted));
 		if (filters?.page) params.set('page', String(filters.page));
 		if (filters?.limit) params.set('limit', String(filters.limit));
 		if (filters?.sortBy) params.set('sortBy', filters.sortBy);
@@ -153,6 +160,7 @@ export const tools = {
 		const qs = params.toString();
 		return request<PaginatedResult<any>>(`/tools${qs ? `?${qs}` : ''}`);
 	},
+	markPrinted: (ids: number[]) => request<void>('/tools/mark-printed', { method: 'POST', body: JSON.stringify({ ids }) }),
 	get: (id: number) => request<any>(`/tools/${id}`),
 	create: (data: any) => request<any>('/tools', { method: 'POST', body: JSON.stringify(data) }),
 	batchCreate: (data: any) => request<any[]>('/tools/batch', { method: 'POST', body: JSON.stringify(data) }),

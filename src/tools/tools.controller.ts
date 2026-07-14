@@ -28,8 +28,10 @@ export class ToolsController {
     @Query('limit') limit?: string,
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: string,
+    @Query('labelPrinted') labelPrinted?: string,
   ) {
     return this.toolsService.findAll(q, {
+      labelPrinted: labelPrinted !== undefined ? labelPrinted === 'true' : undefined,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
       sortBy,
@@ -38,6 +40,11 @@ export class ToolsController {
   }
 
   // Static routes — must come before @Get(':id')
+  @Post('mark-printed')
+  markPrinted(@Body('ids') ids: number[]) {
+    return this.toolsService.markPrinted(ids);
+  }
+
   @Get('overdue')
   findOverdue() {
     return this.toolsService.findOverdue();

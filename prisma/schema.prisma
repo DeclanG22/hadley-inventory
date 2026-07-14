@@ -172,6 +172,7 @@ model Tool {
   brand        String?
   model        String?
   serialNumber String?  @map("serial_number")
+  labelPrinted Boolean  @default(false) @map("label_printed")
   qrCode       String?  @map("qr_code")
   imageUrl     String?  @map("image_url")
   purchaseCost Decimal?  @map("purchase_cost") @db.Decimal(10, 2)

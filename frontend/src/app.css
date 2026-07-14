@@ -277,6 +277,11 @@ input, textarea, button, select { font-family: inherit; font-size: inherit; }
   border-radius: 18px;
   padding: 16px;
 }
+.cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
 .card-header {
   display: flex;
   align-items: center;

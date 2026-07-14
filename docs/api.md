@@ -218,6 +218,28 @@ Returns only active (non-deleted) vendors.
 ```
 
 ### `GET /vendors/:id`
+
+Returns the vendor with all active items (where `deletedAt` is null) eagerly loaded, each including category and location relations.
+
+```json
+{
+  "id": 1,
+  "name": "McMaster-Carr",
+  "items": [
+    {
+      "id": 1,
+      "itemNumber": "6-32x1/2-PH-SS",
+      "description": "6-32 x 1/2 Panhead Phillips S.S",
+      "onHand": 68,
+      "category": { "id": 1, "name": "Screws" },
+      "location": { "id": 3, "name": "Shipping/Receiving" }
+    }
+  ],
+  "createdAt": "...",
+  "updatedAt": "..."
+}
+```
+
 ### `PATCH /vendors/:id`
 ```json
 { "name": "McMaster-Carr (updated)" }
@@ -255,6 +277,39 @@ Returns only active locations.
 ```
 
 ### `GET /locations/:id`
+
+Returns the location with all active items and tools eagerly loaded. Items include category, vendor, and sub-category relations. Tools include category and open checkouts (for status derivation).
+
+```json
+{
+  "id": 1,
+  "name": "Main Inventory Room",
+  "items": [
+    {
+      "id": 1,
+      "itemNumber": "6-32x1/2-PH-SS",
+      "description": "6-32 x 1/2 Panhead Phillips S.S",
+      "onHand": 68,
+      "category": { "id": 1, "name": "Screws" },
+      "subCategory": { "id": 2, "name": "Pan Head" },
+      "vendor": { "id": 1, "name": "McMaster-Carr" }
+    }
+  ],
+  "tools": [
+    {
+      "id": 1,
+      "toolNumber": "SAW-001",
+      "name": "Dewalt Miter Saw",
+      "brand": "Dewalt",
+      "category": { "id": 1, "name": "Power Tools" },
+      "checkouts": []
+    }
+  ],
+  "createdAt": "...",
+  "updatedAt": "..."
+}
+```
+
 ### `PATCH /locations/:id`
 ```json
 { "name": "Shelf A3 (moved)" }
@@ -300,6 +355,28 @@ Returns only active categories with active sub-categories.
 ```
 
 ### `GET /item-categories/:id`
+
+Returns the category with active sub-categories and all active items eagerly loaded. Items include sub-category, location, and vendor relations.
+
+```json
+{
+  "id": 1,
+  "name": "Screws",
+  "subCategories": [{ "id": 1, "name": "Pan Head", "itemCategoryId": 1 }],
+  "items": [
+    {
+      "id": 1,
+      "itemNumber": "6-32x1/2-PH-SS",
+      "description": "6-32 x 1/2 Panhead Phillips S.S",
+      "onHand": 68,
+      "subCategory": { "id": 2, "name": "Pan Head" },
+      "location": { "id": 3, "name": "Shipping/Receiving" },
+      "vendor": { "id": 1, "name": "McMaster-Carr" }
+    }
+  ]
+}
+```
+
 ### `PATCH /item-categories/:id`
 ```json
 { "name": "Screws (renamed)" }
@@ -361,6 +438,35 @@ Returns only active categories.
 ```
 
 ### `GET /tool-categories/:id`
+
+Returns the category with all active tools eagerly loaded. Tools include location and open checkouts (for status derivation).
+
+```json
+{
+  "id": 1,
+  "name": "Power Tools",
+  "tools": [
+    {
+      "id": 1,
+      "toolNumber": "SAW-001",
+      "name": "Dewalt Miter Saw",
+      "brand": "Dewalt",
+      "location": { "id": 2, "name": "Tool Crib" },
+      "checkouts": [
+        {
+          "id": 1,
+          "checkedOutBy": "John D",
+          "checkedOutAt": "2026-07-09T18:00:00.000Z",
+          "checkedInAt": null
+        }
+      ]
+    }
+  ]
+}
+```
+
+A non-empty `checkouts` array means the tool is currently checked out.
+
 ### `PATCH /tool-categories/:id`
 ```json
 { "name": "Saws (renamed)" }
@@ -396,7 +502,7 @@ The Item model represents consumable/stock-tracked inventory. Each item has an `
 | weightPerUnit | decimal(10,4) | no | Weight in grams |
 | analysisCode | string | no | GL/account code |
 | removeFlag | boolean | no (default false) | Soft-delete flag for archived items |
-| labelPrinted | boolean | no (default false) | Whether label has been printed |
+| labelPrinted | boolean | no (default false) | Whether QR label has been printed |
 | headType | string | no | For fasteners: "Pan", "Flat", "Hex" |
 | imageUrl | string | no | Image reference |
 | categoryId | int | no | FK -> ItemCategory |
@@ -426,6 +532,7 @@ Returns a **paginated** list of items with category, sub-category, location, and
 | categoryId | int | — | Filter by category ID |
 | vendorId | int | — | Filter by vendor ID |
 | locationId | int | — | Filter by location ID |
+| labelPrinted | boolean | — | Filter by label printed status (`true` or `false`) |
 | page | int | 1 | Page number (1-indexed) |
 | limit | int | 100 | Items per page |
 | sortBy | string | `itemNumber` | Sort column: `itemNumber`, `description`, `onHand`, `unitPrice` |
@@ -478,6 +585,20 @@ Returns items where `onHand <= minStock` AND `minStock IS NOT NULL`. Includes th
 [
   { "id": 5, "itemNumber": "...", "onHand": 3, "minStock": 10, ... }
 ]
+```
+
+### `POST /items/mark-printed`
+
+Marks one or more items as label-printed (`labelPrinted = true`). Used by the QR label generation flow — after printing, items are recorded as labeled so the labels page can filter by status.
+
+**Request body:**
+```json
+{ "ids": [1, 2, 3] }
+```
+
+**Response:**
+```json
+{ "count": 3 }
 ```
 
 ### `GET /items/:id`
@@ -776,6 +897,7 @@ The Tool model represents unique tracked assets (tools, equipment). Each tool ha
 | imageUrl | string | no | Image reference |
 | purchaseCost | decimal(10,2) | no | Original purchase cost |
 | notes | string | no | Free-form notes |
+| labelPrinted | boolean | no (default false) | Whether QR label has been printed |
 | categoryId | int | no | FK -> ToolCategory |
 | locationId | int | no | FK -> Location (where the tool is stored) |
 | createdAt | datetime | auto | Prisma timestamp |
@@ -791,6 +913,7 @@ List all tools with category, location, and current status (derived from open ch
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
 | q | string | — | Search by toolNumber, name, brand, model, or description (case-insensitive contains) |
+| labelPrinted | boolean | — | Filter by label printed status (`true` or `false`) |
 | page | int | 1 | Page number (1-indexed) |
 | limit | int | 100 | Tools per page |
 | sortBy | string | `name` | Sort column: `toolNumber`, `name`, `brand`, `model` |
@@ -958,6 +1081,20 @@ Create multiple identical tools with auto-numbering. Generates `{PREFIX}-001`, `
 ```
 
 Required: `quantity` (>= 1), `toolNumberPrefix`, `name`. All other tool optional fields are accepted and applied to all generated tools.
+
+### `POST /tools/mark-printed`
+
+Marks one or more tools as label-printed (`labelPrinted = true`). Used by the QR label generation flow.
+
+**Request body:**
+```json
+{ "ids": [1, 2, 3] }
+```
+
+**Response:**
+```json
+{ "count": 3 }
+```
 
 ### `PATCH /tools/:id`
 

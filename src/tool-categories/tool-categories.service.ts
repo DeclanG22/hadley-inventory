@@ -16,7 +16,16 @@ export class ToolCategoriesService {
   }
 
   findOne(id: number) {
-    return this.prisma.toolCategory.findUniqueOrThrow({ where: { id } });
+    return this.prisma.toolCategory.findUniqueOrThrow({
+      where: { id },
+      include: {
+        tools: {
+          where: { deletedAt: null },
+          include: { location: true, checkouts: { where: { checkedInAt: null } } },
+          orderBy: { toolNumber: 'asc' },
+        },
+      },
+    });
   }
 
   update(id: number, dto: UpdateToolCategoryDto) {

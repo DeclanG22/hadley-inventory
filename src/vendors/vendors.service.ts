@@ -16,7 +16,16 @@ export class VendorsService {
   }
 
   findOne(id: number) {
-    return this.prisma.vendor.findUniqueOrThrow({ where: { id } });
+    return this.prisma.vendor.findUniqueOrThrow({
+      where: { id },
+      include: {
+        items: {
+          where: { deletedAt: null },
+          include: { category: true, location: true },
+          orderBy: { itemNumber: 'asc' },
+        },
+      },
+    });
   }
 
   update(id: number, dto: UpdateVendorDto) {

@@ -16,7 +16,21 @@ export class LocationsService {
   }
 
   findOne(id: number) {
-    return this.prisma.location.findUniqueOrThrow({ where: { id } });
+    return this.prisma.location.findUniqueOrThrow({
+      where: { id },
+      include: {
+        items: {
+          where: { deletedAt: null },
+          include: { category: true, vendor: true, subCategory: true },
+          orderBy: { itemNumber: 'asc' },
+        },
+        tools: {
+          where: { deletedAt: null },
+          include: { category: true, checkouts: { where: { checkedInAt: null } } },
+          orderBy: { toolNumber: 'asc' },
+        },
+      },
+    });
   }
 
   update(id: number, dto: UpdateLocationDto) {

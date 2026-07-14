@@ -25,7 +25,14 @@ export class ItemCategoriesService {
   findOne(id: number) {
     return this.prisma.itemCategory.findUniqueOrThrow({
       where: { id },
-      include: { subCategories: { where: { deletedAt: null } } },
+      include: {
+        subCategories: { where: { deletedAt: null } },
+        items: {
+          where: { deletedAt: null },
+          include: { subCategory: true, location: true, vendor: true },
+          orderBy: { itemNumber: 'asc' },
+        },
+      },
     });
   }
 

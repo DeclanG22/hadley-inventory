@@ -9,6 +9,13 @@ import { Prisma } from '@prisma/client';
 export class ItemsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  markPrinted(ids: number[]) {
+    return this.prisma.item.updateMany({
+      where: { id: { in: ids } },
+      data: { labelPrinted: true },
+    });
+  }
+
   create(dto: CreateItemDto) {
     const data = this.mapCreateDto(dto);
     return this.prisma.item.create({ data });
@@ -16,6 +23,7 @@ export class ItemsService {
 
   async findAll(q?: string, filters?: {
     categoryId?: number; vendorId?: number; locationId?: number;
+    labelPrinted?: boolean;
     page?: number; limit?: number;
     sortBy?: string; sortOrder?: 'asc' | 'desc';
   }) {
@@ -29,6 +37,7 @@ export class ItemsService {
     if (filters?.categoryId) where.categoryId = filters.categoryId;
     if (filters?.vendorId) where.vendorId = filters.vendorId;
     if (filters?.locationId) where.locationId = filters.locationId;
+    if (filters?.labelPrinted !== undefined) where.labelPrinted = filters.labelPrinted;
 
     const page = filters?.page ?? 1;
     const limit = filters?.limit ?? 100;

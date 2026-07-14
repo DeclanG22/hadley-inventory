@@ -6,6 +6,7 @@ export class ToolEntity {
   brand!: string | null;
   model!: string | null;
   serialNumber!: string | null;
+  labelPrinted!: boolean;
   qrCode!: string | null;
   imageUrl!: string | null;
   notes!: string | null;
