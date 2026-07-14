@@ -2,7 +2,7 @@ import { IsString, IsOptional, IsDateString } from 'class-validator';
 
 export class CreateStockTakeDto {
   @IsDateString()
-  date: string;
+  date!: string;
 
   @IsOptional()
   @IsString()

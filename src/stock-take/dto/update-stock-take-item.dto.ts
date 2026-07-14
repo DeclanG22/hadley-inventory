@@ -5,7 +5,7 @@ export class UpdateStockTakeItemDto {
   @IsInt()
   @Min(0)
   @Type(() => Number)
-  physicalQty: number;
+  physicalQty!: number;
 
   @IsOptional()
   @IsString()

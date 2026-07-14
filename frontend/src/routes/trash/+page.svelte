@@ -35,7 +35,7 @@
 	}
 
 	async function permanentDelete(api: any, id: number, label: string) {
-		const ok = await confirm(`Permanently delete ${label}? This cannot be undone.`);
+		const ok = await confirm('Confirm permanent delete', `Permanently delete ${label}? This cannot be undone.`);
 		if (!ok) return;
 		try {
 			await api.permanentRemove(id);

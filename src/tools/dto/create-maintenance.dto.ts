@@ -4,14 +4,14 @@ import { Type } from 'class-transformer';
 export class CreateMaintenanceDto {
   @IsString()
   @IsNotEmpty()
-  type: string;
+  type!: string;
 
   @IsOptional()
   @IsString()
   description?: string;
 
   @IsDateString()
-  date: string;
+  date!: string;
 
   @IsOptional()
   @IsString()

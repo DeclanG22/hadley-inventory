@@ -4,11 +4,11 @@ import { Type } from 'class-transformer';
 export class CreateItemDto {
   @IsString()
   @IsNotEmpty()
-  itemNumber: string;
+  itemNumber!: string;
 
   @IsString()
   @IsNotEmpty()
-  description: string;
+  description!: string;
 
   @IsOptional()
   @IsString()

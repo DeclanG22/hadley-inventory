@@ -3,7 +3,7 @@ import { IsString, IsNotEmpty, IsOptional, IsDateString } from 'class-validator'
 export class CreateCheckoutDto {
   @IsString()
   @IsNotEmpty()
-  checkedOutBy: string;
+  checkedOutBy!: string;
 
   @IsOptional()
   @IsString()

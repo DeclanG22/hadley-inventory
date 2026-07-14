@@ -4,11 +4,11 @@ import { Type } from 'class-transformer';
 export class CreateToolDto {
   @IsString()
   @IsNotEmpty()
-  toolNumber: string;
+  toolNumber!: string;
 
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsOptional()
   @IsString()

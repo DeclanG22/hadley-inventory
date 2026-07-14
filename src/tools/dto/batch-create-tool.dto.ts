@@ -5,15 +5,15 @@ export class BatchCreateToolDto {
   @IsInt()
   @Min(1)
   @Type(() => Number)
-  quantity: number;
+  quantity!: number;
 
   @IsString()
   @IsNotEmpty()
-  toolNumberPrefix: string;
+  toolNumberPrefix!: string;
 
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsOptional()
   @IsString()

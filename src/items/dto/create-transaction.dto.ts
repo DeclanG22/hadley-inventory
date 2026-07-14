@@ -7,11 +7,11 @@ export class CreateTransactionDto {
   jobNumber?: string;
 
   @IsDateString()
-  date: string;
+  date!: string;
 
   @IsInt()
   @Type(() => Number)
-  quantityInOut: number;
+  quantityInOut!: number;
 
   @IsOptional()
   @IsNumber()
