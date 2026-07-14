@@ -395,6 +395,15 @@ input:focus, textarea:focus, select:focus {
 input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(49%);
 }
+
+input::-webkit-search-cancel-button,
+input::-webkit-search-decoration,
+input::-webkit-search-results-button,
+input::-webkit-search-results-decoration {
+		-webkit-appearance: none;
+		appearance: none;
+		display: none;
+}
 textarea {
   resize: vertical;
   min-height: 60px;
