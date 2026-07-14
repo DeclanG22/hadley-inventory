@@ -788,9 +788,63 @@ List all tools with category, location, and current status (derived from open ch
 
 **Query params**
 
-| Param | Type | Description |
-|-------|------|-------------|
-| q | string | Search by toolNumber, name, brand, model, or description (case-insensitive contains) |
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| q | string | — | Search by toolNumber, name, brand, model, or description (case-insensitive contains) |
+| page | int | 1 | Page number (1-indexed) |
+| limit | int | 100 | Tools per page |
+| sortBy | string | `name` | Sort column: `toolNumber`, `name`, `brand`, `model` |
+| sortOrder | string | `asc` | Sort direction: `asc` or `desc` |
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "toolNumber": "SAW-001",
+      "name": "Dewalt Miter Saw",
+      "description": "DWS780 12-inch",
+      "brand": "Dewalt",
+      "model": "DWS780",
+      "serialNumber": "SN-12345",
+      "imageUrl": null,
+      "purchaseCost": 199.99,
+      "notes": null,
+      "categoryId": 1,
+      "category": { "id": 1, "name": "Power Tools", "createdAt": "...", "updatedAt": "..." },
+      "locationId": 2,
+      "location": { "id": 2, "name": "Tool Crib", "createdAt": "...", "updatedAt": "..." },
+      "checkouts": [
+        {
+          "id": 1,
+          "toolId": 1,
+          "checkedOutBy": "John D",
+          "jobNumber": "JOB-789",
+          "jobSite": "Site B",
+          "checkedOutAt": "2026-07-09T18:00:00.000Z",
+          "expectedReturnAt": "2026-07-16T00:00:00.000Z",
+          "checkedInAt": null,
+          "notes": "",
+          "createdAt": "..."
+        }
+      ],
+      "createdAt": "...",
+      "updatedAt": "..."
+    }
+  ],
+  "total": 100,
+  "page": 1,
+  "limit": 100
+}
+```
+
+The `checkouts` array contains only **open** checkouts (where `checkedInAt` is null). If the array is non-empty, the tool is currently checked out. The latest open checkout is at index 0.
+
+### `GET /tools/overdue`
+
+Returns all open (not yet checked in) checkouts whose `expectedReturnAt` is in the past, ordered by `expectedReturnAt` ascending.
 
 **Response:**
 
@@ -798,40 +852,19 @@ List all tools with category, location, and current status (derived from open ch
 [
   {
     "id": 1,
-    "toolNumber": "SAW-001",
-    "name": "Dewalt Miter Saw",
-    "description": "DWS780 12-inch",
-    "brand": "Dewalt",
-    "model": "DWS780",
-    "serialNumber": "SN-12345",
-    "imageUrl": null,
-    "purchaseCost": 199.99,
-    "notes": null,
-    "categoryId": 1,
-    "category": { "id": 1, "name": "Power Tools", "createdAt": "...", "updatedAt": "..." },
-    "locationId": 2,
-    "location": { "id": 2, "name": "Tool Crib", "createdAt": "...", "updatedAt": "..." },
-    "checkouts": [
-      {
-        "id": 1,
-        "toolId": 1,
-        "checkedOutBy": "John D",
-        "jobNumber": "JOB-789",
-        "jobSite": "Site B",
-        "checkedOutAt": "2026-07-09T18:00:00.000Z",
-        "expectedReturnAt": "2026-07-16T00:00:00.000Z",
-        "checkedInAt": null,
-        "notes": "",
-        "createdAt": "..."
-      }
-    ],
+    "toolId": 1,
+    "checkedOutBy": "John D",
+    "jobNumber": "JOB-789",
+    "jobSite": "Site B",
+    "checkedOutAt": "2026-07-01T10:00:00.000Z",
+    "expectedReturnAt": "2026-07-08T00:00:00.000Z",
+    "checkedInAt": null,
+    "notes": "",
     "createdAt": "...",
-    "updatedAt": "..."
+    "tool": { "id": 1, "toolNumber": "SAW-001", "name": "Dewalt Miter Saw" }
   }
 ]
 ```
-
-The `checkouts` array contains only **open** checkouts (where `checkedInAt` is null). If the array is non-empty, the tool is currently checked out. The latest open checkout is at index 0.
 
 ### `GET /tools/:id`
 
@@ -1025,6 +1058,37 @@ Returns all checkout records for a tool, ordered by `checkedOutAt` descending.
 ```
 
 ### Maintenance
+
+#### `GET /tools/maintenance-search`
+
+Searches maintenance logs across all tools by type or description (case-insensitive contains). Returns up to 10 matching records.
+
+**Query params**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| q | string | Search by maintenance type or description (case-insensitive contains) |
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "toolId": 1,
+    "type": "repair",
+    "description": "Replaced blade",
+    "date": "2026-07-09T00:00:00.000Z",
+    "performedBy": "Jane S",
+    "cost": 45.00,
+    "notes": "",
+    "createdAt": "...",
+    "tool": { "id": 1, "toolNumber": "SAW-001", "name": "Dewalt Miter Saw" }
+  }
+]
+```
+
+Returns an empty array if `q` is omitted.
 
 #### `POST /tools/:id/maintenance`
 
