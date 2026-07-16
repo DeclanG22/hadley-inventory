@@ -12,15 +12,21 @@
 	let recentActivity = $state<any[]>([]);
 	let overdueCheckouts = $state<any[]>([]);
 	let loading = $state(true);
-	let activitySearch = $state('');
+	let itemSearch = $state('');
+	let toolSearch = $state('');
 
-	let filteredActivity = $derived(recentActivity.filter(a => {
-		if (!activitySearch) return true;
-		const q = activitySearch.toLowerCase();
+	let itemActivity = $derived(recentActivity.filter(a => {
+		if (a.type !== 'item_transaction') return false;
+		if (!itemSearch) return true;
+		const q = itemSearch.toLowerCase();
 		return a.summary?.toLowerCase().includes(q) || a.itemRef?.toLowerCase().includes(q) || new Date(a.date).toLocaleString([], { month:'numeric', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }).includes(q);
 	}));
-	let itemActivity = $derived(filteredActivity.filter(a => a.type === 'item_transaction'));
-	let toolActivity = $derived(filteredActivity.filter(a => a.type !== 'item_transaction'));
+	let toolActivity = $derived(recentActivity.filter(a => {
+		if (a.type === 'item_transaction') return false;
+		if (!toolSearch) return true;
+		const q = toolSearch.toLowerCase();
+		return a.summary?.toLowerCase().includes(q) || a.itemRef?.toLowerCase().includes(q) || new Date(a.date).toLocaleString([], { month:'numeric', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }).includes(q);
+	}));
 
 	$effect(() => {
 		Promise.all([
@@ -29,7 +35,7 @@
 			tools.list().then(l => { toolCount = l.total; checkedOut = l.data.filter((t: any) => t.checkouts?.length > 0).length; }),
 			vendors.list().then(l => vendorCount = l.length),
 			locations.list().then(l => locationCount = l.length),
-			activity.recent(100).then(l => { recentActivity = l; activitySearch = ''; }),
+			activity.recent(100).then(l => { recentActivity = l; itemSearch = ''; toolSearch = ''; }),
 			tools.overdue().then(l => overdueCheckouts = l).catch(() => {}),
 			tools.maintenanceFlags.list(true).then(l => maintenanceFlags = l.length).catch(() => {}),
 		]).finally(() => loading = false);
@@ -89,7 +95,7 @@
 	<div class="card">
 		<div class="card-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
 			<h2 style="flex:1">Recent Item Activity</h2>
-			<input type="search" bind:value={activitySearch} placeholder="Search..." style="min-width:120px;max-width:200px" />
+			<input type="search" bind:value={itemSearch} placeholder="Search..." style="min-width:120px;max-width:200px" />
 		</div>
 		{#if loading}
 			<div class="sk-table"><div class="sk-row"><div class="sk-cell sk" style="width:18%"></div><div class="sk-cell sk" style="width:60%"></div></div><div class="sk-row"><div class="sk-cell sk" style="width:18%"></div><div class="sk-cell sk" style="width:50%"></div></div><div class="sk-row"><div class="sk-cell sk" style="width:18%"></div><div class="sk-cell sk" style="width:55%"></div></div></div>
@@ -122,7 +128,7 @@
 	<div class="card">
 		<div class="card-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
 			<h2 style="flex:1">Recent Tool Activity</h2>
-			<input type="search" bind:value={activitySearch} placeholder="Search..." style="min-width:120px;max-width:200px" />
+			<input type="search" bind:value={toolSearch} placeholder="Search..." style="min-width:120px;max-width:200px" />
 		</div>
 		{#if loading}
 			<div class="sk-table"><div class="sk-row"><div class="sk-cell sk" style="width:18%"></div><div class="sk-cell sk" style="width:60%"></div></div><div class="sk-row"><div class="sk-cell sk" style="width:18%"></div><div class="sk-cell sk" style="width:50%"></div></div><div class="sk-row"><div class="sk-cell sk" style="width:18%"></div><div class="sk-cell sk" style="width:55%"></div></div></div>
