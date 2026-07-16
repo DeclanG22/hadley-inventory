@@ -15,11 +15,11 @@ const categories = [
 ];
 
 const locations = [
-  { id: 1, name: 'Warehouse A' },
-  { id: 2, name: 'Warehouse B' },
-  { id: 3, name: 'Warehouse C' },
-  { id: 4, name: 'Tool Shed' },
-  { id: 5, name: 'Job Site Trailer' },
+  { id: 1, name: 'Tool Inventory Shelf 1' },
+  { id: 2, name: 'Tool Inventory Shelf 2' },
+  { id: 3, name: 'Tool Inventory Shelf 3' },
+  { id: 4, name: 'Tool Inventory Shelf 4' },
+  { id: 5, name: 'Tool Inventory Shelf 5' },
 ];
 
 async function main() {

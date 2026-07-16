@@ -236,6 +236,8 @@ export class ImportService {
     const result: ImportResult = { total: rows.length, created: 0, updated: 0, errors: [] };
     const rowOffset = headerRowIndex + 2;
 
+    // Map all rows first to detect duplicates
+    const mappedRows: { mapped: ImportRow; rowIndex: number }[] = [];
     for (let i = 0; i < rows.length; i++) {
       try {
         const mapped = this.mapRow(rows[i], colMap);
@@ -243,6 +245,43 @@ export class ImportService {
           result.errors.push({ row: i + rowOffset, message: 'Missing item number' });
           continue;
         }
+        mappedRows.push({ mapped, rowIndex: i });
+      } catch (err: any) {
+        result.errors.push({ row: i + rowOffset, message: err.message ?? 'Unknown error' });
+      }
+    }
+
+    // Deduplicate by itemNumber — keep the row with the latest date
+    const dateField = Object.values(colMap).find((f) => f === 'dateAdded' || f === 'dateDisbursed') as 'dateAdded' | 'dateDisbursed' | undefined;
+    const groups = new Map<string, typeof mappedRows>();
+    for (const item of mappedRows) {
+      const group = groups.get(item.mapped.itemNumber);
+      if (!group) {
+        groups.set(item.mapped.itemNumber, [item]);
+      } else {
+        group.push(item);
+      }
+    }
+
+    const deduped: typeof mappedRows = [];
+    for (const [, group] of groups) {
+      if (group.length === 1) {
+        deduped.push(group[0]);
+      } else {
+        group.sort((a, b) => {
+          const aDate = dateField ? this.parseDate(a.mapped[dateField])?.getTime() ?? 0 : 0;
+          const bDate = dateField ? this.parseDate(b.mapped[dateField])?.getTime() ?? 0 : 0;
+          return bDate - aDate;
+        });
+        deduped.push(group[0]);
+        for (let i = 1; i < group.length; i++) {
+          result.errors.push({ row: group[i].rowIndex + rowOffset, message: `Duplicate itemNumber "${group[i].mapped.itemNumber}", discarded (kept row ${group[0].rowIndex + rowOffset} with latest date)` });
+        }
+      }
+    }
+
+    for (const { mapped } of deduped) {
+      try {
         await this.upsertItem(mapped);
         const exists = await this.prisma.item.findUnique({ where: { itemNumber: mapped.itemNumber } });
         if (exists && exists.createdAt.getTime() !== exists.updatedAt.getTime()) {
@@ -251,7 +290,7 @@ export class ImportService {
           result.created++;
         }
       } catch (err: any) {
-        result.errors.push({ row: i + rowOffset, message: err.message ?? 'Unknown error' });
+        result.errors.push({ row: 0, message: err.message ?? 'Unknown error' });
       }
     }
 
