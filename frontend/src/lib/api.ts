@@ -6,11 +6,17 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 		...options,
 	});
 	if (!res.ok) {
-		const text = await res.text();
-		throw new Error(`${res.status} ${res.statusText}: ${text}`);
+		let msg = `Request failed (${res.status})`;
+		try {
+			const body = JSON.parse(await res.text());
+			if (body.message) msg = Array.isArray(body.message) ? body.message.join('; ') : body.message;
+		} catch {}
+		throw new Error(msg);
 	}
 	if (res.status === 204) return undefined as T;
-	return res.json();
+	const text = await res.text();
+	if (!text) return undefined as T;
+	return JSON.parse(text);
 }
 
 // Activity
@@ -68,7 +74,10 @@ export const stockTakes = {
 		request<any>('/stock-takes', { method: 'POST', body: JSON.stringify(data) }),
 	update: (id: number, data: any) =>
 		request<any>(`/stock-takes/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-	remove: (id: number) => request<void>(`/stock-takes/${id}`, { method: 'DELETE' }),
+	remove: (id: number) => request<any>(`/stock-takes/${id}`, { method: 'DELETE' }),
+	deleted: () => request<any[]>('/stock-takes/deleted'),
+	restore: (id: number) => request<any>(`/stock-takes/${id}/restore`, { method: 'POST' }),
+	permanentRemove: (id: number) => request<any>(`/stock-takes/${id}/permanent`, { method: 'DELETE' }),
 	updateItem: (stockTakeId: number, itemId: number, data: { physicalQty: number; notes?: string }) =>
 		request<any>(`/stock-takes/${stockTakeId}/items/${itemId}`, { method: 'PATCH', body: JSON.stringify(data) }),
 	reconcile: (id: number) => request<any>(`/stock-takes/${id}/reconcile`, { method: 'POST' }),
@@ -193,5 +202,14 @@ export const tools = {
 			request<any>(`/tools/${toolId}/maintenance`, { method: 'POST', body: JSON.stringify(data) }),
 		remove: (maintenanceId: number) =>
 			request<void>(`/tools/maintenance/${maintenanceId}`, { method: 'DELETE' }),
+	},
+	maintenanceFlags: {
+		list: (unresolved = false) => request<any[]>(`/tools/maintenance-flags${unresolved ? '?unresolved=true' : ''}`),
+		create: (toolId: number, data: { type: string; description?: string; createdBy?: string }) =>
+			request<any>(`/tools/${toolId}/maintenance-flags`, { method: 'POST', body: JSON.stringify(data) }),
+		resolve: (flagId: number, resolvedBy: string) =>
+			request<any>(`/tools/maintenance-flags/${flagId}/resolve`, { method: 'POST', body: JSON.stringify({ resolvedBy }) }),
+		remove: (flagId: number) =>
+			request<void>(`/tools/maintenance-flags/${flagId}`, { method: 'DELETE' }),
 	},
 };

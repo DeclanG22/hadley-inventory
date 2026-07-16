@@ -14,7 +14,8 @@
 	let form = $state<any>({});
 
 	let checkoutForm = $state({ checkedOutBy: '', jobNumber: '', jobSite: '', expectedReturnAt: '', notes: '' });
-	let maintForm = $state({ type: 'repair', description: '', date: new Date().toISOString().slice(0,10), performedBy: '', cost: '', notes: '' });
+	let maintForm = $state({ type: 'repair', description: '', date: new Date().toISOString().slice(0,10), performedBy: '', cost: '', notes: '', flagId: '' });
+	let flagForm = $state({ open: false, type: 'repair', description: '', createdBy: '' });
 
 	let chkDateFrom = $state('');
 	let chkDateTo = $state('');
@@ -33,6 +34,16 @@
 		toolCategories.list().then(l => catList = l);
 	}
 	$effect(load);
+
+	$effect(() => {
+		if (maintForm.flagId && tool?.maintenanceFlags) {
+			const flag = tool.maintenanceFlags.find((f: any) => f.id === Number(maintForm.flagId));
+			if (flag) {
+				maintForm.type = flag.type;
+				if (flag.description) maintForm.description = flag.description;
+			}
+		}
+	});
 
 	function resetForm(t: any) {
 		form = {
@@ -91,8 +102,9 @@
 			if (maintForm.performedBy) data.performedBy = maintForm.performedBy;
 			if (maintForm.cost) data.cost = Number(maintForm.cost);
 			if (maintForm.notes) data.notes = maintForm.notes;
+			if (maintForm.flagId) data.flagId = Number(maintForm.flagId);
 			await tools.maintenance.create(id, data);
-			maintForm = { type: 'repair', description: '', date: new Date().toISOString().slice(0,10), performedBy: '', cost: '', notes: '' };
+			maintForm = { type: 'repair', description: '', date: new Date().toISOString().slice(0,10), performedBy: '', cost: '', notes: '', flagId: '' };
 			load();
 			addToast('Maintenance record added', 'success');
 		} catch (e: any) { addToast(e.message, 'error'); }
@@ -175,6 +187,14 @@
 		} catch (e: any) { addToast(e.message, 'error'); }
 	}
 
+	async function doFlag() {
+		try {
+			await tools.maintenanceFlags.create(Number(params.id), { type: flagForm.type, description: flagForm.description || undefined, createdBy: flagForm.createdBy || undefined });
+			addToast('Maintenance flag created', 'success');
+			flagForm = { open: false, type: 'repair', description: '', createdBy: '' };
+		} catch (e: any) { addToast(e.message, 'error'); }
+	}
+
 	async function deleteMaint(maintId: number) {
 		const ok = await confirm('Delete Maintenance Record', 'This will permanently remove this maintenance record.');
 		if (!ok) return;
@@ -221,6 +241,7 @@
 			{:else}
 				<span class="badge badge-available">Available</span>
 			{/if}
+			<button class="btn-ghost btn-sm" style="color:var(--orange)" onclick={() => flagForm.open = !flagForm.open}>{flagForm.open ? 'Cancel' : 'Flag'}</button>
 			<button class="btn-ghost btn-sm" onclick={() => editing = !editing}>{editing ? 'Cancel' : 'Edit'}</button>
 		</div>
 	</div>
@@ -259,10 +280,52 @@
 				<img src={tool.imageUrl} alt="" class="detail-image" />
 			{/if}
 			<div class="detail-grid">
-				<span>Category:</span><span>{tool.category?.name ?? '-'}</span>
-				<span>Location:</span><span>{tool.location?.name ?? '-'}</span>
-				<span>Notes:</span><span>{tool.notes ?? '-'}</span>
+
+<span>
+    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+        <path d="M0 0h24v24H0z" fill="none" />
+        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 3h6m-3-3v6" />
+    </svg>
+    Category:
+</span>
+<span>{tool.category?.name ?? '-'}
+</span>
+<span>
+    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+       	<path d="M0 0h24v24H0z" fill="none" />
+       	<path fill="currentColor" d="M16 10c0-2.21-1.79-4-4-4s-4 1.79-4 4s1.79 4 4 4s4-1.79 4-4m-6 0c0-1.1.9-2 2-2s2 .9 2 2s-.9 2-2 2s-2-.9-2-2" />
+       	<path fill="currentColor" d="M11.42 21.81c.17.12.38.19.58.19s.41-.06.58-.19c.3-.22 7.45-5.37 7.42-11.82c0-4.41-3.59-8-8-8s-8 3.59-8 8c-.03 6.44 7.12 11.6 7.42 11.82M12 4c3.31 0 6 2.69 6 6c.02 4.44-4.39 8.43-6 9.74c-1.61-1.31-6.02-5.29-6-9.74c0-3.31 2.69-6 6-6" />
+    </svg>
+    Location:</span><span>{tool.location?.name ?? '-'}</span>
+<span>
+    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+	<path d="M0 0h24v24H0z" fill="none" />
+	<path fill="currentColor" d="M4 18q-.425 0-.712-.288T3 17t.288-.712T4 16h10q.425 0 .713.288T15 17t-.288.713T14 18zm0-5q-.425 0-.712-.288T3 12t.288-.712T4 11h16q.425 0 .713.288T21 12t-.288.713T20 13zm0-5q-.425 0-.712-.288T3 7t.288-.712T4 6h16q.425 0 .713.288T21 7t-.288.713T20 8z" />
+    </svg>
+
+    Notes:</span><span>{tool.notes ?? '-'}</span>
 			</div>
+		</div>
+	{/if}
+
+	{#if flagForm.open}
+		<div class="card" style="margin-top:10px">
+			<div class="card-header"><h2>Flag for Maintenance</h2></div>
+			<form onsubmit={(e) => { e.preventDefault(); doFlag(); }}>
+				<div class="form-grid">
+					<div><label>Type *</label>
+						<select bind:value={flagForm.type}>
+							<option value="repair">Repair</option>
+							<option value="service">Service</option>
+							<option value="calibration">Calibration</option>
+							<option value="inspection">Inspection</option>
+						</select>
+					</div>
+					<div class="full"><label>Description</label><input bind:value={flagForm.description} /></div>
+					<div><label>Reported By</label><input bind:value={flagForm.createdBy} /></div>
+				</div>
+				<button type="submit" style="margin-top:12px" class="btn-primary">Create Flag</button>
+			</form>
 		</div>
 	{/if}
 
@@ -275,6 +338,9 @@
 				on {new Date(openCheckout().checkedOutAt).toLocaleString()}
 			</p>
 		{:else}
+			{#each tool?.maintenanceFlags ?? [] as f}
+				<p style="margin:0 0 6px 0;font-size:11px;font-weight:600;text-transform:uppercase;color:#fff;background:var(--orange);display:inline-block;padding:2px 8px;border-radius:4px">Unresolved {f.type} flag</p>
+			{/each}
 			<form onsubmit={(e) => { e.preventDefault(); doCheckout(); }}>
 				<div class="form-grid">
 					<div class="full"><label>Checked Out By *</label><input bind:value={checkoutForm.checkedOutBy} required /></div>
@@ -341,6 +407,14 @@
 						<option value="service">Service</option>
 						<option value="calibration">Calibration</option>
 						<option value="inspection">Inspection</option>
+					</select>
+				</div>
+				<div><label>Flag</label>
+					<select bind:value={maintForm.flagId}>
+						<option value="">-- None --</option>
+						{#each (tool?.maintenanceFlags ?? []) as f}
+							<option value={f.id}>{f.type}{f.description ? `: ${f.description}` : ''}</option>
+						{/each}
 					</select>
 				</div>
 				<div><label>Date *</label><input type="date" bind:value={maintForm.date} required /></div>

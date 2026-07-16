@@ -51,6 +51,7 @@ Scans a barcode/QR code value or free-text search and returns the **first matchi
 | unit | string or null | Unit of measure |
 | category | string or null | Category name |
 | imageUrl | string or null | Image URL |
+| weightPerUnit | number or null | Weight in grams per unit |
 
 **Tool match (`type: "tool"`):**
 
@@ -67,7 +68,10 @@ Scans a barcode/QR code value or free-text search and returns the **first matchi
     "imageUrl": "https://example.com/saw.jpg",
     "checkedOut": true,
     "checkedOutBy": "John D",
-    "checkedOutAt": "2026-07-09T18:00:00.000Z"
+    "checkedOutAt": "2026-07-09T18:00:00.000Z",
+    "maintenanceFlags": [
+      { "id": 1, "type": "repair", "description": "Blade wobble", "createdAt": "..." }
+    ]
   }
 }
 ```
@@ -84,6 +88,7 @@ Scans a barcode/QR code value or free-text search and returns the **first matchi
 | checkedOut | boolean | Whether the tool is currently checked out |
 | checkedOutBy | string or null | Name of who checked it out (null if available) |
 | checkedOutAt | ISO datetime or null | When it was checked out (null if available) |
+| maintenanceFlags | array | Unresolved maintenance flags for this tool |
 
 **Error response (404):**
 
@@ -190,13 +195,31 @@ Returns the latest activity across items (transactions), tools (checkouts/checki
     "summary": "repair on SAW-001 — Dewalt Miter Saw: Replaced blade",
     "link": "/tools/1",
     "itemRef": "SAW-001"
+  },
+  {
+    "type": "flag_created",
+    "subType": "repair",
+    "id": 1,
+    "date": "2026-07-10T14:00:00.000Z",
+    "summary": "Flag repair on SAW-001 — Dewalt Miter Saw: Blade wobble",
+    "link": "/tools/maintenance-flags?highlight=1",
+    "itemRef": "SAW-001"
+  },
+  {
+    "type": "flag_resolved",
+    "subType": "repair",
+    "id": 1,
+    "date": "2026-07-10T15:00:00.000Z",
+    "summary": "Flag repair resolved on SAW-001 — Dewalt Miter Saw",
+    "link": "/tools/maintenance-flags?highlight=1",
+    "itemRef": "SAW-001"
   }
 ]
 ```
 
 **Notes:**
 - `direction` is `"in"` or `"out"` for item transactions, omitted for tool events.
-- `subType` is the maintenance type string (`repair`, `service`, `calibration`, `inspection`) for maintenance events.
+- `subType` is the maintenance type string (`repair`, `service`, `calibration`, `inspection`) for maintenance events, or the flag type for flag events.
 
 ---
 
@@ -718,6 +741,8 @@ Required fields: `date`, `quantityInOut`. Optional: `jobNumber`, `unitPrice`, `t
 
 If `unitPrice` is omitted, it defaults to the item's current `unitPrice`. If `totalCost` is omitted, it is auto-calculated as `|quantityInOut| × unitPrice`.
 
+**Validation:** Out transactions (`quantityInOut < 0`) are rejected with a 400 error if the item's `onHand` would go below zero. The error message specifies the requested quantity and current on-hand count.
+
 **Side effects:** Updates the item's `onHand` (incremented by `quantityInOut`), sets `lastQtyInOut` and `lastJobNumber`. If `unitPrice` is provided, the item's `unitPrice` is also updated and the prior value is stored on the transaction for rollback on delete.
 
 #### `DELETE /items/transactions/:transactionId`
@@ -754,7 +779,7 @@ Returns all item transactions across all items with optional filters. Used for t
   {
     "id": 1,
     "itemId": 1,
-    "item": { "id": 1, "itemNumber": "6-32x1/2-PH-SS", "description": "6-32 x 1/2 Panhead Phillips S.S" },
+    "item": { "id": 1, "itemNumber": "6-32x1/2-PH-SS", "description": "6-32 x 1/2 Panhead Phillips S.S", "unitPrice": 0.14, "analysisCode": "A12" },
     "jobNumber": "JOB-456",
     "date": "2026-07-09T00:00:00.000Z",
     "quantityInOut": -5,
@@ -1042,6 +1067,18 @@ Tool detail with all checkouts (including closed ones) and all maintenance logs 
       "createdAt": "..."
     }
   ],
+  "maintenanceFlags": [
+    {
+      "id": 1,
+      "toolId": 1,
+      "type": "repair",
+      "description": "Blade wobble",
+      "createdBy": "John D",
+      "resolvedAt": null,
+      "resolvedBy": null,
+      "createdAt": "..."
+    }
+  ],
   "createdAt": "...",
   "updatedAt": "..."
 }
@@ -1197,6 +1234,83 @@ Returns all checkout records for a tool, ordered by `checkedOutAt` descending.
 ]
 ```
 
+### Maintenance Flags
+
+Flags are lightweight markers that a tool needs maintenance. They are separate from maintenance logs — a flag is created to note an issue, and optionally linked to a maintenance log (via `flagId`) which auto-resolves the flag.
+
+**ToolMaintenanceFlag fields:**
+
+| Field | Type | Notes |
+|-------|------|-------|
+| id | int | Primary key |
+| toolId | int | FK to Tool |
+| type | string | `repair`, `service`, `calibration`, or `inspection` |
+| description | string or null | Details about the issue |
+| createdBy | string or null | Who reported the issue |
+| resolvedAt | datetime or null | Null until resolved |
+| resolvedBy | string or null | Who resolved it |
+| createdAt | datetime | Auto-set |
+
+#### `GET /tools/maintenance-flags`
+
+List all maintenance flags, with optional filter for only unresolved.
+
+**Query params**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| unresolved | string | `"true"` to return only unresolved flags |
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "toolId": 1,
+    "type": "repair",
+    "description": "Blade wobble",
+    "createdBy": "John D",
+    "resolvedAt": null,
+    "resolvedBy": null,
+    "createdAt": "...",
+    "tool": { "id": 1, "toolNumber": "SAW-001", "name": "Dewalt Miter Saw" }
+  }
+]
+```
+
+#### `POST /tools/:id/maintenance-flags`
+
+Create a flag on a tool.
+
+```json
+{
+  "type": "repair",
+  "description": "Blade wobble",
+  "createdBy": "John D"
+}
+```
+
+Required: `type`. Optional: `description`, `createdBy`.
+
+#### `POST /tools/maintenance-flags/:flagId/resolve`
+
+Resolve a flag manually (without creating a maintenance log).
+
+```json
+{ "resolvedBy": "Jane S" }
+```
+
+Sets `resolvedAt` and `resolvedBy` on the flag.
+
+#### `DELETE /tools/maintenance-flags/:flagId`
+
+Permanently deletes a flag.
+
+#### Auto-resolution via Maintenance Log
+
+When a maintenance log is created with a `flagId`, the backend automatically resolves the corresponding flag by setting `resolvedAt` and `resolvedBy` (falls back to `"system"` if `performedBy` is not provided). See [POST /tools/:id/maintenance](#post-toolsidmaintenance).
+
 ### Maintenance
 
 #### `GET /tools/maintenance-search`
@@ -1241,11 +1355,12 @@ Record a maintenance event.
   "description": "Replaced blade",
   "performedBy": "Jane S",
   "cost": 45.00,
-  "notes": ""
+  "notes": "",
+  "flagId": 1
 }
 ```
 
-Required: `type` (one of: `repair`, `service`, `calibration`, `inspection`), `date` (ISO date string). Optional: `description`, `performedBy`, `cost` (number), `notes`.
+Required: `type` (one of: `repair`, `service`, `calibration`, `inspection`), `date` (ISO date string). Optional: `description`, `performedBy`, `cost` (number), `notes`, `flagId` (int — links to a `ToolMaintenanceFlag` and auto-resolves it).
 
 #### `DELETE /tools/maintenance/:maintenanceId`
 
@@ -1359,18 +1474,32 @@ Returns maintenance records only, across all tools. Used for filtered maintenanc
 
 Stock takes are physical inventory counts. They compare the system quantity (`systemQty`) against the physically counted quantity (`physicalQty`) and can produce adjustment transactions.
 
+**StockTake model fields:**
+
+| Field | Type | Notes |
+|-------|------|-------|
+| id | int | Primary key |
+| date | datetime | Date of the stock take |
+| notes | string or null | Optional notes |
+| status | string | `draft`, `completed`, or `cancelled` |
+| deletedAt | datetime or null | Soft-delete timestamp (null if active) |
+| createdAt | datetime | Auto-set |
+| updatedAt | datetime | Auto-set |
+
 **Workflow:**
 1. `POST /stock-takes` — creates a draft stock take, pre-populating every non-removed item with its current `onHand` as `systemQty`.
 2. `PATCH /stock-takes/:id/items/:itemId` — record the physical count for an item.
 3. `POST /stock-takes/:id/reconcile` — apply adjustments (creates transactions, updates `onHand`, marks as completed).
 4. Optionally `PATCH /stock-takes/:id` — cancel by setting `status: "cancelled"`.
-5. `DELETE /stock-takes/:id` — if completed, reverses all adjustments; otherwise just deletes.
+5. `DELETE /stock-takes/:id` — soft-deletes (sets `deletedAt`). For completed stock takes, reverses all adjustments first.
+6. `POST /stock-takes/:id/restore` — restores a deleted stock take. For completed stock takes, re-applies the original adjustments.
+7. `DELETE /stock-takes/:id/permanent` — hard deletes from database.
 
 **StockTake status values:** `draft` (initial), `completed` (after reconcile), `cancelled`.
 
 ### `GET /stock-takes`
 
-List all stock takes with item count.
+List all **active** (non-deleted) stock takes with item count.
 
 ```json
 [
@@ -1456,13 +1585,41 @@ Update stock take notes or status.
 
 Allowed status transitions: any status can be set manually. Valid statuses: `draft`, `completed`, `cancelled`.
 
+### `GET /stock-takes/deleted`
+
+Returns all soft-deleted stock takes, ordered by `deletedAt` descending.
+
 ### `DELETE /stock-takes/:id`
 
-Delete a stock take.
+Soft-deletes a stock take (sets `deletedAt`).
 
 **Behavior varies by status:**
-- **Draft / Cancelled:** Simply deletes the stock take and its items (cascade).
-- **Completed:** For each counted item with a variance, creates a **reversal transaction** (`quantityInOut: -variance` with job number `STOCKTAKE-{id}-REVERSED`), updates the item's `onHand` back to the system quantity, then deletes the stock take.
+- **Draft / Cancelled:** Simply sets `deletedAt`.
+- **Completed:** For each counted item with a variance, creates a **reversal transaction** (`quantityInOut: -variance` with job number `STOCKTAKE-{id}-REVERSED`), updates the item's `onHand` back to the system quantity, then sets `deletedAt`.
+
+The stock take still appears in `GET /stock-takes/deleted` and can be restored.
+
+**Response:**
+```json
+{ "message": "Stock take deleted" }
+```
+
+### `POST /stock-takes/:id/restore`
+
+Restores a soft-deleted stock take (clears `deletedAt`).
+
+**Behavior varies by status:**
+- **Draft / Cancelled:** Simply clears `deletedAt`.
+- **Completed:** For each counted item with a variance, creates a **restoration transaction** (`quantityInOut: variance` with job number `STOCKTAKE-{id}-RESTORED`) to re-apply the original adjustment, then clears `deletedAt`.
+
+**Response:**
+```json
+{ "message": "Stock take restored" }
+```
+
+### `DELETE /stock-takes/:id/permanent`
+
+Permanently deletes the stock take from the database. Cannot be undone.
 
 ### Counting Items
 
@@ -1529,10 +1686,13 @@ StockTake (1) ──< StockTakeItem (N)
 
 Tool (1) ──< ToolCheckout (N)
 Tool (1) ──< ToolMaintenanceLog (N)
+Tool (1) ──< ToolMaintenanceFlag (N)
+ToolMaintenanceFlag (1) ─? ToolMaintenanceLog (1)  (optional, via flagId)
 ```
 
 **Key business rules:**
 - A tool can only have one open checkout at a time (checkedInAt is null).
 - Item `onHand` is updated automatically by transactions and stock take adjustments.
-- Stock take delete + reconcile are transactional — all-or-nothing via Prisma `$transaction`.
+- Out transactions that would make an item's `onHand` negative are rejected.
+- Stock take delete + reconcile + restore are transactional — all-or-nothing via Prisma `$transaction`.
 - File tokens for import expire after 10 minutes.

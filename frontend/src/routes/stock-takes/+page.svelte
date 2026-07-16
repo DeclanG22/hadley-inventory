@@ -45,7 +45,7 @@
 				<tbody>
 					{#each list as st}
 						<tr onclick={() => goto(`/stock-takes/${st.id}`)}>
-							<td><a href="/stock-takes/{st.id}" onclick={(e) => e.stopPropagation()}>{new Date(st.date).toLocaleDateString()}</a></td>
+							<td><a href="/stock-takes/{st.id}" onclick={(e) => e.stopPropagation()}>{new Date(st.createdAt).toLocaleDateString()}</a></td>
 							<td><span class="badge badge-{st.status}">{st.status}</span></td>
 							<td>{st._count.items}</td>
 							<td>{st.notes ?? '-'}</td>

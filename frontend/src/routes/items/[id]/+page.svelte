@@ -16,7 +16,9 @@
 
 	let form = $state<any>({});
 
-	let txnForm = $state({ jobNumber: '', date: new Date().toISOString().slice(0,10), quantityIn: '', quantityOut: '', unitPrice: '', totalCost: '', notes: '' });
+	let txnForm = $state({ jobNumber: '', date: new Date().toISOString().slice(0,10), quantity: 1, unitPrice: '', totalCost: '', notes: '' });
+	let txnDirection = $state<'in' | 'out'>('out');
+	let txnWeight = $state('');
 
 	let filterDateFrom = $state('');
 	let filterDateTo = $state('');
@@ -135,19 +137,33 @@
 		} catch (e: any) { addToast(e.message, 'error'); }
 	}
 
+	function onTxnQtyChange() {
+		const wpu = item?.weightPerUnit ? Number(item.weightPerUnit) : null;
+		if (wpu && txnForm.quantity > 0) {
+			txnWeight = String(Math.round(txnForm.quantity * wpu * 100) / 100);
+		}
+	}
+
+	function onTxnWeightChange() {
+		const wpu = item?.weightPerUnit ? Number(item.weightPerUnit) : null;
+		if (wpu && wpu > 0 && parseFloat(txnWeight || '0') > 0) {
+			txnForm.quantity = Math.max(1, Math.floor(parseFloat(txnWeight) / wpu));
+		}
+	}
+
 	async function addTxn() {
 		try {
 			const id = Number(params.id);
-			const qtyIn = Number(txnForm.quantityIn) || 0;
-			const qtyOut = Number(txnForm.quantityOut) || 0;
-			if (qtyIn === 0 && qtyOut === 0) return;
-			const data: any = { date: txnForm.date, quantityInOut: qtyIn - qtyOut };
+			const qty = txnForm.quantity || 1;
+			const data: any = { date: txnForm.date, quantityInOut: txnDirection === 'out' ? -qty : qty };
 			if (txnForm.jobNumber) data.jobNumber = txnForm.jobNumber;
 			if (txnForm.unitPrice) data.unitPrice = Number(txnForm.unitPrice);
 			if (txnForm.totalCost) data.totalCost = Number(txnForm.totalCost);
 			if (txnForm.notes) data.notes = txnForm.notes;
 			await items.transactions.create(id, data);
-			txnForm = { jobNumber: '', date: new Date().toISOString().slice(0,10), quantityIn: '', quantityOut: '', unitPrice: '', totalCost: '', notes: '' };
+			txnForm = { jobNumber: '', date: new Date().toISOString().slice(0,10), quantity: 1, unitPrice: '', totalCost: '', notes: '' };
+			txnDirection = 'out';
+			txnWeight = '';
 			items.get(id).then(i => item = i);
 			items.transactions.list(id).then(t => txns = t);
 			addToast('Transaction added', 'success');
@@ -240,13 +256,82 @@
 				<img src={item.imageUrl} alt="" class="detail-image" />
 			{/if}
 			<div class="detail-grid">
-				<span>Category:</span><span>{item.category?.name ?? '-'}{item.subCategory ? ` / ${item.subCategory.name}` : ''}</span>
-				<span>Head Type:</span><span>{item.headType ?? '-'}</span>
-				<span>Unit:</span><span>{item.unit ?? '-'}</span>
-				<span>Unit Price:</span><span>{item.unitPrice ? `$${Number(item.unitPrice).toFixed(2)}` : '-'}</span>
-				<span>Min Stock:</span><span>{item.minStock ?? '-'}</span>
-				<span>Vendor:</span><span>{item.vendor?.name ?? '-'}</span>
-			<span>Location:</span><span>{item.location?.name ?? '-'}</span>
+			<span>
+			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none" />
+                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 3h6m-3-3v6" />
+         			</svg>
+				Category:
+</span>
+<span>{item.category?.name ?? '-'}{item.subCategory ? ` / ${item.subCategory.name}` : ''}</span>
+
+<span>
+    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+	<path d="M0 0h24v24H0z" fill="none" />
+	<path fill="currentColor" d="M12 7.5a4.5 4.5 0 1 0 0 9a4.5 4.5 0 0 0 0-9M8.5 12a3.5 3.5 0 1 1 7 0a3.5 3.5 0 0 1-7 0" />
+	<path fill="currentColor" d="M10.087 3.5c-.978 0-1.583 0-2.134.174a3.7 3.7 0 0 0-1.318.74c-.432.38-.737.894-1.225 1.717L3.494 9.36c-.487.821-.792 1.335-.913 1.892a3.5 3.5 0 0 0 0 1.494c.121.557.426 1.07.913 1.892l1.916 3.23c.488.823.793 1.337 1.225 1.716c.382.335.831.587 1.318.741c.551.174 1.156.174 2.134.174h3.826c.978 0 1.583 0 2.134-.174a3.7 3.7 0 0 0 1.318-.74c.432-.38.737-.894 1.225-1.717l1.916-3.23c.487-.821.792-1.335.913-1.892a3.5 3.5 0 0 0 0-1.494c-.121-.557-.426-1.07-.913-1.891L18.59 6.13c-.488-.823-.793-1.337-1.225-1.716a3.7 3.7 0 0 0-1.318-.741C15.496 3.5 14.89 3.5 13.913 3.5zM8.255 4.627c.385-.121.825-.127 1.922-.127h3.646c1.097 0 1.537.006 1.922.127c.356.113.684.297.96.54c.299.261.521.625 1.07 1.551l1.823 3.074c.55.927.762 1.295.844 1.674a2.5 2.5 0 0 1 0 1.068c-.082.379-.294.747-.844 1.674l-1.822 3.074c-.55.926-.772 1.29-1.07 1.551a2.7 2.7 0 0 1-.96.54c-.386.121-.826.127-1.923.127h-3.646c-1.097 0-1.537-.006-1.922-.127a2.7 2.7 0 0 1-.96-.54c-.299-.261-.521-.625-1.07-1.551l-1.823-3.074c-.55-.927-.762-1.295-.844-1.674a2.5 2.5 0 0 1 0-1.068c.082-.379.294-.747.844-1.674l1.822-3.074c.55-.926.772-1.29 1.07-1.551c.278-.243.605-.427.96-.54" />
+    </svg>
+
+				Head Type:
+</span>
+<span>{item.headType ?? '-'}</span>
+
+<span>
+    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 48 48">
+	<path d="M0 0h48v48H0z" fill="none" />
+	<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4">
+		<path d="M9 4h30v40L24 33.429L9 44z" />
+		<path d="M9 4h30v12H9z" />
+	</g>
+    </svg>
+
+				Unit:
+</span>
+<span>{item.unit ?? '-'}</span>
+
+<span>
+    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 512 512">
+	<path d="M0 0h512v512H0z" fill="none" />
+	<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M435.25 48h-122.9a14.46 14.46 0 0 0-10.2 4.2L56.45 297.9a28.85 28.85 0 0 0 0 40.7l117 117a28.85 28.85 0 0 0 40.7 0L459.75 210a14.46 14.46 0 0 0 4.2-10.2v-123a28.66 28.66 0 0 0-28.7-28.8" />
+	<path fill="currentColor" d="M384 160a32 32 0 1 1 32-32a32 32 0 0 1-32 32" />
+    </svg>
+
+
+
+				Unit Price:
+</span>
+<span>{item.unitPrice ? `$${Number(item.unitPrice).toFixed(2)}` : '-'}</span>
+
+<span>
+ 			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+                <path d="M0 0h24v24H0z" fill="none" />
+                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5">
+                   	<path stroke-linejoin="round" d="M12 22c-.818 0-1.6-.33-3.163-.988C4.946 19.373 3 18.554 3 17.175V7.542M12 22c.818 0 1.6-.33 3.163-.988C19.054 19.373 21 18.554 21 17.175V7.542M12 22v-9.97m9-4.488c0 .613-.802 1-2.405 1.773l-2.92 1.41c-1.804.87-2.705 1.304-3.675 1.304m9-4.487c0-.612-.802-.999-2.405-1.772L17 5M3 7.542c0 .613.802 1 2.405 1.773l2.92 1.41c1.804.87 2.705 1.304 3.675 1.304M3 7.542c0-.612.802-.999 2.405-1.772L7 5m-1 8.026l2 .997" />
+   					<path d="m10 2l2 2m0 0l2 2m-2-2l-2 2m2-2l2-2" />
+                </g>
+ 			</svg>
+				Min Stock:
+</span>
+<span>{item.minStock ?? '-'}</span>
+
+<span>
+    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+       	<path d="M0 0h24v24H0z" fill="none" />
+       	<path fill="currentColor" d="M18 15h-2v2h2m0-6h-2v2h2m2 6h-8v-2h2v-2h-2v-2h2v-2h-2V9h8M10 7H8V5h2m0 6H8V9h2m0 6H8v-2h2m0 6H8v-2h2M6 7H4V5h2m0 6H4V9h2m0 6H4v-2h2m0 6H4v-2h2m6-10V3H2v18h20V7z" />
+    </svg>
+				Vendor:
+</span>
+<span>{item.vendor?.name ?? '-'}</span>
+
+<span>
+    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+       	<path d="M0 0h24v24H0z" fill="none" />
+       	<path fill="currentColor" d="M16 10c0-2.21-1.79-4-4-4s-4 1.79-4 4s1.79 4 4 4s4-1.79 4-4m-6 0c0-1.1.9-2 2-2s2 .9 2 2s-.9 2-2 2s-2-.9-2-2" />
+       	<path fill="currentColor" d="M11.42 21.81c.17.12.38.19.58.19s.41-.06.58-.19c.3-.22 7.45-5.37 7.42-11.82c0-4.41-3.59-8-8-8s-8 3.59-8 8c-.03 6.44 7.12 11.6 7.42 11.82M12 4c3.31 0 6 2.69 6 6c.02 4.44-4.39 8.43-6 9.74c-1.61-1.31-6.02-5.29-6-9.74c0-3.31 2.69-6 6-6" />
+    </svg>
+				Location:
+</span>
+<span>{item.location?.name ?? '-'}</span>
 			</div>
 		</div>
 	{/if}
@@ -262,8 +347,19 @@
 			<div class="form-grid">
 				<div><label>Date *</label><input type="date" bind:value={txnForm.date} required /></div>
 				<div><label>Job Number</label><input bind:value={txnForm.jobNumber} /></div>
-				<div><label>Qty In</label><input type="number" bind:value={txnForm.quantityIn} /></div>
-				<div><label>Qty Out</label><input type="number" bind:value={txnForm.quantityOut} /></div>
+				<div>
+					<label>Quantity</label>
+					<div style="display:flex;gap:4px;align-items:center">
+						<div class="segmented2">
+							<button type="button" class="segment2" class:active={txnDirection === 'out'} onclick={() => txnDirection = 'out'}>Out</button>
+							<button type="button" class="segment2" class:active={txnDirection === 'in'} onclick={() => txnDirection = 'in'}>In</button>
+						</div>
+						<input type="number" bind:value={txnForm.quantity} min="1" oninput={onTxnQtyChange} class="txn-qty-input" />
+					</div>
+				</div>
+				{#if item?.weightPerUnit}
+					<div><label>Weight (g)</label><input type="number" step="0.01" min="0" bind:value={txnWeight} oninput={onTxnWeightChange} /></div>
+				{/if}
 				<div><label>Unit Price</label><input type="number" step="0.01" bind:value={txnForm.unitPrice} /></div>
 				<div><label>Total Cost</label><input type="number" step="0.01" bind:value={txnForm.totalCost} /></div>
 				<div class="full"><label>Notes</label><input bind:value={txnForm.notes} /></div>
@@ -319,3 +415,45 @@
 		{/if}
 	</div>
 {/if}
+
+<style>
+	.segmented2 {
+		display: inline-flex;
+		align-items: center;
+		height: 30px;
+		box-sizing: border-box;
+		padding: 2px;
+		background: var(--bg-primary);
+		border: 1px solid var(--border-color);
+		border-radius: 10px;
+	}
+	.segment2 {
+		padding: 0 12px;
+		font-weight: 400;
+		height: 23px;
+		border: none;
+		border-radius: 9px;
+		background: transparent;
+		border: 1px solid transparent;
+		color: var(--text-secondary);
+		cursor: pointer;
+		font-size: 11.5px;
+		opacity: 0.7;
+		transform: scale(0.96);
+		transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+	}
+	.segment2.active {
+		background: var(--bg-component);
+		border: 1px solid color-mix(in srgb, var(--border-color) 40%, transparent);
+		color: var(--text-primary);
+		opacity: 1;
+		transform: scale(1);
+	}
+	.segment2:hover {
+		opacity: 0.9;
+		transform: scale(0.98);
+	}
+	.txn-qty-input {
+		height: 30px;
+	}
+</style>

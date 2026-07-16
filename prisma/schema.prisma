@@ -128,6 +128,7 @@ model StockTake {
   date      DateTime
   notes     String?
   status    String         @default("draft") // draft, completed, cancelled
+  deletedAt DateTime?      @map("deleted_at")
 
   items StockTakeItem[]
 
@@ -184,8 +185,9 @@ model Tool {
   locationId   Int?           @map("location_id")
   location     Location?      @relation(fields: [locationId], references: [id])
 
-  checkouts   ToolCheckout[]
-  maintenance ToolMaintenanceLog[]
+  checkouts        ToolCheckout[]
+  maintenance      ToolMaintenanceLog[]
+  maintenanceFlags ToolMaintenanceFlag[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -211,6 +213,23 @@ model ToolCheckout {
   @@map("tool_checkouts")
 }
 
+model ToolMaintenanceFlag {
+  id          Int       @id @default(autoincrement())
+  toolId      Int       @map("tool_id")
+  tool        Tool      @relation(fields: [toolId], references: [id])
+  type        String
+  description String?
+  createdBy   String?   @map("created_by")
+  resolvedAt  DateTime? @map("resolved_at")
+  resolvedBy  String?   @map("resolved_by")
+
+  maintenanceLog ToolMaintenanceLog? @relation("FlagResolution")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("tool_maintenance_flags")
+}
+
 model ToolMaintenanceLog {
   id          Int      @id @default(autoincrement())
   toolId      Int      @map("tool_id")
@@ -221,6 +240,9 @@ model ToolMaintenanceLog {
   performedBy String?  @map("performed_by")
   cost        Decimal? @db.Decimal(10, 2)
   notes       String?
+
+  flagId Int?    @unique         @map("flag_id")
+  flag   ToolMaintenanceFlag?    @relation("FlagResolution", fields: [flagId], references: [id])
 
   createdAt DateTime @default(now()) @map("created_at")
 

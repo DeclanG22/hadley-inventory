@@ -44,13 +44,13 @@
 	}
 
 	function exportRecords() {
-		const rows = [['Date','Item #','Description','Job #','Qty In/Out','Unit Price','Total Cost','Notes']];
+		const rows = [['Date','Item #','Description','Analysis Code','Job #','Qty In/Out','Unit Price','Total Cost','Notes']];
 		for (const t of filtered) {
 			const d = new Date(t.date).toLocaleDateString();
 			const qty = t.quantityInOut;
 			const price = t.unitPrice ? Number(t.unitPrice).toFixed(2) : '';
 			const cost = t.totalCost ? Number(t.totalCost).toFixed(2) : '';
-			rows.push([d, t.item.itemNumber, t.item.description, t.jobNumber ?? '', String(qty), price, cost, t.notes ?? '']);
+			rows.push([d, t.item.itemNumber, t.item.description, t.item.analysisCode ?? '', t.jobNumber ?? '', String(qty), price, cost, t.notes ?? '']);
 		}
 		const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
 		const blob = new Blob([csv], { type: 'text/csv' });
@@ -126,6 +126,7 @@
 						<th>Date</th>
 						<th>Item #</th>
 						<th>Description</th>
+						<th>Analysis Code</th>
 						<th>Job #</th>
 						<th>Qty</th>
 						<th>In/Out</th>
@@ -140,6 +141,7 @@
 							<td style="white-space:nowrap">{new Date(t.date).toLocaleDateString()}</td>
 							<td><a href="/items/{t.item.id}" onclick={(e) => e.stopPropagation()}>{t.item.itemNumber}</a></td>
 							<td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{t.item.description}</td>
+							<td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{t.item.analysisCode ?? '-'}</td>
 							<td>{t.jobNumber ?? '-'}</td>
 							<td>{Math.abs(t.quantityInOut)}</td>
 							<td>

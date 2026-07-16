@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
@@ -123,14 +123,21 @@ export class ItemsService {
     });
   }
 
-  permanentRemove(id: number) {
+  async permanentRemove(id: number) {
+    const count = await this.prisma.itemTransaction.count({ where: { itemId: id } });
+    if (count > 0) {
+      throw new BadRequestException(`Cannot permanently delete this item — it has ${count} transaction(s). Soft-delete it instead.`);
+    }
     return this.prisma.item.delete({ where: { id } });
   }
 
   // Transactions
 
   async createTransaction(itemId: number, dto: CreateTransactionDto) {
-    const item = await this.prisma.item.findUniqueOrThrow({ where: { id: itemId }, select: { unitPrice: true } });
+    const item = await this.prisma.item.findUniqueOrThrow({ where: { id: itemId }, select: { unitPrice: true, onHand: true } });
+    if (dto.quantityInOut < 0 && item.onHand + dto.quantityInOut < 0) {
+      throw new BadRequestException(`Cannot remove ${Math.abs(dto.quantityInOut)} units — only ${item.onHand} on hand`);
+    }
     const unitPrice = dto.unitPrice ?? item.unitPrice ?? undefined;
     const qtyAbs = Math.abs(dto.quantityInOut);
     const totalCost = dto.totalCost ?? (unitPrice ? Number(unitPrice) * qtyAbs : undefined);
@@ -181,7 +188,7 @@ export class ItemsService {
       where,
       orderBy: { date: 'desc' },
       include: {
-        item: { select: { id: true, itemNumber: true, description: true, unitPrice: true } },
+        item: { select: { id: true, itemNumber: true, description: true, unitPrice: true, analysisCode: true } },
       },
     });
   }

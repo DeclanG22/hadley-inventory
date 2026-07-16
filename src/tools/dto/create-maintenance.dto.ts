@@ -23,6 +23,11 @@ export class CreateMaintenanceDto {
   cost?: number;
 
   @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  flagId?: number;
+
+  @IsOptional()
   @IsString()
   notes?: string;
 }

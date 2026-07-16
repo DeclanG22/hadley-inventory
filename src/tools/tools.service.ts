@@ -118,6 +118,10 @@ export class ToolsService {
         maintenance: {
           orderBy: { date: 'desc' },
         },
+        maintenanceFlags: {
+          where: { resolvedAt: null },
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
   }
@@ -161,7 +165,19 @@ export class ToolsService {
     });
   }
 
-  permanentRemove(id: number) {
+  async permanentRemove(id: number) {
+    const [checkoutCount, maintCount, flagCount] = await Promise.all([
+      this.prisma.toolCheckout.count({ where: { toolId: id } }),
+      this.prisma.toolMaintenanceLog.count({ where: { toolId: id } }),
+      this.prisma.toolMaintenanceFlag.count({ where: { toolId: id } }),
+    ]);
+    if (checkoutCount + maintCount + flagCount > 0) {
+      const parts: string[] = [];
+      if (checkoutCount > 0) parts.push(`${checkoutCount} checkout(s)`);
+      if (maintCount > 0) parts.push(`${maintCount} maintenance record(s)`);
+      if (flagCount > 0) parts.push(`${flagCount} flag(s)`);
+      throw new BadRequestException(`Cannot permanently delete this tool — it has ${parts.join(', ')}. Soft-delete it instead.`);
+    }
     return this.prisma.tool.delete({ where: { id } });
   }
 
@@ -329,19 +345,30 @@ export class ToolsService {
 
   // Maintenance
 
-  createMaintenance(id: number, dto: CreateMaintenanceDto) {
-    return this.prisma.toolMaintenanceLog.create({
-      data: {
-        toolId: id,
-        type: dto.type,
-        description: dto.description,
-        date: new Date(dto.date),
-        performedBy: dto.performedBy,
-        cost: dto.cost,
-        notes: dto.notes,
-      },
+  async createMaintenance(id: number, dto: CreateMaintenanceDto) {
+    const data: any = {
+      toolId: id,
+      type: dto.type,
+      description: dto.description,
+      date: new Date(dto.date),
+      performedBy: dto.performedBy,
+      cost: dto.cost,
+      notes: dto.notes,
+    };
+    if (dto.flagId) {
+      data.flagId = dto.flagId;
+    }
+    const log = await this.prisma.toolMaintenanceLog.create({
+      data,
       include: { tool: true },
     });
+    if (dto.flagId) {
+      await this.prisma.toolMaintenanceFlag.update({
+        where: { id: dto.flagId },
+        data: { resolvedAt: new Date(), resolvedBy: dto.performedBy ?? 'system' },
+      });
+    }
+    return log;
   }
 
   findMaintenance(id: number) {
@@ -349,6 +376,48 @@ export class ToolsService {
       where: { toolId: id },
       orderBy: { date: 'desc' },
     });
+  }
+
+  // Maintenance Flags
+
+  createFlag(toolId: number, dto: { type: string; description?: string; createdBy?: string }) {
+    return this.prisma.toolMaintenanceFlag.create({
+      data: {
+        toolId,
+        type: dto.type,
+        description: dto.description,
+        createdBy: dto.createdBy,
+      },
+      include: { tool: { select: { id: true, toolNumber: true, name: true } } },
+    });
+  }
+
+  findAllFlags(onlyUnresolved = false) {
+    const where: any = {};
+    if (onlyUnresolved) where.resolvedAt = null;
+    return this.prisma.toolMaintenanceFlag.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        tool: { select: { id: true, toolNumber: true, name: true } },
+      },
+    });
+  }
+
+  async resolveFlag(flagId: number, resolvedBy: string) {
+    const flag = await this.prisma.toolMaintenanceFlag.findUnique({ where: { id: flagId } });
+    if (!flag) throw new NotFoundException();
+    return this.prisma.toolMaintenanceFlag.update({
+      where: { id: flagId },
+      data: { resolvedAt: new Date(), resolvedBy },
+      include: { tool: { select: { id: true, toolNumber: true, name: true } } },
+    });
+  }
+
+  async removeFlag(flagId: number) {
+    const flag = await this.prisma.toolMaintenanceFlag.findUnique({ where: { id: flagId } });
+    if (!flag) throw new NotFoundException();
+    return this.prisma.toolMaintenanceFlag.delete({ where: { id: flagId } });
   }
 
   maintenanceSearch(q?: string) {

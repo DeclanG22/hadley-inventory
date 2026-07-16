@@ -40,31 +40,32 @@ export class LookupController {
           unit: item.unit,
           category: item.category?.name ?? null,
           imageUrl: item.imageUrl,
+          weightPerUnit: item.weightPerUnit ? Number(item.weightPerUnit) : null,
         },
       };
     }
 
+    const toolInclude = {
+      category: true,
+      checkouts: {
+        where: { checkedInAt: null },
+        take: 1,
+      },
+      maintenanceFlags: {
+        where: { resolvedAt: null },
+        select: { id: true, type: true, description: true, createdAt: true },
+      },
+    } as const;
+
     let tool = await this.prisma.tool.findFirst({
       where: { toolNumber: { equals: code, mode: 'insensitive' } },
-      include: {
-        category: true,
-        checkouts: {
-          where: { checkedInAt: null },
-          take: 1,
-        },
-      },
+      include: toolInclude,
     });
 
     if (!tool) {
       tool = await this.prisma.tool.findFirst({
         where: { name: { contains: code, mode: 'insensitive' } },
-        include: {
-          category: true,
-          checkouts: {
-            where: { checkedInAt: null },
-            take: 1,
-          },
-        },
+        include: toolInclude,
       });
     }
 
@@ -82,6 +83,7 @@ export class LookupController {
           checkedOut: tool.checkouts.length > 0,
           checkedOutBy: tool.checkouts[0]?.checkedOutBy ?? null,
           checkedOutAt: tool.checkouts[0]?.checkedOutAt ?? null,
+          maintenanceFlags: tool.maintenanceFlags,
         },
       };
     }

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { items, tools, vendors, locations, itemCategories, toolCategories } from '$lib/api';
+	import { items, tools, vendors, locations, itemCategories, toolCategories, stockTakes } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
 	import { confirm } from '$lib/confirmDialog.svelte';
 
@@ -10,6 +10,7 @@
 	let deletedItemCats = $state<any[]>([]);
 	let deletedToolCats = $state<any[]>([]);
 	let deletedSubCats = $state<any[]>([]);
+	let deletedStockTakes = $state<any[]>([]);
 	let loading = $state(true);
 
 	function load() {
@@ -22,6 +23,7 @@
 			itemCategories.deleted().then(d => deletedItemCats = d).catch(() => {}),
 			toolCategories.deleted().then(d => deletedToolCats = d).catch(() => {}),
 			itemCategories.subCategories.deleted().then(d => deletedSubCats = d).catch(() => {}),
+			stockTakes.deleted().then(d => deletedStockTakes = d).catch(() => {}),
 		]).finally(() => loading = false);
 	}
 	$effect(load);
@@ -56,6 +58,7 @@
 		{ label: 'Item Categories', data: deletedItemCats, api: itemCategories, name: (d: any) => d.name, sub: () => '' },
 		{ label: 'Item Sub-Categories', data: deletedSubCats, api: itemCategories.subCategories, name: (d: any) => `${d.name} (${d.itemCategory?.name ?? '?'})`, sub: () => '' },
 		{ label: 'Tool Categories', data: deletedToolCats, api: toolCategories, name: (d: any) => d.name, sub: () => '' },
+		{ label: 'Stock Takes', data: deletedStockTakes, api: stockTakes, name: (d: any) => `${new Date(d.date).toLocaleDateString()} (${d.status})`, sub: (d: any) => d.notes ?? '' },
 	].filter(s => s.data.length > 0));
 </script>
 

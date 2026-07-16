@@ -11,8 +11,8 @@
 	let debounce: any;
 	let inputEl: HTMLInputElement | undefined = $state();
 
-	let cache = $state<{ vendors: any[]; locations: any[]; itemCats: any[]; toolCats: any[]; stockTakes: any[] }>({
-		vendors: [], locations: [], itemCats: [], toolCats: [], stockTakes: [],
+	let cache = $state<{ vendors: any[]; locations: any[]; itemCats: any[]; toolCats: any[]; stockTakes: any[]; maintFlags: any[] }>({
+		vendors: [], locations: [], itemCats: [], toolCats: [], stockTakes: [], maintFlags: [],
 	});
 
 	$effect(() => {
@@ -25,13 +25,14 @@
 					itemCategories.list().then(l => cache.itemCats = l).catch(() => {}),
 					toolCategories.list().then(l => cache.toolCats = l).catch(() => {}),
 					stockTakes.list().then(l => cache.stockTakes = l).catch(() => {}),
+					tools.maintenanceFlags.list().then(l => cache.maintFlags = l).catch(() => {}),
 				]);
 			}
 		}
 	});
 
 	function onKeydown(e: KeyboardEvent) {
-		if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+		if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
 			e.preventDefault();
 			open = !open;
 			if (open) { query = ''; results = []; selectedIdx = 0; }
@@ -79,10 +80,15 @@
 		itemCats: ['category', 'categories', 'cat', 'item category'],
 		toolCats: ['tool category', 'tool categories'],
 		stockTakes: ['stock', 'stocktake', 'stocktakes', 'stock take', 'stock takes'],
+		maintFlags: ['flag', 'flags', 'maintenance'],
 	};
 
 	function showAllOf(lq: string, key: string): boolean {
 		return typeAll[key]?.some(k => lq === k || lq.startsWith(k)) ?? false;
+	}
+
+	function norm(s: string): string {
+		return s.replace(/\s+/g, ' ').trim().replace(/\s*([-./])\s*/g, '$1');
 	}
 
 	function doSearch(q: string) {
@@ -93,51 +99,71 @@
 		debounce = setTimeout(async () => {
 			selectedIdx = 0;
 			const lq = q.toLowerCase();
+			const nq = norm(lq);
 			const allItems = showAllOf(lq, 'items');
 			const allTools = showAllOf(lq, 'tools');
 
-			const [itemsRes, toolsRes, maintRes] = await Promise.all([
-				items.list(q, { limit: allItems ? 50 : 5 }).catch(() => null),
-				tools.list(q, { limit: allTools ? 50 : 5 }).catch(() => null),
-				tools.maintenanceSearch(q).catch(() => []),
-			]);
+			const queries = lq === nq ? [lq] : [lq, nq];
+			const res = await Promise.all(queries.flatMap(query => [
+				items.list(query, { limit: 200 }).catch(() => null),
+				tools.list(query, { limit: 200 }).catch(() => null),
+				tools.maintenanceSearch(query).catch(() => []),
+			]));
+			const seenItems = new Set<number>();
+			const seenTools = new Set<number>();
+			const seenMaint = new Set<number>();
 			const r: typeof results = [];
+
+			for (let i = 0; i < res.length; i += 3) {
+				const itemsRes = res[i] as any;
+				const toolsRes = res[i + 1] as any;
+				const maintRes = res[i + 2] as any[];
+				if (itemsRes) for (const it of itemsRes.data) {
+					if (seenItems.has(it.id)) continue;
+					seenItems.add(it.id);
+					r.push({ type: 'Item', label: it.itemNumber, sub: it.description, href: `/items/${it.id}` });
+				}
+				if (toolsRes) for (const t of toolsRes.data) {
+					if (seenTools.has(t.id)) continue;
+					seenTools.add(t.id);
+					const status = t.checkouts?.length > 0 ? 'Checked out' : 'Available';
+					r.push({ type: 'Tool', label: t.toolNumber, sub: `${t.name} — ${status}`, href: `/tools/${t.id}` });
+				}
+				for (const m of maintRes) {
+					if (seenMaint.has(m.id)) continue;
+					seenMaint.add(m.id);
+					r.push({ type: 'Maintenance', label: `${m.tool.toolNumber} — ${m.type}`, sub: m.description ?? '', href: `/tools/${m.tool.id}` });
+				}
+			}
 
 			if (showAllOf(lq, 'pages')) {
 				for (const p of pages) r.push({ type: 'Page', label: p.label, sub: p.sub, href: p.href });
 			} else {
-				for (const p of pages) if (p.label.toLowerCase().includes(lq) || p.sub.toLowerCase().includes(lq)) r.push({ type: 'Page', label: p.label, sub: p.sub, href: p.href });
+				for (const p of pages) if (norm(p.label.toLowerCase()).includes(nq) || norm(p.sub.toLowerCase()).includes(nq)) r.push({ type: 'Page', label: p.label, sub: p.sub, href: p.href });
 			}
-
-			if (itemsRes) for (const i of itemsRes.data) r.push({ type: 'Item', label: i.itemNumber, sub: i.description, href: `/items/${i.id}` });
-			if (toolsRes) for (const t of toolsRes.data) {
-				const status = t.checkouts?.length > 0 ? 'Checked out' : 'Available';
-				r.push({ type: 'Tool', label: t.toolNumber, sub: `${t.name} — ${status}`, href: `/tools/${t.id}` });
-			}
-			for (const m of (maintRes as any[])) r.push({ type: 'Maintenance', label: `${m.tool.toolNumber} — ${m.type}`, sub: m.description ?? '', href: `/tools/${m.tool.id}` });
 
 			if (showAllOf(lq, 'vendors')) {
 				for (const v of cache.vendors) r.push({ type: 'Vendor', label: v.name, sub: '', href: `/vendors/${v.id}` });
 			} else {
-				for (const v of cache.vendors) if (v.name.toLowerCase().includes(lq)) r.push({ type: 'Vendor', label: v.name, sub: '', href: `/vendors/${v.id}` });
+				for (const v of cache.vendors) if (norm(v.name.toLowerCase()).includes(nq)) r.push({ type: 'Vendor', label: v.name, sub: '', href: `/vendors/${v.id}` });
 			}
 
 			if (showAllOf(lq, 'locations')) {
 				for (const l of cache.locations) r.push({ type: 'Location', label: l.name, sub: '', href: `/locations/${l.id}` });
 			} else {
-				for (const l of cache.locations) if (l.name.toLowerCase().includes(lq)) r.push({ type: 'Location', label: l.name, sub: '', href: `/locations/${l.id}` });
+				for (const l of cache.locations) if (norm(l.name.toLowerCase()).includes(nq)) r.push({ type: 'Location', label: l.name, sub: '', href: `/locations/${l.id}` });
 			}
 
 			if (showAllOf(lq, 'itemCats')) {
 				for (const c of cache.itemCats) r.push({ type: 'Item Category', label: c.name, sub: '', href: `/item-categories?highlight=${c.id}` });
 			} else {
-				for (const c of cache.itemCats) if (c.name.toLowerCase().includes(lq)) r.push({ type: 'Item Category', label: c.name, sub: '', href: `/item-categories?highlight=${c.id}` });
+				for (const c of cache.itemCats) if (norm(c.name.toLowerCase()).includes(nq)) r.push({ type: 'Item Category', label: c.name, sub: '', href: `/item-categories?highlight=${c.id}` });
 			}
 
 			if (showAllOf(lq, 'toolCats')) {
 				for (const c of cache.toolCats) r.push({ type: 'Tool Category', label: c.name, sub: '', href: `/tool-categories?highlight=${c.id}` });
 			} else {
-				for (const c of cache.toolCats) if (c.name.toLowerCase().includes(lq)) r.push({ type: 'Tool Category', label: c.name, sub: '', href: `/tool-categories?highlight=${c.id}` });
+				for (const c of cache.toolCats) if (norm(c.name.toLowerCase()).includes(nq)) r.push({ type: 'Tool Category', label: c.name, sub: '', href: `/tool-categories?highlight=${c.id}` });
 			}
 
 			if (showAllOf(lq, 'stockTakes')) {
@@ -148,7 +174,22 @@
 			} else {
 				for (const s of cache.stockTakes) {
 					const d = new Date(s.date).toLocaleDateString();
-					if (d.includes(lq) || s.status?.toLowerCase().includes(lq)) r.push({ type: 'Stock Take', label: d, sub: `Status: ${s.status}`, href: `/stock-takes/${s.id}` });
+					if (norm(d.toLowerCase()).includes(nq) || norm((s.status ?? '').toLowerCase()).includes(nq)) r.push({ type: 'Stock Take', label: d, sub: `Status: ${s.status}`, href: `/stock-takes/${s.id}` });
+				}
+			}
+
+			if (showAllOf(lq, 'maintFlags')) {
+				for (const f of cache.maintFlags) {
+					const status = f.resolvedAt ? 'Resolved' : 'Open';
+					r.push({ type: 'Flag', label: `${f.tool.toolNumber} — ${f.type}`, sub: `Status: ${status} — ${f.description ?? ''}`, href: `/tools/maintenance-flags?highlight=${f.id}` });
+				}
+			} else {
+				for (const f of cache.maintFlags) {
+					const txt = norm(`${f.tool.toolNumber} ${f.type} ${f.description ?? ''} ${f.createdBy ?? ''}`.toLowerCase());
+					if (txt.includes(nq) || norm(f.tool.name.toLowerCase()).includes(nq)) {
+						const status = f.resolvedAt ? 'Resolved' : 'Open';
+						r.push({ type: 'Flag', label: `${f.tool.toolNumber} — ${f.type}`, sub: `Status: ${status} — ${f.description ?? ''}`, href: `/tools/maintenance-flags?highlight=${f.id}` });
+					}
 				}
 			}
 
@@ -189,6 +230,9 @@
 						<span class="type-badge">{r.type}</span>
 						<span class="label">{r.label}</span>
 						{#if r.sub}<span class="sub">{r.sub}</span>{/if}
+						{#if r.type === 'Item' || r.type === 'Tool'}
+							<button class="scan-btn" onclick={(e) => { e.stopPropagation(); goto(`/scan?code=${r.label}`); open = false; }}>Scan</button>
+						{/if}
 					</button>
 				{/each}
 			</div>
@@ -255,6 +299,9 @@
 		flex: 1;
 		padding: 6px;
 	}
+	.results::-webkit-scrollbar {
+		width: 8px;
+	}
 	.result-row {
 		display: flex;
 		align-items: center;
@@ -292,5 +339,24 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+		flex: 1;
+	}
+	.result-row .scan-btn {
+		margin-left: auto;
+		flex-shrink: 0;
+		background: color-mix(in srgb, var(--blue) 15%, transparent);
+		border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent);
+		color: color-mix(in srgb, var(--blue) 80%, transparent);
+		border-radius: 6px;
+		padding: 2px 8px;
+		font-size: 11px;
+		font-weight: 500;
+		cursor: pointer;
+		font-family: inherit;
+		transition: background 0.15s, border-color 0.15s;
+	}
+	.result-row .scan-btn:hover {
+		background: color-mix(in srgb, var(--blue) 25%, transparent);
+		border-color: color-mix(in srgb, var(--blue) 50%, transparent);
 	}
 </style>

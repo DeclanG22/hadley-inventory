@@ -74,6 +74,25 @@ export class ToolsController {
     return this.toolsService.findMaintenanceCosting({ dateFrom, dateTo, type });
   }
 
+  // Maintenance Flags — static routes before :id
+  @Get('maintenance-flags')
+  findAllFlags(@Query('unresolved') unresolved?: string) {
+    return this.toolsService.findAllFlags(unresolved === 'true');
+  }
+
+  @Post('maintenance-flags/:flagId/resolve')
+  resolveFlag(
+    @Param('flagId', ParseIntPipe) flagId: number,
+    @Body('resolvedBy') resolvedBy: string,
+  ) {
+    return this.toolsService.resolveFlag(flagId, resolvedBy);
+  }
+
+  @Delete('maintenance-flags/:flagId')
+  removeFlag(@Param('flagId', ParseIntPipe) flagId: number) {
+    return this.toolsService.removeFlag(flagId);
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.toolsService.findOne(id);
@@ -123,6 +142,15 @@ export class ToolsController {
   @Delete('maintenance/:maintenanceId')
   removeMaintenance(@Param('maintenanceId', ParseIntPipe) maintenanceId: number) {
     return this.toolsService.removeMaintenance(maintenanceId);
+  }
+
+  // Maintenance
+  @Post(':id/maintenance-flags')
+  createFlag(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: { type: string; description?: string; createdBy?: string },
+  ) {
+    return this.toolsService.createFlag(id, dto);
   }
 
   // Maintenance

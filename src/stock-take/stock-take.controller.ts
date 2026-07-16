@@ -18,6 +18,11 @@ export class StockTakeController {
     return this.stockTakeService.findAll();
   }
 
+  @Get('deleted')
+  findDeleted() {
+    return this.stockTakeService.findDeleted();
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.stockTakeService.findOne(id);
@@ -31,6 +36,16 @@ export class StockTakeController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.stockTakeService.remove(id);
+  }
+
+  @Post(':id/restore')
+  restore(@Param('id', ParseIntPipe) id: number) {
+    return this.stockTakeService.restore(id);
+  }
+
+  @Delete(':id/permanent')
+  permanentRemove(@Param('id', ParseIntPipe) id: number) {
+    return this.stockTakeService.permanentRemove(id);
   }
 
   @Patch(':id/items/:itemId')

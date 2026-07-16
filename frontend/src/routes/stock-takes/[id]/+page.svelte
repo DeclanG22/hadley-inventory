@@ -27,7 +27,7 @@
 	}
 
 	async function doReconcile() {
-		if (!await confirm('Reconcile stock take?', 'Apply all adjustments and mark as completed?')) return;
+		if (!await confirm('Reconcile stock take?', 'Apply all adjustments and mark as completed?', 'Reconcile')) return;
 		reconciling = true;
 		try {
 			st = await stockTakes.reconcile(st.id);
@@ -70,7 +70,7 @@
 {:else}
 	<div class="page-header">
 		<div>
-			<h1>Stock Take — {new Date(st.date).toLocaleDateString()}</h1>
+			<h1>Stock Take — {new Date(st.createdAt).toLocaleDateString()}</h1>
 			<p style="color:var(--text-secondary);font-size:13px;margin-top:2px">
 				Status: <span class="badge badge-{st.status}">{st.status}</span> &middot;
 				{countedCount} of {st.items.length} items counted

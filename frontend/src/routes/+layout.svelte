@@ -146,7 +146,7 @@
 
 		<span class="nav-label">Tools</span>
 
-			<a href="/tools" class="tab-link" class:active={path === '/tools' || (path.startsWith('/tools/') && path !== '/tools/new' && path !== '/tools/costing')}>
+			<a href="/tools" class="tab-link" class:active={path === '/tools' || (path.startsWith('/tools/') && path !== '/tools/new' && path !== '/tools/costing' && path !== '/tools/maintenance-flags')}>
                 <span class="tab-link-icon" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 48 48">
                         <path d="M0 0h48v48H0z" fill="none" />
@@ -189,6 +189,30 @@
          			</svg>
     			</span>
 			<span>Costing</span>
+			</a>
+
+			<a href="/tools/maintenance-flags" class="tab-link" class:active={path === '/tools/maintenance-flags'}>
+    			<span class="tab-link-icon" aria-hidden="true">
+        			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+                       	<path d="M0 0h24v24H0z" fill="none" />
+                       	<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5">
+                      		<path stroke-linejoin="round" d="M12 22h-1.5c-3.771 0-5.657 0-6.828-1.172S2.5 17.771 2.5 14v-4c0-3.771 0-5.657 1.172-6.828S6.729 2 10.5 2h1c3.771 0 5.657 0 6.828 1.172S19.5 6.229 19.5 10v1M7 7h8m-8 5h4.5" />
+                      		<path d="M17.5 20.773c1.767 0 3.2-1.465 3.2-3.273c0-1.807-1.433-3.273-3.2-3.273m0 6.546c-1.767 0-3.2-1.465-3.2-3.273c0-1.807 1.433-3.273 3.2-3.273m0 6.546V22m0-7.773V13m-2.909 2.715l-1.09-.67m7.999 4.91l-1.09-.67m-.001-3.57l1.09-.67m-7.999 4.91l1.09-.67" />
+                       	</g>
+                    </svg>
+    			</span>
+			<span>Maintenance</span>
+			</a>
+
+		<span class="nav-label">General</span>
+			<a href="/help" class="tab-link" class:active={path === '/help'}>
+				<span class="tab-link-icon" aria-hidden="true">
+					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+						<path d="M0 0h24v24H0z" fill="none" />
+						<path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m1 17h-2v-2h2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41c0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25" />
+					</svg>
+				</span>
+				<span>Help</span>
 			</a>
 
 		<span class="nav-label">Reference</span>

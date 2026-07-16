@@ -40,7 +40,16 @@ export class StockTakeService {
 
   findAll() {
     return this.prisma.stockTake.findMany({
+      where: { deletedAt: null },
       orderBy: { date: 'desc' },
+      include: { _count: { select: { items: true } } },
+    });
+  }
+
+  findDeleted() {
+    return this.prisma.stockTake.findMany({
+      where: { deletedAt: { not: null } },
+      orderBy: { deletedAt: 'desc' },
       include: { _count: { select: { items: true } } },
     });
   }
@@ -105,11 +114,63 @@ export class StockTakeService {
       await this.prisma.$transaction([
         ...(reverseTxns.length > 0 ? [this.prisma.itemTransaction.createMany({ data: reverseTxns })] : []),
         ...reverseUpdates.map(u => this.prisma.item.update({ where: { id: u.id }, data: u.data })),
-        this.prisma.stockTake.delete({ where: { id } }),
+        this.prisma.stockTake.update({ where: { id }, data: { deletedAt: new Date() } }),
       ]);
     } else {
-      await this.prisma.stockTake.delete({ where: { id } });
+      await this.prisma.stockTake.update({ where: { id }, data: { deletedAt: new Date() } });
     }
+    return { message: 'Stock take deleted' };
+  }
+
+  async restore(id: number) {
+    const st = await this.prisma.stockTake.findUniqueOrThrow({
+      where: { id },
+      select: { status: true },
+    });
+
+    if (st.status === 'completed') {
+      const items = await this.prisma.stockTakeItem.findMany({
+        where: { stockTakeId: id, physicalQty: { not: null } },
+        select: { itemId: true, systemQty: true, physicalQty: true, notes: true },
+      });
+
+      const reapplyTxns: any[] = [];
+      const reapplyUpdates: { id: number; data: any }[] = [];
+
+      for (const si of items) {
+        const variance = si.physicalQty! - si.systemQty;
+        if (variance === 0) continue;
+
+        reapplyTxns.push({
+          itemId: si.itemId,
+          jobNumber: `STOCKTAKE-${id}-RESTORED`,
+          date: new Date(),
+          quantityInOut: variance,
+          unitPrice: 0,
+          totalCost: 0,
+          notes: `Restore of stock take #${id} (was: ${si.physicalQty}, system: ${si.systemQty})`,
+        });
+
+        reapplyUpdates.push({
+          id: si.itemId,
+          data: { onHand: { increment: variance } },
+        });
+      }
+
+      await this.prisma.$transaction([
+        ...(reapplyTxns.length > 0 ? [this.prisma.itemTransaction.createMany({ data: reapplyTxns })] : []),
+        ...reapplyUpdates.map(u => this.prisma.item.update({ where: { id: u.id }, data: u.data })),
+        this.prisma.stockTake.update({ where: { id }, data: { deletedAt: null } }),
+      ]);
+    } else {
+      await this.prisma.stockTake.update({ where: { id }, data: { deletedAt: null } });
+    }
+    return { message: 'Stock take restored' };
+  }
+
+  async permanentRemove(id: number) {
+    await this.prisma.stockTake.delete({ where: { id } });
+    return { message: 'Stock take permanently deleted' };
   }
 
   async updateItem(stockTakeId: number, itemId: number, dto: UpdateStockTakeItemDto) {

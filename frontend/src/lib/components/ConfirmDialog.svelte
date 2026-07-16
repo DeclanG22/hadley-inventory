@@ -11,7 +11,7 @@
 			<p class="modal-message">{state.message}</p>
 			<div class="modal-actions">
 				<button class="btn-ghost" onclick={() => handleConfirm(false)}>Cancel</button>
-				<button class="btn-danger" onclick={() => handleConfirm(true)}>Delete</button>
+				<button class="btn-danger" onclick={() => handleConfirm(true)}>{state.confirmLabel}</button>
 			</div>
 		</div>
 	</div>

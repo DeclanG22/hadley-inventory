@@ -6,7 +6,7 @@ export class ActivityService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getRecent(limit = 20) {
-    const [txns, checkouts, maint] = await Promise.all([
+    const [txns, checkouts, maint, flags] = await Promise.all([
       this.prisma.itemTransaction.findMany({
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -18,6 +18,11 @@ export class ActivityService {
         include: { tool: { select: { id: true, toolNumber: true, name: true } } },
       }),
       this.prisma.toolMaintenanceLog.findMany({
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: { tool: { select: { id: true, toolNumber: true, name: true } } },
+      }),
+      this.prisma.toolMaintenanceFlag.findMany({
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: { tool: { select: { id: true, toolNumber: true, name: true } } },
@@ -47,11 +52,34 @@ export class ActivityService {
         type: 'tool_maintenance' as const,
         subType: m.type,
         id: m.id,
-        date: m.date ?? m.createdAt,
+        date: m.createdAt,
         summary: `${m.type} on ${m.tool.toolNumber} — ${m.tool.name}${m.description ? `: ${m.description}` : ''}`,
         link: `/tools/${m.tool.id}`,
         itemRef: m.tool.toolNumber,
       })),
+      ...flags.flatMap((f) => {
+        const events: any[] = [{
+          type: 'flag_created' as const,
+          subType: f.type,
+          id: f.id,
+          date: f.createdAt,
+          summary: `Flag ${f.type} on ${f.tool.toolNumber} — ${f.tool.name}${f.description ? `: ${f.description}` : ''}`,
+          link: `/tools/maintenance-flags?highlight=${f.id}`,
+          itemRef: f.tool.toolNumber,
+        }];
+        if (f.resolvedAt) {
+          events.push({
+            type: 'flag_resolved' as const,
+            subType: f.type,
+            id: f.id,
+            date: f.resolvedAt,
+            summary: `Flag ${f.type} resolved on ${f.tool.toolNumber} — ${f.tool.name}`,
+            link: `/tools/maintenance-flags?highlight=${f.id}`,
+            itemRef: f.tool.toolNumber,
+          });
+        }
+        return events;
+      }),
     ];
 
     return mapped.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, limit);

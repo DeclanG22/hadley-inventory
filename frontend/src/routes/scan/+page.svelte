@@ -7,15 +7,29 @@
 	let code = $state('');
 	let scanning = $state(false);
 	let result = $state<{ type: 'item' | 'tool'; data: any } | null>(null);
+
+	$effect(() => {
+		if (maintForm.flagId && result?.data?.maintenanceFlags) {
+			const flag = result.data.maintenanceFlags.find((f: any) => f.id === Number(maintForm.flagId));
+			if (flag) {
+				maintForm.type = flag.type;
+				if (flag.description) maintForm.description = flag.description;
+			}
+		}
+	});
 	let error = $state('');
 
 	let quantity = $state(1);
+	let weight = $state('');
 	let direction = $state<'in' | 'out'>('out');
 	let checkedOutBy = $state('');
 	let jobNumber = $state('');
 	let jobSite = $state('');
 	let expectedReturnAt = $state('');
 	let totalCost = $state('');
+	let toolAction = $state('');
+	let flagForm = $state({ type: 'repair', description: '', createdBy: '' });
+	let maintForm = $state({ type: 'repair', description: '', date: new Date().toISOString().slice(0,10), performedBy: '', cost: '', notes: '', flagId: '' });
 	let submitting = $state(false);
 	let resultVisible = $state(false);
 
@@ -102,11 +116,15 @@
 		resultVisible = false;
 		error = '';
 		quantity = 1;
+		weight = '';
 		direction = 'out';
 		jobNumber = '';
 		jobSite = '';
 		expectedReturnAt = '';
 		totalCost = '';
+		toolAction = '';
+		flagForm = { type: 'repair', description: '', createdBy: '' };
+		maintForm = { type: 'repair', description: '', date: new Date().toISOString().slice(0,10), performedBy: '', cost: '', notes: '', flagId: '' };
 		setTimeout(focusScan, 50);
 	}
 
@@ -130,6 +148,20 @@
 	function handleScanKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter') {
 			doLookup();
+		}
+	}
+
+	function onQtyChange() {
+		const wpu = result?.type === 'item' ? (result.data as any).weightPerUnit : null;
+		if (wpu && quantity > 0) {
+			weight = String(Math.round(quantity * wpu * 100) / 100);
+		}
+	}
+
+	function onWeightChange() {
+		const wpu = result?.type === 'item' ? (result.data as any).weightPerUnit : null;
+		if (wpu && wpu > 0 && parseFloat(weight || '0') > 0) {
+			quantity = Math.max(1, Math.floor(parseFloat(weight) / wpu));
 		}
 	}
 
@@ -190,6 +222,43 @@
 			submitting = false;
 		}
 	}
+
+	async function doFlag() {
+		if (submitting) return;
+		submitting = true;
+		try {
+			const created = await tools.maintenanceFlags.create(result!.data.id, { type: flagForm.type, description: flagForm.description || undefined, createdBy: flagForm.createdBy || undefined });
+			if (result?.data?.maintenanceFlags) {
+				(result.data.maintenanceFlags as any[]).push({ id: created.id, type: created.type, description: created.description, createdAt: created.createdAt });
+			}
+			addToast('Maintenance flag created', 'success');
+			flagForm = { type: 'repair', description: '', createdBy: '' };
+			toolAction = '';
+		} catch (e: any) { addToast(e.message, 'error'); }
+		finally { submitting = false; }
+	}
+
+	async function doMaint() {
+		if (submitting) return;
+		submitting = true;
+		try {
+			const data: any = { type: maintForm.type, date: maintForm.date };
+			if (maintForm.description) data.description = maintForm.description;
+			if (maintForm.performedBy) data.performedBy = maintForm.performedBy;
+			if (maintForm.cost) data.cost = Number(maintForm.cost);
+			if (maintForm.notes) data.notes = maintForm.notes;
+			if (maintForm.flagId) data.flagId = Number(maintForm.flagId);
+			await tools.maintenance.create(result!.data.id, data);
+			if (maintForm.flagId && result?.data?.maintenanceFlags) {
+				const idx = (result.data.maintenanceFlags as any[]).findIndex((f: any) => f.id === Number(maintForm.flagId));
+				if (idx !== -1) (result.data.maintenanceFlags as any[]).splice(idx, 1);
+			}
+			addToast('Maintenance record added', 'success');
+			maintForm = { type: 'repair', description: '', date: new Date().toISOString().slice(0,10), performedBy: '', cost: '', notes: '', flagId: '' };
+			toolAction = '';
+		} catch (e: any) { addToast(e.message, 'error'); }
+		finally { submitting = false; }
+	}
 </script>
 
 <div class="page-header">
@@ -243,6 +312,11 @@
 			<div class="result-header">
 				<span class="result-id">{result.type === 'item' ? result.data.itemNumber : result.data.toolNumber}</span>
 				<span class="badge badge-{result.type === 'item' ? 'available' : result.data.checkedOut ? 'checked-out' : 'available'}">{result.type === 'item' ? 'Item' : 'Tool'}</span>
+				{#if result.type === 'tool' && result.data.maintenanceFlags?.length}
+					{#each result.data.maintenanceFlags as f}
+						<span class="badge badge-warning" style="font-size:10px">Flagged: {f.type} needed</span>
+					{/each}
+				{/if}
 			</div>
 			<div class="result-desc">{result.type === 'item' ? result.data.description : result.data.name}</div>
 			{#if result.type === 'item'}
@@ -268,7 +342,10 @@
 						<button type="button" class="segment2" class:active={direction === 'out'} onclick={() => direction = 'out'}>Out</button>
 						<button type="button" class="segment2" class:active={direction === 'in'} onclick={() => direction = 'in'}>In</button>
 					</div>
-					<input type="number" bind:value={quantity} min="1" class="qty-input" />
+					<input type="number" bind:value={quantity} oninput={onQtyChange} min="1" class="qty-input" />
+					{#if result?.data?.weightPerUnit}
+						<input type="number" bind:value={weight} oninput={onWeightChange} step="0.01" min="0" placeholder="Weight (g)" />
+					{/if}
 				</div>
 				<div class="txn-row">
 					<input bind:value={jobNumber} placeholder="Job number (optional)" class="txn-field" />
@@ -299,9 +376,70 @@
 						<span class="txn-label">Expected return date (optional)</span>
 						<input bind:value={expectedReturnAt} type="date" class="txn-field" />
 					</div>
-					<button onclick={submitToolCheckout} disabled={submitting || !checkedOutBy.trim()} class="btn-primary txn-submit">
+
+				<button onclick={submitToolCheckout} disabled={submitting || !checkedOutBy.trim()} class="btn-primary txn-submit">
 						{submitting ? 'Checking out...' : 'Check Out'}
 					</button>
+				{/if}
+				<div class="scan-divider"></div>
+				<select bind:value={toolAction} class="action-select">
+					<option value="">Actions...</option>
+					<option value="flag">Flag for maintenance</option>
+					<option value="maint">Log maintenance</option>
+				</select>
+				{#if toolAction === 'flag'}
+					<form onsubmit={(e) => { e.preventDefault(); doFlag(); }} class="action-form">
+						<div class="txn-row">
+							<select bind:value={flagForm.type} class="txn-field">
+								<option value="repair">Repair</option>
+								<option value="service">Service</option>
+								<option value="calibration">Calibration</option>
+								<option value="inspection">Inspection</option>
+							</select>
+						</div>
+						<div class="txn-row">
+							<input bind:value={flagForm.description} placeholder="Description" class="txn-field" />
+						</div>
+						<div class="txn-row">
+							<input bind:value={flagForm.createdBy} placeholder="Reported by" class="txn-field" />
+						</div>
+						<button type="submit" disabled={submitting} class="btn-primary" style="width:100%">Create Flag</button>
+					</form>
+				{:else if toolAction === 'maint'}
+					<form onsubmit={(e) => { e.preventDefault(); doMaint(); }} class="action-form">
+						<div class="txn-row">
+							<select bind:value={maintForm.type} class="txn-field" style="flex:1">
+								<option value="repair">Repair</option>
+								<option value="service">Service</option>
+								<option value="calibration">Calibration</option>
+								<option value="inspection">Inspection</option>
+							</select>
+							<input type="date" bind:value={maintForm.date} class="txn-field" style="flex:1" />
+						</div>
+						{#if result?.data?.maintenanceFlags?.length}
+							<div class="txn-row">
+								<select bind:value={maintForm.flagId} class="txn-field">
+									<option value="">-- Resolve flag (optional) --</option>
+									{#each result.data.maintenanceFlags as f}
+										<option value={f.id}>{f.type}{f.description ? `: ${f.description}` : ''}</option>
+									{/each}
+								</select>
+							</div>
+						{/if}
+						<div class="txn-row">
+							<input bind:value={maintForm.description} placeholder="Description" class="txn-field" />
+						</div>
+						<div class="txn-row">
+							<input bind:value={maintForm.performedBy} placeholder="Performed by" class="txn-field" />
+						</div>
+						<div class="txn-row">
+							<input type="number" step="0.01" bind:value={maintForm.cost} placeholder="Cost" class="txn-field" />
+						</div>
+						<div class="txn-row">
+							<input bind:value={maintForm.notes} placeholder="Notes" class="txn-field" />
+						</div>
+						<button type="submit" disabled={submitting} class="btn-primary" style="width:100%">Log Maintenance</button>
+					</form>
 				{/if}
 			{/if}
 		</div>
@@ -555,8 +693,29 @@
 
 	.txn-row {
 		display: flex;
-		gap: 8px;
+		gap: 10px;
 		align-items: center;
+	}
+	.txn-row + .txn-row {
+		margin-top: 4px;
+	}
+
+	.action-select {
+		width: 100%;
+		padding: 10px 12px;
+		font-size: 14px;
+		border-radius: 8px;
+		border: 1px solid var(--border-color);
+		background: var(--bg-primary);
+		color: var(--text-primary);
+		cursor: pointer;
+		font-family: inherit;
+	}
+	.action-form {
+		margin-top: 8px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
 	}
 
 	.qty-input {
@@ -585,6 +744,11 @@
 		font-size: 13px;
 		color: var(--text-secondary);
 		padding: 4px 0;
+	}
+	.txn-warn {
+		font-size: 12px;
+		color: var(--orange);
+		padding: 4px 0 6px;
 	}
 
 	.txn-submit {
@@ -637,6 +801,12 @@ border: 1px solid transparent;
   opacity: 0.9;
   transform: scale(0.98);
 }
+
+	.scan-divider {
+		height: 1px;
+		background: var(--border-color);
+		margin: 12px 0;
+	}
 
 	@media (max-width: 899px) {
 		.page-header h1 {
