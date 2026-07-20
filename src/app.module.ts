@@ -11,6 +11,7 @@ import { ImportModule } from './import/import.module';
 import { StockTakeModule } from './stock-take/stock-take.module';
 import { LookupModule } from './lookup/lookup.module';
 import { UploadModule } from './upload/upload.module';
+import { JobsModule } from './jobs/jobs.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { UploadModule } from './upload/upload.module';
     StockTakeModule,
     LookupModule,
     UploadModule,
+    JobsModule,
   ],
 })
 export class AppModule {}

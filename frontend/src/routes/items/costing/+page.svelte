@@ -139,10 +139,15 @@
 					{#each filtered as t}
 						<tr onclick={() => goto(`/items/${t.item.id}`)}>
 							<td style="white-space:nowrap">{new Date(t.date).toLocaleDateString()}</td>
-							<td><a href="/items/{t.item.id}" onclick={(e) => e.stopPropagation()}>{t.item.itemNumber}</a></td>
+							<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="/items/{t.item.id}" onclick={(e) => e.stopPropagation()}>{t.item.itemNumber}</a></td>
 							<td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{t.item.description}</td>
 							<td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{t.item.analysisCode ?? '-'}</td>
-							<td>{t.jobNumber ?? '-'}</td>
+							<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+								{#if t.jobNumber}
+									<a href="/jobs/{t.jobNumber}" onclick={(e) => e.stopPropagation()}>{t.jobNumber}</a>
+								{:else}-
+								{/if}
+							</td>
 							<td>{Math.abs(t.quantityInOut)}</td>
 							<td>
 								<span style="color:var({t.quantityInOut > 0 ? '--green' : '--red'});font-weight:500">

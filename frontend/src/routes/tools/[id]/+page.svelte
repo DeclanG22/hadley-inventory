@@ -13,7 +13,6 @@
 	let catList = $state<any[]>([]);
 	let form = $state<any>({});
 
-	let checkoutForm = $state({ checkedOutBy: '', jobNumber: '', jobSite: '', expectedReturnAt: '', notes: '' });
 	let maintForm = $state({ type: 'repair', description: '', date: new Date().toISOString().slice(0,10), performedBy: '', cost: '', notes: '', flagId: '' });
 	let flagForm = $state({ open: false, type: 'repair', description: '', createdBy: '' });
 
@@ -67,21 +66,6 @@
 			editing = false;
 			tools.get(id).then(t => { tool = t; resetForm(t); });
 			addToast('Tool updated', 'success');
-		} catch (e: any) { addToast(e.message, 'error'); }
-	}
-
-	async function doCheckout() {
-		try {
-			const id = Number(params.id);
-			const data: any = { checkedOutBy: checkoutForm.checkedOutBy };
-			if (checkoutForm.jobNumber) data.jobNumber = checkoutForm.jobNumber;
-			if (checkoutForm.jobSite) data.jobSite = checkoutForm.jobSite;
-			if (checkoutForm.expectedReturnAt) data.expectedReturnAt = checkoutForm.expectedReturnAt;
-			if (checkoutForm.notes) data.notes = checkoutForm.notes;
-			await tools.checkout(id, data);
-			checkoutForm = { checkedOutBy: '', jobNumber: '', jobSite: '', expectedReturnAt: '', notes: '' };
-			load();
-			addToast('Tool checked out', 'success');
 		} catch (e: any) { addToast(e.message, 'error'); }
 	}
 
@@ -341,16 +325,13 @@
 			{#each tool?.maintenanceFlags ?? [] as f}
 				<p style="margin:0 0 6px 0;font-size:11px;font-weight:600;text-transform:uppercase;color:#fff;background:var(--orange);display:inline-block;padding:2px 8px;border-radius:4px">Unresolved {f.type} flag</p>
 			{/each}
-			<form onsubmit={(e) => { e.preventDefault(); doCheckout(); }}>
-				<div class="form-grid">
-					<div class="full"><label>Checked Out By *</label><input bind:value={checkoutForm.checkedOutBy} required /></div>
-					<div><label>Job Number</label><input bind:value={checkoutForm.jobNumber} /></div>
-					<div><label>Job Site</label><input bind:value={checkoutForm.jobSite} /></div>
-					<div><label>Expected Return</label><input type="date" bind:value={checkoutForm.expectedReturnAt} /></div>
-					<div class="full"><label>Notes</label><input bind:value={checkoutForm.notes} /></div>
-				</div>
-				<button type="submit" style="margin-top:12px" class="btn-primary">Check Out</button>
-			</form>
+			<p style="padding:0 0 4px;color:var(--text-secondary);font-size:13px">
+				Go to the scan page to check out this tool.
+			</p>
+			<a href="/scan?code={tool.toolNumber}" class="btn-primary" style="display:inline-flex;align-items:center;gap:6px">
+				<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M9.5 6.5v3h-3v-3zM11 5H5v6h6zm-1.5 9.5v3h-3v-3zM11 13H5v6h6zm6.5-6.5v3h-3v-3zM19 5h-6v6h6zm-6 8h1.5v1.5H13zm1.5 1.5H16V16h-1.5zM16 13h1.5v1.5H16zm-3 3h1.5v1.5H13zm1.5 1.5H16V19h-1.5zM16 16h1.5v1.5H16zm1.5-1.5H19V16h-1.5zm0 3H19V19h-1.5z"/></svg>
+				Scan to Check Out
+			</a>
 		{/if}
 	</div>
 
@@ -384,7 +365,7 @@
 							<tr>
 								<td>{new Date(c.checkedOutAt).toLocaleString()}</td>
 								<td>{c.checkedOutBy}</td>
-								<td>{c.jobNumber ?? '-'}</td>
+								<td><a href="/jobs/{c.jobNumber ?? '-'}" onclick={(e) => e.stopPropagation()}>{c.jobNumber ?? '-'}</a></td>
 								<td>{c.jobSite ?? '-'}</td>
 								<td>{c.checkedInAt ? new Date(c.checkedInAt).toLocaleString() : 'Out'}</td>
 								<td><button class="btn-del btn-sm" onclick={() => deleteCheckout(c.id)}><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 14 14"><path d="M0 0h14v14H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M1.707.293A1 1 0 0 0 .293 1.707L5.586 7L.293 12.293a1 1 0 1 0 1.414 1.414L7 8.414l5.293 5.293a1 1 0 0 0 1.414-1.414L8.414 7l5.293-5.293A1 1 0 0 0 12.293.293L7 5.586z" clip-rule="evenodd" /></svg></button></td>
@@ -475,3 +456,10 @@
 		{/if}
 	</div>
 {/if}
+
+<style>
+    .btn-primary {
+        border-radius: 8px;
+        padding: 4px 8px;
+    }
+</style>

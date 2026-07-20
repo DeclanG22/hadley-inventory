@@ -69,7 +69,7 @@
 							<td><a href="/tools/{t.id}" onclick={(e) => e.stopPropagation()}>{t.toolNumber}</a></td>
 							<td>{t.name}</td>
 							<td>{co.checkedOutBy}</td>
-							<td>{co.jobNumber ?? '-'}</td>
+							<td><a href="/jobs/{co.jobNumber ?? '-'}" onclick={(e) => e.stopPropagation()}>{co.jobNumber ?? '-'}</a></td>
 							<td>{co.jobSite ?? '-'}</td>
 							<td style="white-space:nowrap">{new Date(co.checkedOutAt).toLocaleDateString()}</td>
 							<td style="white-space:nowrap">{co.expectedReturnAt ? new Date(co.expectedReturnAt).toLocaleDateString() : '-'}</td>

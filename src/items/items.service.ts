@@ -3,6 +3,19 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+
+function expandSearchQueries(q: string): string[] {
+  const norm = q.replace(/\s+/g, ' ').trim();
+  const results = [norm];
+  const collapsed = norm.replace(/\s*([^\w\d\s])\s*/g, '$1').replace(/\s*([x×])\s*/g, '$1');
+  if (collapsed !== norm) results.push(collapsed);
+  const expanded = norm
+    .replace(/(\d)\s*[x×]\s*(\d)/g, '$1 x $2')
+    .replace(/(\d)\s*[x×]\s*$/g, '$1 x')
+    .replace(/^\s*[x×]\s*(\d)/g, 'x $1');
+  if (expanded !== norm) results.push(expanded);
+  return [...new Set(results)];
+}
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -29,10 +42,11 @@ export class ItemsService {
   }) {
     const where: any = { deletedAt: null };
     if (q) {
-      where.OR = [
-        { itemNumber: { contains: q, mode: 'insensitive' } },
-        { description: { contains: q, mode: 'insensitive' } },
-      ];
+      const queries = expandSearchQueries(q);
+      where.OR = queries.flatMap(v => [
+        { itemNumber: { contains: v, mode: 'insensitive' } },
+        { description: { contains: v, mode: 'insensitive' } },
+      ]);
     }
     if (filters?.categoryId) where.categoryId = filters.categoryId;
     if (filters?.vendorId) where.vendorId = filters.vendorId;

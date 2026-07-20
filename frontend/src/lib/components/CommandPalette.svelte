@@ -88,7 +88,7 @@
 	}
 
 	function norm(s: string): string {
-		return s.replace(/\s+/g, ' ').trim().replace(/\s*([-./])\s*/g, '$1');
+		return s.replace(/\s+/g, ' ').trim().replace(/\s*([^\w\d\s])\s*/g, '$1').replace(/\s*([x×])\s*/g, '$1');
 	}
 
 	function doSearch(q: string) {

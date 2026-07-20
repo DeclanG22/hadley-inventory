@@ -75,7 +75,7 @@
 				<span>Recently Deleted</span>
 			</a>
 
-		<span class="nav-label">Items</span>
+		<span class="nav-label">Hardware</span>
 
 			<a href="/items" class="tab-link" class:active={path === '/items' || (path.startsWith('/items/') && path !== '/items/new' && path !== '/items/low-stock' && path !== '/items/costing' && path !== '/items/import')}>
     			<span class="tab-link-icon" aria-hidden="true">
@@ -205,6 +205,7 @@
 			</a>
 
 		<span class="nav-label">General</span>
+
 			<a href="/help" class="tab-link" class:active={path === '/help'}>
 				<span class="tab-link-icon" aria-hidden="true">
 					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
@@ -216,6 +217,21 @@
 			</a>
 
 		<span class="nav-label">Reference</span>
+
+			<a href="/jobs" class="tab-link" class:active={path === '/jobs' || path.startsWith('/jobs/')}>
+				<span class="tab-link-icon" aria-hidden="true">
+					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+						<path d="M0 0h24v24H0z" fill="none" />
+						<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+							<rect x="2" y="7" width="20" height="14" rx="2" />
+							<path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+							<path d="M8 12h.01M12 12h.01M16 12h.01" />
+						</g>
+					</svg>
+				</span>
+				<span>Jobs</span>
+			</a>
+
 			<a href="/vendors" class="tab-link" class:active={path === '/vendors' || path.startsWith('/vendors/')}>
                 <span class="tab-link-icon" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">

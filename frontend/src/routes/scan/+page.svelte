@@ -321,16 +321,16 @@
 			<div class="result-desc">{result.type === 'item' ? result.data.description : result.data.name}</div>
 			{#if result.type === 'item'}
 				<div class="result-meta">
-					<span>On Hand: <strong>{result.data.onHand}</strong></span>
-					{#if result.data.unit}<span>Unit: <strong>{result.data.unit}</strong></span>{/if}
-					{#if result.data.category}<span>Category: <strong>{result.data.category}</strong></span>{/if}
+					<span class="meta-tag">On Hand: <strong>{result.data.onHand}</strong></span>
+					{#if result.data.unit}<span class="meta-tag">Unit: <strong>{result.data.unit}</strong></span>{/if}
+					{#if result.data.category}<span class="meta-tag">Category: <strong>{result.data.category}</strong></span>{/if}
 				</div>
 			{:else}
 				<div class="result-meta">
 					{#if result.data.brand || result.data.model}
-						<span>{result.data.brand ?? '-'} / {result.data.model ?? '-'}</span>
+						<span class="meta-tag">{result.data.brand ?? '-'} / {result.data.model ?? '-'}</span>
 					{/if}
-					{#if result.data.category}<span>Category: <strong>{result.data.category}</strong></span>{/if}
+					{#if result.data.category}<span class="meta-tag">Category: <strong>{result.data.category}</strong></span>{/if}
 				</div>
 			{/if}
 		</div>
@@ -342,10 +342,27 @@
 						<button type="button" class="segment2" class:active={direction === 'out'} onclick={() => direction = 'out'}>Out</button>
 						<button type="button" class="segment2" class:active={direction === 'in'} onclick={() => direction = 'in'}>In</button>
 					</div>
-					<input type="number" bind:value={quantity} oninput={onQtyChange} min="1" class="qty-input" />
-					{#if result?.data?.weightPerUnit}
-						<input type="number" bind:value={weight} oninput={onWeightChange} step="0.01" min="0" placeholder="Weight (g)" />
-					{/if}
+					<div class="qty-wrap">
+						<span class="qty-icon" aria-hidden="true">
+						<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16">
+							<path d="M0 0h16v16H0z" fill="none" />
+							<path fill="currentColor" fill-rule="evenodd" d="M7.808 10.197H6.796L5.859 13H4.485l.937-2.803H3.966l.219-1.25h1.647l.608-1.805H4.991l.226-1.251h1.64l.95-2.844h1.368l-.95 2.844h1.018l.95-2.844h1.374l-.95 2.844h1.51l-.218 1.25h-1.702l-.608 1.805h1.497l-.219 1.251H9.182L8.252 13H6.878zm-.602-1.25h1.012l.615-1.805H7.814z" />
+</svg>
+
+						</span>
+						<input type="number" bind:value={quantity} oninput={onQtyChange} min="1" class="qty-input" />
+					</div>
+				{#if result?.data?.weightPerUnit}
+					<div class="weight-wrap">
+						<span class="weight-icon" aria-hidden="true">
+							<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+								<path d="M0 0h24v24H0z" fill="none" />
+								<path fill="currentColor" d="M12 3a4 4 0 0 1 4 4c0 .73-.19 1.41-.54 2H18c.95 0 1.75.67 1.95 1.56C21.96 18.57 22 18.78 22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2c0-.22.04-.43 2.05-8.44C4.25 9.67 5.05 9 6 9h2.54A3.9 3.9 0 0 1 8 7a4 4 0 0 1 4-4m0 2a2 2 0 0 0-2 2a2 2 0 0 0 2 2a2 2 0 0 0 2-2a2 2 0 0 0-2-2" />
+							</svg>
+						</span>
+						<input type="number" bind:value={weight} oninput={onWeightChange} step="0.01" min="0" placeholder="Weight (g)" class="weight-input" />
+					</div>
+				{/if}
 				</div>
 				<div class="txn-row">
 					<input bind:value={jobNumber} placeholder="Job number (optional)" class="txn-field" />
@@ -665,12 +682,20 @@
 	.result-meta {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 4px 16px;
-		font-size: 12px;
-		color: var(--empty-text-primary);
+		gap: 6px;
 	}
 
-	.result-meta strong {
+	.meta-tag {
+		font-size: 12px;
+		color: var(--empty-text-primary);
+		padding: 4px 10px;
+		background: var(--bg-primary);
+		border: 1px solid var(--border-color);
+		border-radius: 8px;
+		white-space: nowrap;
+	}
+
+	.meta-tag strong {
 		color: var(--text-primary);
 		font-weight: 500;
 	}
@@ -722,6 +747,44 @@
 		width: 80px;
 		font-size: 16px;
 		text-align: center;
+		padding-left: 32px;
+	}
+
+	.qty-wrap {
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
+
+	.qty-icon {
+		position: absolute;
+		left: 10px;
+		color: var(--empty-text-secondary);
+		display: flex;
+		align-items: center;
+		pointer-events: none;
+		z-index: 1;
+	}
+
+	.weight-wrap {
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
+
+	.weight-icon {
+		position: absolute;
+		left: 10px;
+		color: var(--empty-text-secondary);
+		display: flex;
+		align-items: center;
+		pointer-events: none;
+		z-index: 1;
+	}
+
+	.weight-input {
+		width: 130px;
+		padding-left: 32px;
 	}
 
 	.txn-field {
@@ -784,7 +847,7 @@
   border-radius: 9px;
   background: transparent;
 border: 1px solid transparent;
-  color: var(--text-secondary);
+color: var(--empty-text-secondary);
   cursor: pointer;
   font-size: 11.5px;
   opacity: 0.7;

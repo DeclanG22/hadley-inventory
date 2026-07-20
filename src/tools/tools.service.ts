@@ -4,6 +4,19 @@ import { CreateToolDto } from './dto/create-tool.dto';
 import { UpdateToolDto } from './dto/update-tool.dto';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { CheckinDto } from './dto/checkin.dto';
+
+function expandSearchQueries(q: string): string[] {
+  const norm = q.replace(/\s+/g, ' ').trim();
+  const results = [norm];
+  const collapsed = norm.replace(/\s*([^\w\d\s])\s*/g, '$1').replace(/\s*([x×])\s*/g, '$1');
+  if (collapsed !== norm) results.push(collapsed);
+  const expanded = norm
+    .replace(/(\d)\s*[x×]\s*(\d)/g, '$1 x $2')
+    .replace(/(\d)\s*[x×]\s*$/g, '$1 x')
+    .replace(/^\s*[x×]\s*(\d)/g, 'x $1');
+  if (expanded !== norm) results.push(expanded);
+  return [...new Set(results)];
+}
 import { CreateMaintenanceDto } from './dto/create-maintenance.dto';
 import { BatchCreateToolDto } from './dto/batch-create-tool.dto';
 
@@ -66,13 +79,14 @@ export class ToolsService {
   }) {
     const where: any = { deletedAt: null };
     if (q) {
-      where.OR = [
-        { toolNumber: { contains: q, mode: 'insensitive' } },
-        { name: { contains: q, mode: 'insensitive' } },
-        { brand: { contains: q, mode: 'insensitive' } },
-        { model: { contains: q, mode: 'insensitive' } },
-        { description: { contains: q, mode: 'insensitive' } },
-      ];
+      const queries = expandSearchQueries(q);
+      where.OR = queries.flatMap(v => [
+        { toolNumber: { contains: v, mode: 'insensitive' } },
+        { name: { contains: v, mode: 'insensitive' } },
+        { brand: { contains: v, mode: 'insensitive' } },
+        { model: { contains: v, mode: 'insensitive' } },
+        { description: { contains: v, mode: 'insensitive' } },
+      ]);
     }
     if (filters?.labelPrinted !== undefined) where.labelPrinted = filters.labelPrinted;
 
@@ -422,12 +436,13 @@ export class ToolsService {
 
   maintenanceSearch(q?: string) {
     if (!q) return [];
+    const queries = expandSearchQueries(q);
     return this.prisma.toolMaintenanceLog.findMany({
       where: {
-        OR: [
-          { type: { contains: q, mode: 'insensitive' } },
-          { description: { contains: q, mode: 'insensitive' } },
-        ],
+        OR: queries.flatMap(v => [
+          { type: { contains: v, mode: 'insensitive' } },
+          { description: { contains: v, mode: 'insensitive' } },
+        ]),
       },
       orderBy: { date: 'desc' },
       take: 10,

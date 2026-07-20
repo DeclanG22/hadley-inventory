@@ -213,3 +213,8 @@ export const tools = {
 			request<void>(`/tools/maintenance-flags/${flagId}`, { method: 'DELETE' }),
 	},
 };
+
+export const jobs = {
+	list: (q?: string) => request<any[]>(`/jobs${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+	get: (jobNumber: string) => request<any>(`/jobs/${encodeURIComponent(jobNumber)}`),
+};

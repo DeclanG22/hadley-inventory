@@ -16,41 +16,9 @@
 
 	let form = $state<any>({});
 
-	let txnForm = $state({ jobNumber: '', date: new Date().toISOString().slice(0,10), quantity: 1, unitPrice: '', totalCost: '', notes: '' });
-	let txnDirection = $state<'in' | 'out'>('out');
-	let txnWeight = $state('');
-
-	let filterDateFrom = $state('');
-	let filterDateTo = $state('');
-	let filterJob = $state('');
-	let filterDirection = $state('all');
-
-	let filtered = $derived.by(() => {
-		let f = txns;
-		if (filterDateFrom) {
-			const from = new Date(filterDateFrom);
-			f = f.filter((t: any) => new Date(t.date) >= from);
-		}
-		if (filterDateTo) {
-			const to = new Date(filterDateTo);
-			to.setDate(to.getDate() + 1);
-			f = f.filter((t: any) => new Date(t.date) < to);
-		}
-		if (filterJob) {
-			const q = filterJob.toLowerCase();
-			f = f.filter((t: any) => (t.jobNumber ?? '').toLowerCase().includes(q));
-		}
-		if (filterDirection === 'in') {
-			f = f.filter((t: any) => t.quantityInOut > 0);
-		} else if (filterDirection === 'out') {
-			f = f.filter((t: any) => t.quantityInOut < 0);
-		}
-		return f;
-	});
-
 	function exportCsv() {
 		const rows = [['Date','In','Out','Job Number','Unit Price','Total Cost','Notes']];
-		for (const t of filtered) {
+		for (const t of txns) {
 			const d = new Date(t.date).toLocaleDateString();
 			const qIn = t.quantityInOut > 0 ? t.quantityInOut : '';
 			const qOut = t.quantityInOut < 0 ? -t.quantityInOut : '';
@@ -70,7 +38,7 @@
 
 	let totalCostSum = $derived.by(() => {
 		let sum = 0;
-		for (const t of filtered) {
+		for (const t of txns) {
 			const up = Number(t.unitPrice) || 0;
 			const cost = t.totalCost ? Number(t.totalCost) : up ? Math.abs(t.quantityInOut) * up : 0;
 			sum += cost;
@@ -79,7 +47,7 @@
 	});
 
 	function exportSummary() {
-		const jobs = [...new Set(filtered.map((t: any) => t.jobNumber).filter(Boolean))];
+		const jobs = [...new Set(txns.map((t: any) => t.jobNumber).filter(Boolean))];
 		const rows = [['Job #','Date From','Date To','Total Cost']];
 		rows.push([jobs.length ? jobs.join(', ') : '(none)', filterDateFrom || 'Any', filterDateTo || 'Any', totalCostSum.toFixed(2)]);
 		const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -134,39 +102,6 @@
 			editing = false;
 			items.get(id).then(i => { item = i; resetForm(i); });
 			addToast('Item updated', 'success');
-		} catch (e: any) { addToast(e.message, 'error'); }
-	}
-
-	function onTxnQtyChange() {
-		const wpu = item?.weightPerUnit ? Number(item.weightPerUnit) : null;
-		if (wpu && txnForm.quantity > 0) {
-			txnWeight = String(Math.round(txnForm.quantity * wpu * 100) / 100);
-		}
-	}
-
-	function onTxnWeightChange() {
-		const wpu = item?.weightPerUnit ? Number(item.weightPerUnit) : null;
-		if (wpu && wpu > 0 && parseFloat(txnWeight || '0') > 0) {
-			txnForm.quantity = Math.max(1, Math.floor(parseFloat(txnWeight) / wpu));
-		}
-	}
-
-	async function addTxn() {
-		try {
-			const id = Number(params.id);
-			const qty = txnForm.quantity || 1;
-			const data: any = { date: txnForm.date, quantityInOut: txnDirection === 'out' ? -qty : qty };
-			if (txnForm.jobNumber) data.jobNumber = txnForm.jobNumber;
-			if (txnForm.unitPrice) data.unitPrice = Number(txnForm.unitPrice);
-			if (txnForm.totalCost) data.totalCost = Number(txnForm.totalCost);
-			if (txnForm.notes) data.notes = txnForm.notes;
-			await items.transactions.create(id, data);
-			txnForm = { jobNumber: '', date: new Date().toISOString().slice(0,10), quantity: 1, unitPrice: '', totalCost: '', notes: '' };
-			txnDirection = 'out';
-			txnWeight = '';
-			items.get(id).then(i => item = i);
-			items.transactions.list(id).then(t => txns = t);
-			addToast('Transaction added', 'success');
 		} catch (e: any) { addToast(e.message, 'error'); }
 	}
 
@@ -337,67 +272,34 @@
 	{/if}
 
 	<div class="card" style="margin-top:10px">
-		<div class="card-header"><h2>Stock History Chart</h2></div>
-		<ItemChart transactions={txns} />
-	</div>
-
-	<div class="card" style="margin-top:10px">
 		<div class="card-header"><h2>Record Transaction</h2></div>
-		<form onsubmit={(e) => { e.preventDefault(); addTxn(); }}>
-			<div class="form-grid">
-				<div><label>Date *</label><input type="date" bind:value={txnForm.date} required /></div>
-				<div><label>Job Number</label><input bind:value={txnForm.jobNumber} /></div>
-				<div>
-					<label>Quantity</label>
-					<div style="display:flex;gap:4px;align-items:center">
-						<div class="segmented2">
-							<button type="button" class="segment2" class:active={txnDirection === 'out'} onclick={() => txnDirection = 'out'}>Out</button>
-							<button type="button" class="segment2" class:active={txnDirection === 'in'} onclick={() => txnDirection = 'in'}>In</button>
-						</div>
-						<input type="number" bind:value={txnForm.quantity} min="1" oninput={onTxnQtyChange} class="txn-qty-input" />
-					</div>
-				</div>
-				{#if item?.weightPerUnit}
-					<div><label>Weight (g)</label><input type="number" step="0.01" min="0" bind:value={txnWeight} oninput={onTxnWeightChange} /></div>
-				{/if}
-				<div><label>Unit Price</label><input type="number" step="0.01" bind:value={txnForm.unitPrice} /></div>
-				<div><label>Total Cost</label><input type="number" step="0.01" bind:value={txnForm.totalCost} /></div>
-				<div class="full"><label>Notes</label><input bind:value={txnForm.notes} /></div>
-			</div>
-			<button type="submit" style="margin-top:12px" class="btn-primary">Record</button>
-		</form>
+		<p style="padding:0 0 4px;color:var(--text-secondary);font-size:13px">
+			Go to the scan page to transact this item.
+		</p>
+		<a href="/scan?code={item.itemNumber}" class="btn-primary" style="display:inline-flex;align-items:center;gap:6px">
+			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M9.5 6.5v3h-3v-3zM11 5H5v6h6zm-1.5 9.5v3h-3v-3zM11 13H5v6h6zm6.5-6.5v3h-3v-3zM19 5h-6v6h6zm-6 8h1.5v1.5H13zm1.5 1.5H16V16h-1.5zM16 13h1.5v1.5H16zm-3 3h1.5v1.5H13zm1.5 1.5H16V19h-1.5zM16 16h1.5v1.5H16zm1.5-1.5H19V16h-1.5zm0 3H19V19h-1.5z"/></svg>
+			Transact / Scan
+		</a>
 	</div>
 
 	<div class="card" style="margin-top:10px">
 		<div class="card-header">
 			<h2>Transaction History</h2>
 			<div class="page-header-actions">
-				{#if filtered.length > 0}
+				{#if txns.length > 0}
 					<button class="btn-ghost btn-sm" onclick={exportSummary}>Export Summary</button>
 					<button class="btn-ghost btn-sm" onclick={exportCsv}>Export CSV</button>
 				{/if}
 			</div>
 		</div>
-		<div class="filter-bar">
-			<input type="search" bind:value={filterJob} placeholder="Job #" style="flex:1;min-width:120px" />
-			<input type="date" bind:value={filterDateFrom} placeholder="From" title="From date" style="width:130px" />
-			<input type="date" bind:value={filterDateTo} placeholder="To" title="To date" style="width:130px" />
-			<select bind:value={filterDirection} style="width:75px">
-				<option value="all">All</option>
-				<option value="in">In</option>
-				<option value="out">Out</option>
-			</select>
-		</div>
 		{#if txns.length === 0}
 			<div class="empty-state">No transactions recorded.</div>
-		{:else if filtered.length === 0}
-			<div class="empty-state">No transactions match the filter.</div>
 		{:else}
 			<div class="table-wrap">
 				<table>
 					<thead><tr><th>Date</th><th>In</th><th>Out</th><th>Job</th><th>Unit Price</th><th>Total</th><th>Notes</th><th></th></tr></thead>
 					<tbody>
-						{#each filtered as t}
+						{#each txns as t}
 							<tr>
 								<td>{new Date(t.date).toLocaleDateString()}</td>
 								<td>{t.quantityInOut > 0 ? t.quantityInOut : '-'}</td>
@@ -414,46 +316,16 @@
 			</div>
 		{/if}
 	</div>
+
+	<div class="card" style="margin-top:10px">
+		<div class="card-header"><h2>Stock History Chart</h2></div>
+		<ItemChart transactions={txns} />
+	</div>
 {/if}
 
 <style>
-	.segmented2 {
-		display: inline-flex;
-		align-items: center;
-		height: 30px;
-		box-sizing: border-box;
-		padding: 2px;
-		background: var(--bg-primary);
-		border: 1px solid var(--border-color);
-		border-radius: 10px;
-	}
-	.segment2 {
-		padding: 0 12px;
-		font-weight: 400;
-		height: 23px;
-		border: none;
-		border-radius: 9px;
-		background: transparent;
-		border: 1px solid transparent;
-		color: var(--text-secondary);
-		cursor: pointer;
-		font-size: 11.5px;
-		opacity: 0.7;
-		transform: scale(0.96);
-		transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
-	}
-	.segment2.active {
-		background: var(--bg-component);
-		border: 1px solid color-mix(in srgb, var(--border-color) 40%, transparent);
-		color: var(--text-primary);
-		opacity: 1;
-		transform: scale(1);
-	}
-	.segment2:hover {
-		opacity: 0.9;
-		transform: scale(0.98);
-	}
-	.txn-qty-input {
-		height: 30px;
-	}
+    .btn-primary {
+        border-radius: 8px;
+        padding: 4px 8px;
+    }
 </style>
