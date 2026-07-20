@@ -9,6 +9,13 @@
 	let result = $state<{ type: 'item' | 'tool'; data: any } | null>(null);
 
 	$effect(() => {
+		if (result?.type === 'item' && result.data?.weightPerUnit) {
+			const wpu = result.data.weightPerUnit;
+			if (quantity > 0) weight = String(Math.round(quantity * wpu * 100) / 100);
+		}
+	});
+
+	$effect(() => {
 		if (maintForm.flagId && result?.data?.maintenanceFlags) {
 			const flag = result.data.maintenanceFlags.find((f: any) => f.id === Number(maintForm.flagId));
 			if (flag) {
@@ -164,6 +171,9 @@
 			quantity = Math.max(1, Math.floor(parseFloat(weight) / wpu));
 		}
 	}
+
+	function decQty() { if (quantity > 1) { quantity--; onQtyChange(); } }
+	function incQty() { quantity++; onQtyChange(); }
 
 	async function submitItem() {
 		if (submitting) return;
@@ -336,46 +346,72 @@
 		</div>
 
 		<div class="txn-form">
-			{#if result.type === 'item'}
-				<div class="txn-row">
-					<div class="segmented2">
-						<button type="button" class="segment2" class:active={direction === 'out'} onclick={() => direction = 'out'}>Out</button>
-						<button type="button" class="segment2" class:active={direction === 'in'} onclick={() => direction = 'in'}>In</button>
-					</div>
-					<div class="qty-wrap">
-						<span class="qty-icon" aria-hidden="true">
-						<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16">
-							<path d="M0 0h16v16H0z" fill="none" />
-							<path fill="currentColor" fill-rule="evenodd" d="M7.808 10.197H6.796L5.859 13H4.485l.937-2.803H3.966l.219-1.25h1.647l.608-1.805H4.991l.226-1.251h1.64l.95-2.844h1.368l-.95 2.844h1.018l.95-2.844h1.374l-.95 2.844h1.51l-.218 1.25h-1.702l-.608 1.805h1.497l-.219 1.251H9.182L8.252 13H6.878zm-.602-1.25h1.012l.615-1.805H7.814z" />
-</svg>
+		{#if result.type === 'item'}
+			<div class="txn-row txn-row-top">
+				<div class="segmented2">
+					<button type="button" class="segment2" class:active={direction === 'out'} class:active-out={direction === 'out'} onclick={() => direction = 'out'}>Out</button>
+					<button type="button" class="segment2" class:active={direction === 'in'} class:active-in={direction === 'in'} onclick={() => direction = 'in'}>In</button>
+				</div>
 
-						</span>
-						<input type="number" bind:value={quantity} oninput={onQtyChange} min="1" class="qty-input" />
-					</div>
+				<div class="qty-stepper">
+					<button type="button" onclick={decQty} disabled={quantity <= 1} class="step-btn step-minus">−</button>
+					<input type="number" bind:value={quantity} oninput={onQtyChange} min="1" class="qty-input" />
+					<button type="button" onclick={incQty} class="step-btn step-plus">+</button>
+				</div>
+
 				{#if result?.data?.weightPerUnit}
 					<div class="weight-wrap">
 						<span class="weight-icon" aria-hidden="true">
-							<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+							<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 24 24">
 								<path d="M0 0h24v24H0z" fill="none" />
 								<path fill="currentColor" d="M12 3a4 4 0 0 1 4 4c0 .73-.19 1.41-.54 2H18c.95 0 1.75.67 1.95 1.56C21.96 18.57 22 18.78 22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2c0-.22.04-.43 2.05-8.44C4.25 9.67 5.05 9 6 9h2.54A3.9 3.9 0 0 1 8 7a4 4 0 0 1 4-4m0 2a2 2 0 0 0-2 2a2 2 0 0 0 2 2a2 2 0 0 0 2-2a2 2 0 0 0-2-2" />
 							</svg>
 						</span>
-						<input type="number" bind:value={weight} oninput={onWeightChange} step="0.01" min="0" placeholder="Weight (g)" class="weight-input" />
+
+						<input
+							type="number"
+							bind:value={weight}
+							oninput={onWeightChange}
+							step="0.01"
+							min="0"
+							placeholder="Weight"
+							class="weight-input"
+						/>
+
+						<span class="weight-unit">g</span>
 					</div>
 				{/if}
-				</div>
-				<div class="txn-row">
-					<input bind:value={jobNumber} placeholder="Job number (optional)" class="txn-field" />
-				</div>
-				<div class="txn-row">
-					<input bind:value={totalCost} type="number" step="0.01" min="0" placeholder="Total cost (optional)" class="txn-field" />
-				</div>
-				<button onclick={submitItem} disabled={submitting || quantity < 1} class="btn-primary txn-submit">
-					{submitting ? 'Recording...' : `${direction === 'in' ? 'Receive' : 'Issue'} ${quantity} unit${quantity !== 1 ? 's' : ''}`}
-				</button>
+			</div>
+
+			<div class="txn-row">
+				<input bind:value={jobNumber} placeholder="Job number (optional)" class="txn-field" />
+			</div>
+
+			<div class="txn-row">
+				<input bind:value={totalCost} type="number" step="0.01" min="0" placeholder="Total cost (optional)" class="txn-field" />
+			</div>
+
+			<button onclick={submitItem} disabled={submitting || quantity < 1} class="btn-primary txn-submit">
+				{submitting ? 'Recording...' : `${direction === 'in' ? 'Receive' : 'Issue'} ${quantity} unit${quantity !== 1 ? 's' : ''}`}
+			</button>
 			{:else}
 				{#if result.data.checkedOut}
-					<div class="txn-info">Checked out by <strong>{result.data.checkedOutBy}</strong> at {new Date(result.data.checkedOutAt).toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', month: 'numeric', day: 'numeric', year: 'numeric' })}</div>
+					<div class="txn-info">
+						<div class="info-row">
+							<span class="info-label">Checked out by</span>
+							<span class="info-value">{result.data.checkedOutBy}</span>
+						</div>
+						<div class="info-row">
+							<span class="info-label">Date</span>
+							<span class="info-value">{new Date(result.data.checkedOutAt).toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', month: 'numeric', day: 'numeric', year: 'numeric' })}</span>
+						</div>
+						{#if result.data.expectedReturnAt}
+							<div class="info-row">
+								<span class="info-label">Expected return</span>
+								<span class="info-value">{new Date(result.data.expectedReturnAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}</span>
+							</div>
+						{/if}
+					</div>
 					<button onclick={submitToolCheckin} disabled={submitting} class="btn-primary txn-submit checkin-btn">
 						{submitting ? 'Checking in...' : 'Check In'}
 					</button>
@@ -491,7 +527,7 @@
 		box-sizing: border-box;
 	}
 	.scan-input:focus {
-		border-color: var(--accent);
+		border-color: var(--accent-dark);
 	}
 
 	.scan-btn {
@@ -508,7 +544,7 @@
 		border-radius: 8px;
 		font-size: 18px;
 		color: white;
-		background: var(--accent);
+		background: var(--accent-dark);
 		border: none;
 		cursor: pointer;
 		transition: all var(--transition-fast) ease;
@@ -585,6 +621,9 @@
 		box-sizing: border-box;
 		filter: invert(1) brightness(1.5);
 	}
+	:global([data-theme="light"]) .qr-image {
+		filter: none;
+	}
 
 	/* Corner brackets */
 	.corner {
@@ -607,9 +646,9 @@
 		right: 0;
 		top: 38px;
 		height: 2px;
-		background: color-mix(in srgb, var(--accent) 55%, transparent);
+		background: color-mix(in srgb, var(--accent-dark) 55%, transparent);
 		border-radius: 2px;
-		box-shadow: 0 0 5px color-mix(in srgb, var(--accent) 35%, transparent);
+		box-shadow: 0 0 5px color-mix(in srgb, var(--accent-dark) 35%, transparent);
 		pointer-events: none;
 		z-index: 1;
 		mask-image: linear-gradient(to right, transparent 8%, black 20%, black 80%, transparent 92%);
@@ -624,7 +663,7 @@
 		height: 0;
 		pointer-events: none;
 		z-index: 0;
-		background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--accent) 45%, transparent) 100%);
+		background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--accent-dark) 45%, transparent) 100%);
 		mask-image: linear-gradient(to bottom, transparent 0%, black 40%, black 100%), linear-gradient(to right, transparent 8%, black 20%, black 80%, transparent 92%);
 		-webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 40%, black 100%), linear-gradient(to right, transparent 8%, black 20%, black 80%, transparent 92%);
 		mask-composite: intersect;
@@ -639,7 +678,7 @@
 		height: 0;
 		pointer-events: none;
 		z-index: 0;
-		background: linear-gradient(to top, transparent 0%, color-mix(in srgb, var(--accent) 45%, transparent) 100%);
+		background: linear-gradient(to top, transparent 0%, color-mix(in srgb, var(--accent-dark) 45%, transparent) 100%);
 		mask-image: linear-gradient(to top, transparent 0%, black 40%, black 100%), linear-gradient(to right, transparent 8%, black 20%, black 80%, transparent 92%);
 		-webkit-mask-image: linear-gradient(to top, transparent 0%, black 40%, black 100%), linear-gradient(to right, transparent 8%, black 20%, black 80%, transparent 92%);
 		mask-composite: intersect;
@@ -654,10 +693,10 @@
 
 	.scan-result {
 		margin-top: 16px;
-		padding: 14px;
+		padding: 10px;
 		background: color-mix(in srgb, var(--bg-secondary), 40% transparent);
 		border: 1px solid var(--border-color);
-		border-radius: 12px;
+		border-radius: 18px;
 	}
 
 	.result-header {
@@ -701,12 +740,14 @@
 	}
 
 	.result-img {
-		margin: -14px -14px 10px -14px;
-		width: calc(100% + 28px);
-		max-height: 180px;
+
+		width: calc(100%);
+		max-height: 240px;
 		object-fit: cover;
 		display: block;
-		border-radius: 12px 12px 0 0;
+		border-radius: 14px;
+		margin-bottom: 10px;
+		border: 1px solid var(--border-color);
 	}
 
 	.txn-form {
@@ -720,10 +761,52 @@
 		display: flex;
 		gap: 10px;
 		align-items: center;
-	}
-	.txn-row + .txn-row {
+}
+
+.txn-row + .txn-row {
 		margin-top: 4px;
-	}
+}
+
+/* NEW: only first row */
+.txn-row-top {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 6px;
+	align-items: center;
+}
+
+.txn-row-top > div {
+	width: 100%;
+	min-width: 0;
+	box-sizing: border-box;
+}
+
+.txn-row-top .segmented2,
+.txn-row-top .qty-stepper,
+.txn-row-top .weight-wrap {
+	justify-self: stretch;
+}
+
+.txn-row-top .segment2 {
+		flex: 1;
+}
+.txn-row-top > * {
+	width: 100%;
+	min-width: 0;
+}
+
+.txn-row-top .qty-input {
+	flex: 1;
+	width: auto;
+}
+.txn-row-top .qty-stepper {
+	justify-content: center;
+}
+
+.txn-row-top .weight-input {
+		width: 100%;
+}
+
 
 	.action-select {
 		width: 100%;
@@ -743,49 +826,97 @@
 		gap: 8px;
 	}
 
-	.qty-input {
-		width: 80px;
-		font-size: 16px;
-		text-align: center;
-		padding-left: 32px;
-	}
-
-	.qty-wrap {
-		position: relative;
+	.qty-stepper {
 		display: flex;
 		align-items: center;
-	}
+		width: 100%;
+		box-sizing: border-box;
+		padding: 0px 8px;
+		border: 1px solid var(--border-color);
+		border-radius: 14px;
+		overflow: hidden;
+		background: var(--bg-primary);
+}
 
-	.qty-icon {
-		position: absolute;
-		left: 10px;
-		color: var(--empty-text-secondary);
+.qty-input {
+	flex: 1;
+	min-width: 0;
+	width: auto;
+	font-size: 18px;
+	font-weight: 500;
+	height: 41px;
+	text-align: center;
+	border: none;
+	outline: none;
+	background: transparent;
+	color: var(--text-primary);
+	font-family: inherit;
+	-moz-appearance: textfield;
+}
+	.qty-input::-webkit-inner-spin-button,
+	.qty-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+	.step-btn {
 		display: flex;
 		align-items: center;
-		pointer-events: none;
-		z-index: 1;
-	}
+		justify-content: center;
+		flex: 0 0 28px;
+		width: 28px;
+		height: 28px;
+		box-sizing: border-box;
+		border: none;
+		background: var(--bg-secondary);
+		border-radius: 50%;
+		color: var(--text-secondary);
+		font-size: 18px;
+		cursor: pointer;
+		user-select: none;
+		transition: background-color 0.15s ease, color 0.15s ease;
+}
+	.step-btn:hover:not(:disabled) { background: var(--bg-component); color: var(--text-primary); }
+	.step-btn:disabled { opacity: 0.3; cursor: default; }
 
 	.weight-wrap {
 		position: relative;
 		display: flex;
 		align-items: center;
-	}
 
-	.weight-icon {
+}
+
+.weight-icon {
 		position: absolute;
-		left: 10px;
+		left: 8px;
 		color: var(--empty-text-secondary);
 		display: flex;
 		align-items: center;
 		pointer-events: none;
 		z-index: 1;
-	}
+}
 
-	.weight-input {
+.weight-input {
 		width: 130px;
 		padding-left: 32px;
-	}
+		padding-right: 28px;
+		height: 42.6px;
+		font-size: 18px;
+		font-weight: 500;
+		border-radius: 14px !important;
+			-moz-appearance: textfield;
+}
+
+.weight-input::-webkit-inner-spin-button,
+	.weight-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+.weight-unit {
+		position: absolute;
+		right: 10px;
+		color: var(--empty-text-secondary);
+		font-size: 15px;
+		font-weight: 400;
+		pointer-events: none;
+		z-index: 1;
+}
+
 
 	.txn-field {
 		flex: 1;
@@ -804,9 +935,31 @@
 	}
 
 	.txn-info {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 12px;
+		background: var(--bg-primary);
+		border: 1px solid var(--border-color);
+		border-radius: 10px;
+	}
+
+	.info-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.info-label {
+		font-size: 12px;
+		color: var(--empty-text-primary);
+		min-width: 105px;
+		flex-shrink: 0;
+	}
+
+	.info-value {
 		font-size: 13px;
-		color: var(--text-secondary);
-		padding: 4px 0;
+		color: var(--text-primary);
 	}
 	.txn-warn {
 		font-size: 12px;
@@ -832,34 +985,39 @@
 
 
 	.segmented2 {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
+		display: inline-flex;
+		align-items: center;
+		padding: 2px;
+		background: var(--bg-primary);
+		border: 1px solid var(--border-color);
+		border-radius: 14px;
 }
 
 .segment2 {
-  padding: 7px 12px;
-  font-weight: 400;
-  border: none;
-  border-radius: 9px;
-  background: transparent;
-border: 1px solid transparent;
-color: var(--empty-text-secondary);
-  cursor: pointer;
-  font-size: 11.5px;
-  opacity: 0.7;
-  transform: scale(0.96);
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+		padding: 7px 12px;
+		height: 37px;
+		font-weight: 400;
+		border: none;
+		border-radius: 12px;
+		background: transparent;
+		border: 1px solid transparent;
+		color: var(--empty-text-secondary);
+		cursor: pointer;
+		font-size: 18.5px;
+		opacity: 0.7;
+		transform: scale(0.96);
+		transition: all var(--transition-normal);
 }
+
 .segment2.active {
   background: var(--bg-component);
   border: 1px solid color-mix(in srgb, var(--border-color) 40%, transparent);
   color: var(--text-primary);
+  font-weight: 500;
   opacity: 1;
 }
+.segment2.active-out { color: var(--red) !important; }
+.segment2.active-in { color: var(--green) !important; }
 .segment2:hover {
   opacity: 0.9;
   transform: scale(0.98);
@@ -895,7 +1053,7 @@ color: var(--empty-text-secondary);
 			padding: 14px;
 		}
 		.qty-input {
-			width: 70px;
+			width: 44px;
 			font-size: 14px;
 		}
 	}

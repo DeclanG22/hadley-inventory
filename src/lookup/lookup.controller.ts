@@ -97,6 +97,7 @@ export class LookupController {
             checkedOut: tool.checkouts.length > 0,
             checkedOutBy: tool.checkouts[0]?.checkedOutBy ?? null,
             checkedOutAt: tool.checkouts[0]?.checkedOutAt ?? null,
+            expectedReturnAt: tool.checkouts[0]?.expectedReturnAt ?? null,
             maintenanceFlags: tool.maintenanceFlags,
           },
         };

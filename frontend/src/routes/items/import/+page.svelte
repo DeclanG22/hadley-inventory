@@ -280,7 +280,7 @@
 		transition: border-color 0.2s, background 0.2s;
 	}
 	.drop-zone:hover {
-		border-color: var(--accent);
+		border-color: var(--accent-dark);
 		background: color-mix(in srgb, var(--accent) 5%, transparent);
 	}
 	.drop-zone.has-file {

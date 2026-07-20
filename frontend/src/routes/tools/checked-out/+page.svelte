@@ -55,7 +55,7 @@
 						<th>Tool #</th>
 						<th>Name</th>
 						<th>Checked Out By</th>
-						<th>Job #</th>
+						<th style="width:120px">Job #</th>
 						<th>Job Site</th>
 						<th>Checked Out</th>
 						<th>Expected Return</th>
@@ -69,7 +69,7 @@
 							<td><a href="/tools/{t.id}" onclick={(e) => e.stopPropagation()}>{t.toolNumber}</a></td>
 							<td>{t.name}</td>
 							<td>{co.checkedOutBy}</td>
-							<td><a href="/jobs/{co.jobNumber ?? '-'}" onclick={(e) => e.stopPropagation()}>{co.jobNumber ?? '-'}</a></td>
+							<td><a href="/jobs/{co.jobNumber ?? '-'}" class="job-pill" onclick={(e) => e.stopPropagation()}>{co.jobNumber ?? '-'}</a></td>
 							<td>{co.jobSite ?? '-'}</td>
 							<td style="white-space:nowrap">{new Date(co.checkedOutAt).toLocaleDateString()}</td>
 							<td style="white-space:nowrap">{co.expectedReturnAt ? new Date(co.expectedReturnAt).toLocaleDateString() : '-'}</td>

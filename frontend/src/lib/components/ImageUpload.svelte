@@ -87,7 +87,7 @@
 	}
 	.file-btn:hover {
 		background: var(--bg-off);
-		color: var(--accent);
+		color: var(--accent-dark);
 	}
 	.file-btn:disabled {
 		opacity: 0.5;

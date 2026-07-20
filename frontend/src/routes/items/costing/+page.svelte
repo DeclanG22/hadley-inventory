@@ -127,7 +127,7 @@
 						<th>Item #</th>
 						<th>Description</th>
 						<th>Analysis Code</th>
-						<th>Job #</th>
+						<th style="width:120px">Job #</th>
 						<th>Qty</th>
 						<th>In/Out</th>
 						<th>Unit Price</th>
@@ -142,9 +142,9 @@
 							<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="/items/{t.item.id}" onclick={(e) => e.stopPropagation()}>{t.item.itemNumber}</a></td>
 							<td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{t.item.description}</td>
 							<td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{t.item.analysisCode ?? '-'}</td>
-							<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+							<td>
 								{#if t.jobNumber}
-									<a href="/jobs/{t.jobNumber}" onclick={(e) => e.stopPropagation()}>{t.jobNumber}</a>
+									<a href="/jobs/{t.jobNumber}" class="job-pill" onclick={(e) => e.stopPropagation()}>{t.jobNumber}</a>
 								{:else}-
 								{/if}
 							</td>

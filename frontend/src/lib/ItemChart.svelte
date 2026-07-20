@@ -352,7 +352,7 @@
 		display: flex;
 		align-items: center;
 		padding: 2px;
-		background: var(--bg-component);
+		background: var(--bg-secondary);
 		border: 1px solid var(--border-color);
 		border-radius: 12px;
 	}
@@ -389,7 +389,7 @@
 		font-weight: 400;
 		border: none;
 		border-radius: 9px;
-		background: var(--bg-component);
+		background: color-mix(in srgb, var(--bg-secondary), 50% transparent);
 		color: var(--text-secondary);
 		border: 1px solid transparent;
 		cursor: pointer;

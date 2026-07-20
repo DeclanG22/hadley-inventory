@@ -4,6 +4,7 @@
 	import { addToast } from '$lib/toast.svelte';
 	import { confirm } from '$lib/confirmDialog.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
+	import QRCode from 'qrcode';
 	let { params } = $props();
 
 	let item = $state<any>(null);
@@ -14,7 +15,28 @@
 	let catsList = $state<any[]>([]);
 	let subCats = $state<any[]>([]);
 
+	// Tab state management
+	let activeTab = $state<'details' | 'transactions' | 'chart'>('details');
+	let txnSearch = $state('');
+	let txnDateFrom = $state('');
+	let txnDateTo = $state('');
+
 	let form = $state<any>({});
+
+	let filteredTxns = $derived.by(() => {
+		if (!txnSearch && !txnDateFrom && !txnDateTo) return txns;
+		return txns.filter(t => {
+			if (txnDateFrom && new Date(t.date) < new Date(txnDateFrom)) return false;
+			if (txnDateTo && new Date(t.date) > new Date(txnDateTo + 'T23:59:59')) return false;
+			if (txnSearch) {
+				const q = txnSearch.toLowerCase();
+				const job = (t.jobNumber ?? '').toLowerCase();
+				const notes = (t.notes ?? '').toLowerCase();
+				if (!job.includes(q) && !notes.includes(q)) return false;
+			}
+			return true;
+		});
+	});
 
 	function exportCsv() {
 		const rows = [['Date','In','Out','Job Number','Unit Price','Total Cost','Notes']];
@@ -49,7 +71,7 @@
 	function exportSummary() {
 		const jobs = [...new Set(txns.map((t: any) => t.jobNumber).filter(Boolean))];
 		const rows = [['Job #','Date From','Date To','Total Cost']];
-		rows.push([jobs.length ? jobs.join(', ') : '(none)', filterDateFrom || 'Any', filterDateTo || 'Any', totalCostSum.toFixed(2)]);
+		rows.push([jobs.length ? jobs.join(', ') : '(none)', '(all)', '(all)', totalCostSum.toFixed(2)]);
 		const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
 		const blob = new Blob([csv], { type: 'text/csv' });
 		const url = URL.createObjectURL(blob);
@@ -77,7 +99,7 @@
 			analysisCode: i.analysisCode ?? '', headType: i.headType ?? '', imageUrl: i.imageUrl ?? '',
 			categoryId: i.categoryId ?? '', subCategoryId: i.subCategoryId ?? '',
 			locationId: i.locationId ?? '', vendorId: i.vendorId ?? '',
-		onHand: i.onHand ?? '', minStock: i.minStock ?? '',
+			onHand: i.onHand ?? '', minStock: i.minStock ?? '',
 		};
 		if (i.categoryId) itemCategories.subCategories.list(i.categoryId).then(l => subCats = l);
 	}
@@ -116,216 +138,492 @@
 			addToast('Transaction deleted and quantity reversed', 'success');
 		} catch (e: any) { addToast(e.message, 'error'); }
 	}
+
+	async function printQr() {
+		let dataUrl = qrCodeUrl;
+		if (!dataUrl) {
+			const origin = window.location.origin;
+			const url = `${origin}/scan?code=${encodeURIComponent(item.itemNumber)}`;
+			dataUrl = await QRCode.toDataURL(url, { width: 250, margin: 1 });
+		}
+		const win = window.open('', '_blank');
+		if (!win) return;
+		win.document.write(`<!DOCTYPE html><html><head><title>QR - ${item.itemNumber}</title>
+<style>
+* { margin:0;padding:0;box-sizing:border-box; }
+body { font-family:Inter,sans-serif;padding:12px;display:flex;justify-content:center;align-items:center;min-height:100vh; }
+.label { border:1px solid #ccc;border-radius:8px;padding:8px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px; }
+img { width:120px;height:120px;image-rendering:pixelated; }
+.code { font-weight:700;font-size:12px; }
+.desc { font-size:10px;color:#555;line-height:1.3; }
+@media print { @page { margin:8mm; } }
+</style></head><body><div class="label"><img src="${dataUrl}" alt="QR"><span class="code">${item.itemNumber}</span><span class="desc">${item.description ?? ''}</span></div></body></html>`);
+		win.document.close();
+		win.focus();
+		setTimeout(() => win.print(), 300);
+		items.markPrinted([item.id]).catch(() => {});
+	}
+
+	let qrCodeUrl = $state<string | null>(null);
+
+	$effect(() => {
+		if (item?.labelPrinted) {
+			const origin = window.location.origin;
+			const url = `${origin}/scan?code=${encodeURIComponent(item.itemNumber)}`;
+			QRCode.toDataURL(url, { width: 250, margin: 1 }).then((dataUrl: string) => {
+				qrCodeUrl = dataUrl;
+			});
+		} else {
+			qrCodeUrl = null;
+		}
+	});
 </script>
 
 {#if !item}
-	<div class="card"><div class="sk-detail">
-		<div class="sk-line sk" style="width:35%;height:24px"></div>
-		<div class="sk-line sk" style="width:55%"></div>
-		<div class="sk-line sk" style="width:45%"></div>
-		<div style="height:20px"></div>
-		<div class="sk-line sk" style="width:100%"></div>
-		<div class="sk-line sk" style="width:100%"></div>
-		<div class="sk-line sk" style="width:70%"></div>
-	</div></div>
+	<div class="sk-container">
+		<div class="sk" style="width:35%;height:24px"></div>
+		<div class="sk" style="width:55%"></div>
+		<div class="sk" style="width:45%"></div>
+	</div>
 {:else}
+	<!-- Top Bar Dashboard Header Layout -->
+
 	<div class="page-header">
 		<div>
-			<h1>{item.itemNumber}</h1>
-			<p style="color:var(--empty-text-primary);font-size:13px;margin-top:2px">{item.description}</p>
-		</div>
-		<div class="page-header-actions">
-			<div class="stat-card" style="padding:8px 16px;min-width:80px">
-				<div class="stat-value" style="font-size:22px">{item.onHand}</div>
-				<div class="stat-label">On Hand</div>
-			</div>
-			<button class="btn-ghost btn-sm" onclick={() => editing = !editing}>{editing ? 'Cancel' : 'Edit'}</button>
-		</div>
-	</div>
-
-	{#if editing}
-		<form class="card" style="margin-top:0" onsubmit={(e) => { e.preventDefault(); save(); }}>
-			<div class="card-header"><h2>Edit Item</h2></div>
-			<div class="form-grid">
-				<div class="full"><label>Item Number</label><input bind:value={form.itemNumber} required /></div>
-				<div class="full"><label>Description</label><input bind:value={form.description} required /></div>
-<div><label>Unit</label><input bind:value={form.unit} placeholder="Each, Box, etc" /></div>
-				<div><label>Unit Price</label><input type="number" step="0.01" bind:value={form.unitPrice} /></div>
-				<div><label>Weight/Unit (g)</label><input type="number" step="0.0001" bind:value={form.weightPerUnit} /></div>
-				<div><label>Analysis Code</label><input bind:value={form.analysisCode} /></div>
-				<div><label>Head Type</label><input bind:value={form.headType} /></div>
-				<ImageUpload bind:value={form.imageUrl} label="Image URL" />
-				<div><label>Category</label>
-					<select bind:value={form.categoryId} onchange={onCategoryChange}>
-						<option value="">--</option>
-						{#each catsList as c}<option value={c.id}>{c.name}</option>{/each}
-					</select>
-				</div>
-				<div><label>Sub-Category</label>
-					<select bind:value={form.subCategoryId}>
-						<option value="">--</option>
-						{#each subCats as s}<option value={s.id}>{s.name}</option>{/each}
-					</select>
-				</div>
-				<div><label>Location</label>
-					<select bind:value={form.locationId}>
-						<option value="">--</option>
-						{#each locationsList as l}<option value={l.id}>{l.name}</option>{/each}
-					</select>
-				</div>
-				<div><label>Vendor</label>
-					<select bind:value={form.vendorId}>
-						<option value="">--</option>
-						{#each vendorsList as v}<option value={v.id}>{v.name}</option>{/each}
-					</select>
-				</div>
-				<div><label>On Hand</label><input type="number" bind:value={form.onHand} /></div>
-				<div><label>Min Stock</label><input type="number" bind:value={form.minStock} placeholder="Low stock alert threshold" /></div>
-			</div>
-			<button type="submit" style="margin-top:12px">Save Changes</button>
-		</form>
-	{:else}
-		<div class="card" style="margin-top:0">
-			<div class="card-header"><h2>Details</h2></div>
-			{#if item.imageUrl}
-				<img src={item.imageUrl} alt="" class="detail-image" />
-			{/if}
-			<div class="detail-grid">
-			<span>
-			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-                        <path d="M0 0h24v24H0z" fill="none" />
-                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 3h6m-3-3v6" />
-         			</svg>
-				Category:
-</span>
-<span>{item.category?.name ?? '-'}{item.subCategory ? ` / ${item.subCategory.name}` : ''}</span>
-
-<span>
-    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-	<path d="M0 0h24v24H0z" fill="none" />
-	<path fill="currentColor" d="M12 7.5a4.5 4.5 0 1 0 0 9a4.5 4.5 0 0 0 0-9M8.5 12a3.5 3.5 0 1 1 7 0a3.5 3.5 0 0 1-7 0" />
-	<path fill="currentColor" d="M10.087 3.5c-.978 0-1.583 0-2.134.174a3.7 3.7 0 0 0-1.318.74c-.432.38-.737.894-1.225 1.717L3.494 9.36c-.487.821-.792 1.335-.913 1.892a3.5 3.5 0 0 0 0 1.494c.121.557.426 1.07.913 1.892l1.916 3.23c.488.823.793 1.337 1.225 1.716c.382.335.831.587 1.318.741c.551.174 1.156.174 2.134.174h3.826c.978 0 1.583 0 2.134-.174a3.7 3.7 0 0 0 1.318-.74c.432-.38.737-.894 1.225-1.717l1.916-3.23c.487-.821.792-1.335.913-1.892a3.5 3.5 0 0 0 0-1.494c-.121-.557-.426-1.07-.913-1.891L18.59 6.13c-.488-.823-.793-1.337-1.225-1.716a3.7 3.7 0 0 0-1.318-.741C15.496 3.5 14.89 3.5 13.913 3.5zM8.255 4.627c.385-.121.825-.127 1.922-.127h3.646c1.097 0 1.537.006 1.922.127c.356.113.684.297.96.54c.299.261.521.625 1.07 1.551l1.823 3.074c.55.927.762 1.295.844 1.674a2.5 2.5 0 0 1 0 1.068c-.082.379-.294.747-.844 1.674l-1.822 3.074c-.55.926-.772 1.29-1.07 1.551a2.7 2.7 0 0 1-.96.54c-.386.121-.826.127-1.923.127h-3.646c-1.097 0-1.537-.006-1.922-.127a2.7 2.7 0 0 1-.96-.54c-.299-.261-.521-.625-1.07-1.551l-1.823-3.074c-.55-.927-.762-1.295-.844-1.674a2.5 2.5 0 0 1 0-1.068c.082-.379.294-.747.844-1.674l1.822-3.074c.55-.926.772-1.29 1.07-1.551c.278-.243.605-.427.96-.54" />
-    </svg>
-
-				Head Type:
-</span>
-<span>{item.headType ?? '-'}</span>
-
-<span>
-    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 48 48">
-	<path d="M0 0h48v48H0z" fill="none" />
-	<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4">
-		<path d="M9 4h30v40L24 33.429L9 44z" />
-		<path d="M9 4h30v12H9z" />
-	</g>
-    </svg>
-
-				Unit:
-</span>
-<span>{item.unit ?? '-'}</span>
-
-<span>
-    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 512 512">
-	<path d="M0 0h512v512H0z" fill="none" />
-	<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M435.25 48h-122.9a14.46 14.46 0 0 0-10.2 4.2L56.45 297.9a28.85 28.85 0 0 0 0 40.7l117 117a28.85 28.85 0 0 0 40.7 0L459.75 210a14.46 14.46 0 0 0 4.2-10.2v-123a28.66 28.66 0 0 0-28.7-28.8" />
-	<path fill="currentColor" d="M384 160a32 32 0 1 1 32-32a32 32 0 0 1-32 32" />
-    </svg>
-
-
-
-				Unit Price:
-</span>
-<span>{item.unitPrice ? `$${Number(item.unitPrice).toFixed(2)}` : '-'}</span>
-
-<span>
- 			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-                <path d="M0 0h24v24H0z" fill="none" />
-                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5">
-                   	<path stroke-linejoin="round" d="M12 22c-.818 0-1.6-.33-3.163-.988C4.946 19.373 3 18.554 3 17.175V7.542M12 22c.818 0 1.6-.33 3.163-.988C19.054 19.373 21 18.554 21 17.175V7.542M12 22v-9.97m9-4.488c0 .613-.802 1-2.405 1.773l-2.92 1.41c-1.804.87-2.705 1.304-3.675 1.304m9-4.487c0-.612-.802-.999-2.405-1.772L17 5M3 7.542c0 .613.802 1 2.405 1.773l2.92 1.41c1.804.87 2.705 1.304 3.675 1.304M3 7.542c0-.612.802-.999 2.405-1.772L7 5m-1 8.026l2 .997" />
-   					<path d="m10 2l2 2m0 0l2 2m-2-2l-2 2m2-2l2-2" />
-                </g>
- 			</svg>
-				Min Stock:
-</span>
-<span>{item.minStock ?? '-'}</span>
-
-<span>
-    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-       	<path d="M0 0h24v24H0z" fill="none" />
-       	<path fill="currentColor" d="M18 15h-2v2h2m0-6h-2v2h2m2 6h-8v-2h2v-2h-2v-2h2v-2h-2V9h8M10 7H8V5h2m0 6H8V9h2m0 6H8v-2h2m0 6H8v-2h2M6 7H4V5h2m0 6H4V9h2m0 6H4v-2h2m0 6H4v-2h2m6-10V3H2v18h20V7z" />
-    </svg>
-				Vendor:
-</span>
-<span>{item.vendor?.name ?? '-'}</span>
-
-<span>
-    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-       	<path d="M0 0h24v24H0z" fill="none" />
-       	<path fill="currentColor" d="M16 10c0-2.21-1.79-4-4-4s-4 1.79-4 4s1.79 4 4 4s4-1.79 4-4m-6 0c0-1.1.9-2 2-2s2 .9 2 2s-.9 2-2 2s-2-.9-2-2" />
-       	<path fill="currentColor" d="M11.42 21.81c.17.12.38.19.58.19s.41-.06.58-.19c.3-.22 7.45-5.37 7.42-11.82c0-4.41-3.59-8-8-8s-8 3.59-8 8c-.03 6.44 7.12 11.6 7.42 11.82M12 4c3.31 0 6 2.69 6 6c.02 4.44-4.39 8.43-6 9.74c-1.61-1.31-6.02-5.29-6-9.74c0-3.31 2.69-6 6-6" />
-    </svg>
-				Location:
-</span>
-<span>{item.location?.name ?? '-'}</span>
+			<h1 class="item-title">{item.description || 'Unnamed Item'}</h1>
+			<p class="item-subtitle">{item.itemNumber}</p>
+			<div class="header-meta-grid">
+				<span class="meta-label">Status</span>
+				<span class="status-badge {item.onHand <= (item.minStock ?? 0) ? 'low-stock' : 'in-stock'}">
+					{item.onHand <= (item.minStock ?? 0) ? 'Low Stock' : 'In Stock'}
+				</span>
+				<span class="meta-label">Price</span>
+				<span class="price-value">{item.unitPrice ? `$${Number(item.unitPrice).toFixed(2)}` : 'Missing'}</span>
 			</div>
 		</div>
-	{/if}
 
-	<div class="card" style="margin-top:10px">
-		<div class="card-header"><h2>Record Transaction</h2></div>
-		<p style="padding:0 0 4px;color:var(--text-secondary);font-size:13px">
-			Go to the scan page to transact this item.
-		</p>
-		<a href="/scan?code={item.itemNumber}" class="btn-primary" style="display:inline-flex;align-items:center;gap:6px">
-			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M9.5 6.5v3h-3v-3zM11 5H5v6h6zm-1.5 9.5v3h-3v-3zM11 13H5v6h6zm6.5-6.5v3h-3v-3zM19 5h-6v6h6zm-6 8h1.5v1.5H13zm1.5 1.5H16V16h-1.5zM16 13h1.5v1.5H16zm-3 3h1.5v1.5H13zm1.5 1.5H16V19h-1.5zM16 16h1.5v1.5H16zm1.5-1.5H19V16h-1.5zm0 3H19V19h-1.5z"/></svg>
-			Transact / Scan
-		</a>
-	</div>
-
-	<div class="card" style="margin-top:10px">
-		<div class="card-header">
-			<h2>Transaction History</h2>
-			<div class="page-header-actions">
-				{#if txns.length > 0}
-					<button class="btn-ghost btn-sm" onclick={exportSummary}>Export Summary</button>
-					<button class="btn-ghost btn-sm" onclick={exportCsv}>Export CSV</button>
+		{#if item.labelPrinted}
+			<div class="qr-box">
+				{#if qrCodeUrl}
+					<img src={qrCodeUrl} alt="QR" style="width:80px;height:80px;display:block" />
+				{:else}
+					<div style="width:80px;height:80px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--empty-text-secondary)">Loading QR…</div>
 				{/if}
-			</div>
-		</div>
-		{#if txns.length === 0}
-			<div class="empty-state">No transactions recorded.</div>
-		{:else}
-			<div class="table-wrap">
-				<table>
-					<thead><tr><th>Date</th><th>In</th><th>Out</th><th>Job</th><th>Unit Price</th><th>Total</th><th>Notes</th><th></th></tr></thead>
-					<tbody>
-						{#each txns as t}
-							<tr>
-								<td>{new Date(t.date).toLocaleDateString()}</td>
-								<td>{t.quantityInOut > 0 ? t.quantityInOut : '-'}</td>
-								<td>{t.quantityInOut < 0 ? -t.quantityInOut : '-'}</td>
-								<td>{t.jobNumber ?? '-'}</td>
-								<td>{t.unitPrice ? `$${Number(t.unitPrice).toFixed(2)}` : '-'}</td>
-								<td>{t.totalCost ? `$${Number(t.totalCost).toFixed(2)}` : '-'}</td>
-								<td>{t.notes ?? ''}</td>
-								<td><button class="btn-del btn-sm" onclick={() => deleteTxn(t.id)}><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 14 14"><path d="M0 0h14v14H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M1.707.293A1 1 0 0 0 .293 1.707L5.586 7L.293 12.293a1 1 0 1 0 1.414 1.414L7 8.414l5.293 5.293a1 1 0 0 0 1.414-1.414L8.414 7l5.293-5.293A1 1 0 0 0 12.293.293L7 5.586z" clip-rule="evenodd" /></svg></button></td>
-							</tr>
-						{/each}
-					</tbody>
-				</table>
+				<div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+					<button class="qr-btn" onclick={printQr} title="Print QR label">
+						<svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M8 21q-.825 0-1.412-.587T6 19v-2H4q-.825 0-1.412-.587T2 15v-4q0-1.275.875-2.137T5 8h14q1.275 0 2.138.863T22 11v4q0 .825-.587 1.413T20 17h-2v2q0 .825-.587 1.413T16 21zm-4-6h2q0-.825.588-1.412T8 13h8q.825 0 1.413.588T18 15h2v-4q0-.425-.288-.712T19 10H5q-.425 0-.712.288T4 11zm12-7V5H8v3H6V5q0-.825.588-1.412T8 3h8q.825 0 1.413.588T18 5v3zm2 4.5q.425 0 .713-.288T19 11.5t-.288-.712T18 10.5t-.712.288T17 11.5t.288.713t.712.287M16 19v-4H8v4zM4 10h16z" /></svg>
+					</button>
+				</div>
 			</div>
 		{/if}
 	</div>
 
-	<div class="card" style="margin-top:10px">
-		<div class="card-header"><h2>Stock History Chart</h2></div>
-		<ItemChart transactions={txns} />
+	<!-- Main Workspace Split Grid Layout -->
+	<div class="dashboard-grid">
+
+		<!-- Left Main Content Area (Tabs & Form Data View) -->
+		<div class="content-card">
+			<div class="tabs-header-row">
+				<div class="tabs-nav">
+					<button class="tab-btn" class:active={activeTab === 'details'} onclick={() => activeTab = 'details'}>Details</button>
+					<button class="tab-btn" class:active={activeTab === 'transactions'} onclick={() => activeTab = 'transactions'}>Transactions ({txns.length})</button>
+					<button class="tab-btn" class:active={activeTab === 'chart'} onclick={() => activeTab = 'chart'}>Stock Chart</button>
+				</div>
+				{#if activeTab === 'details'}
+					<button class="btn-ghost btn-sm" onclick={() => editing = !editing}>
+						{editing ? 'Cancel' : 'Edit'}
+					</button>
+				{/if}
+			</div>
+
+			<!-- Dynamic Content Windows inside Tabs -->
+			{#if editing}
+				<form style="padding:16px" onsubmit={(e) => { e.preventDefault(); save(); }}>
+					<div class="form-grid">
+						<div class="full"><label>Item Number</label><input bind:value={form.itemNumber} required /></div>
+						<div class="full"><label>Description</label><input bind:value={form.description} required /></div>
+						<div><label>Unit</label><input bind:value={form.unit} placeholder="Each, Box, etc" /></div>
+						<div><label>Unit Price</label><input type="number" step="0.01" bind:value={form.unitPrice} /></div>
+						<div><label>Weight/Unit (g)</label><input type="number" step="0.0001" bind:value={form.weightPerUnit} /></div>
+						<div><label>Analysis Code</label><input bind:value={form.analysisCode} /></div>
+						<div><label>Head Type</label><input bind:value={form.headType} /></div>
+						<div class="full"><ImageUpload bind:value={form.imageUrl} label="Image URL" /></div>
+						<div><label>Category</label>
+							<select bind:value={form.categoryId} onchange={onCategoryChange}>
+								<option value="">--</option>
+								{#each catsList as c}<option value={c.id}>{c.name}</option>{/each}
+							</select>
+						</div>
+						<div><label>Sub-Category</label>
+							<select bind:value={form.subCategoryId}>
+								<option value="">--</option>
+								{#each subCats as s}<option value={s.id}>{s.name}</option>{/each}
+							</select>
+						</div>
+						<div><label>Location</label>
+							<select bind:value={form.locationId}>
+								<option value="">--</option>
+								{#each locationsList as l}<option value={l.id}>{l.name}</option>{/each}
+							</select>
+						</div>
+						<div><label>Vendor</label>
+							<select bind:value={form.vendorId}>
+								<option value="">--</option>
+								{#each vendorsList as v}<option value={v.id}>{v.name}</option>{/each}
+							</select>
+						</div>
+						<div><label>On Hand</label><input type="number" bind:value={form.onHand} /></div>
+						<div><label>Min Stock</label><input type="number" bind:value={form.minStock} placeholder="Low stock alert threshold" /></div>
+					</div>
+					<button type="submit" class="btn-primary" style="margin-top:14px">Save Changes</button>
+				</form>
+			{:else}
+				<div class="tab-body">
+					{#if activeTab === 'details'}
+						<div class="details-grid">
+							<span class="detail-label">Category</span><span class="detail-val">{item.category?.name ?? '-'}{item.subCategory ? ` / ${item.subCategory.name}` : ''}</span>
+							<span class="detail-label">Head Type</span><span class="detail-val">{item.headType ?? '-'}</span>
+							<span class="detail-label">Unit</span><span class="detail-val">{item.unit ?? '-'}</span>
+							<span class="detail-label">Unit Price</span><span class="detail-val">{item.unitPrice ? `$${Number(item.unitPrice).toFixed(2)}` : '-'}</span>
+							<span class="detail-label">Min Stock Threshold</span><span class="detail-val">{item.minStock ?? '-'}</span>
+							<span class="detail-label">Vendor</span><span class="detail-val">{item.vendor?.name ?? '-'}</span>
+							<span class="detail-label">Location</span><span class="detail-val">{item.location?.name ?? '-'}</span>
+							<span class="detail-label">Analysis Code</span><span class="detail-val">{item.analysisCode ?? '-'}</span>
+							<span class="detail-label">Weight per Unit</span><span class="detail-val">{item.weightPerUnit ? `${item.weightPerUnit}g` : '-'}</span>
+						</div>
+					{:else if activeTab === 'transactions'}
+						<div class="filter-bar">
+							<input type="search" bind:value={txnSearch} placeholder="Search job or notes..." style="flex:1;min-width:120px;max-width:260px" />
+							<input type="date" bind:value={txnDateFrom} placeholder="From" title="From date" style="width:120px" />
+							<input type="date" bind:value={txnDateTo} placeholder="To" title="To date" style="width:120px" />
+							{#if txns.length > 0}
+								<div style="display:flex;gap:6px;flex-shrink:0">
+									<button class="btn-ghost btn-sm" onclick={exportSummary}>Export Summary</button>
+									<button class="btn-ghost btn-sm" onclick={exportCsv}>Export Records</button>
+								</div>
+							{/if}
+						</div>
+						{#if txns.length === 0}
+							<div class="empty-state">No transactions recorded yet.</div>
+						{:else if filteredTxns.length === 0}
+							<div class="empty-state">No transactions match the filters.</div>
+						{:else}
+							<div class="table-wrap">
+								<table>
+									<thead>
+										<tr><th>Date</th><th>In</th><th>Out</th><th style="width:120px">Job #</th><th>Unit Price</th><th>Total</th><th>Notes</th><th></th></tr>
+									</thead>
+									<tbody>
+										{#each filteredTxns as t}
+											<tr>
+												<td>{new Date(t.date).toLocaleDateString()}</td>
+												<td class="text-success">{t.quantityInOut > 0 ? `+${t.quantityInOut}` : '-'}</td>
+												<td class="text-danger">{t.quantityInOut < 0 ? -t.quantityInOut : '-'}</td>
+												<td>
+													{#if t.jobNumber}
+														<a href="/jobs/{t.jobNumber}" class="job-pill" onclick={(e) => e.stopPropagation()}>{t.jobNumber}</a>
+													{:else}<span class="job-pill">-</span>{/if}
+												</td>
+												<td>{t.unitPrice ? `$${Number(t.unitPrice).toFixed(2)}` : '-'}</td>
+												<td>{t.totalCost ? `$${Number(t.totalCost).toFixed(2)}` : '-'}</td>
+												<td class="notes-cell">{t.notes ?? ''}</td>
+												<td>
+													<button class="btn-del btn-sm" onclick={() => deleteTxn(t.id)}>
+														<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 14 14"><path d="M0 0h14v14H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M1.707.293A1 1 0 0 0 .293 1.707L5.586 7L.293 12.293a1 1 0 1 0 1.414 1.414L7 8.414l5.293 5.293a1 1 0 0 0 1.414-1.414L8.414 7l5.293-5.293A1 1 0 0 0 12.293.293L7 5.586z" clip-rule="evenodd" /></svg>
+													</button>
+												</td>
+											</tr>
+										{/each}
+									</tbody>
+								</table>
+							</div>
+						{/if}
+					{:else}
+						<div class="chart-wrap">
+							<ItemChart transactions={txns} />
+						</div>
+					{/if}
+				</div>
+			{/if}
+		</div>
+
+		<!-- Right Media & Action Sidebar Card Panel -->
+		<div class="sidebar-panel">
+			<div class="sidebar-card">
+				{#if item.imageUrl}
+					<img src={item.imageUrl} alt={item.description} class="product-img" />
+				{:else}
+					<div class="no-img">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+						<span>No image added</span>
+					</div>
+				{/if}
+				<div class="img-sub">
+					<h4>{item.description}</h4>
+				</div>
+			</div>
+
+			<div class="sidebar-card">
+				<div class="metric-block">
+					<span class="metric-num">{item.onHand}</span>
+					<span class="metric-label">Units Available</span>
+				</div>
+				<a href="/scan?code={item.itemNumber}" class="btn-primary" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box">
+				<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+					<path d="M0 0h24v24H0z" fill="none" />
+					<path fill="currentColor" d="M10 5.5a4.5 4.5 0 0 1 6.5-4.032a4.5 4.5 0 1 1 0 8.064A4.5 4.5 0 0 1 10 5.5m8.25 2.488q.123.012.25.012a2.5 2.5 0 1 0-.25-4.988A4.5 4.5 0 0 1 19 5.5a4.5 4.5 0 0 1-.75 2.488M8.435 13.25a1.25 1.25 0 0 0-.885.364l-2.05 2.05V19.5h5.627l5.803-1.45l3.532-1.508a.555.555 0 0 0-.416-1.022l-.02.005L13.614 17H10v-2h3.125a.875.875 0 1 0 0-1.75zm7.552 1.152l3.552-.817a2.56 2.56 0 0 1 3.211 2.47a2.56 2.56 0 0 1-1.414 2.287l-.027.014l-3.74 1.595l-6.196 1.549H0v-7.25h4.086l2.052-2.052a3.25 3.25 0 0 1 2.3-.948h4.687a2.875 2.875 0 0 1 2.862 3.152M3.5 16.25H2v3.25h1.5z" />
+</svg>
+
+					Transact
+				</a>
+			</div>
+		</div>
+
 	</div>
 {/if}
 
 <style>
-    .btn-primary {
-        border-radius: 8px;
-        padding: 4px 8px;
-    }
+	.item-title {
+		font-size: 24px;
+		font-weight: 400;
+		color: var(--text-primary);
+		margin: 0 0 2px 0;
+	}
+	.item-subtitle {
+		font-size: 14px;
+		color: var(--empty-text-secondary);
+		margin: 0 0 12px 0;
+	}
+	.meta-badges {
+		display: flex;
+		gap: 8px;
+		align-items: center;
+	}
+	.header-meta-grid {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		gap: 4px 12px;
+		align-items: center;
+		justify-items: start;
+		font-size: 13px;
+	}
+	.meta-label {
+		color: var(--empty-text-primary);
+		font-weight: 400;
+	}
+	.price-value {
+		color: var(--text-primary);
+		font-weight: 600;
+	}
+	.status-badge {
+		font-size: 11px;
+		font-weight: 600;
+		padding: 3px 8px;
+		border-radius: 6px;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+	.status-badge.in-stock {
+		background: var(--green);
+		color: var(--green-bg-light);
+	}
+	.status-badge.low-stock {
+		background: var(--red);
+		color: var(--red-bg-light);
+	}
+	.qr-box {
+	background: color-mix(in srgb, var(--bg-secondary), 50% transparent);
+		border: 1px solid var(--border-color);
+		border-radius: 12px;
+		padding: 8px;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+	.qr-btn {
+	background: transparent;
+	border: 1px solid transparent;
+	margin-left: 2.4rem;
+	margin-right: 0.8rem;
+	padding: 4px;
+	transition: all var(--transition-normal);
+	}
+
+	.qr-btn:hover {
+	background: var(--bg-primary);
+	}
+	.qr-text {
+		font-size: 11px;
+		color: var(--empty-text-secondary);
+	}
+
+	.dashboard-grid {
+		display: grid;
+		grid-template-columns: 1fr 340px;
+		gap: 20px;
+		align-items: start;
+	}
+
+	.btn-primary {
+	padding: 6px 8px;
+	border-radius: 10px;
+	font-size: 20px;
+	text-decoration: none;
+	}
+	.btn-primary:hover {
+	opacity: 0.8 ;
+	color: white;
+	}
+
+	.content-card {
+		background: color-mix(in srgb, var(--bg-secondary), 50% transparent);
+		border: 1px solid var(--border-color);
+		border-radius: 18px;
+		overflow: hidden;
+	}
+	.tabs-header-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0 14px;
+		border-bottom: 1px solid var(--border-color);
+	}
+	.tabs-nav {
+		display: flex;
+		gap: 2px;
+	}
+	.tab-btn {
+		background: transparent;
+		border: none;
+		padding: 12px 14px;
+		font-size: 13px;
+		font-weight: 400;
+		color: var(--empty-text-primary);
+		cursor: pointer;
+		position: relative;
+		transition: color 0.2s;
+		border-radius: 0;
+	}
+	.tab-btn:hover { color: var(--text-primary); }
+	.tab-btn.active {
+		color: var(--text-primary);
+		font-weight: 500;
+	}
+	.tab-btn.active::after {
+		content: '';
+		position: absolute;
+		bottom: -1px;
+		left: 0;
+		right: 0;
+		height: 2px;
+		background: var(--accent-dark);
+	}
+
+	.tab-body { padding: 16px; }
+
+	/* Details grid: 1fr 1fr split */
+	.details-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		border: 1px solid var(--border-color);
+		border-radius: 12px;
+		overflow: hidden;
+	}
+	.detail-label, .detail-val {
+		padding: 10px 12px;
+		border-bottom: 1px solid var(--border-color);
+		font-size: 13px;
+	}
+	.detail-label {
+		color: var(--empty-text-primary);
+		font-weight: 400;
+		border-right: 1px solid var(--border-color);
+	}
+	.detail-val {
+		color: var(--text-primary);
+		font-weight: 400;
+	}
+	.detail-label:nth-last-child(2),
+	.detail-val:last-child {
+		border-bottom: none;
+	}
+
+	.text-success { color: var(--green); font-weight: 500; }
+	.text-danger { color: var(--red); font-weight: 500; }
+	.notes-cell {
+		max-width: 160px;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		color: var(--empty-text-secondary);
+	}
+
+	/* Sidebar */
+	.sidebar-panel {
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+	}
+	.sidebar-card {
+		background: color-mix(in srgb, var(--bg-secondary), 50% transparent);
+		border: 1px solid var(--border-color);
+		border-radius: 18px;
+		padding: 16px;
+	}
+	.product-img {
+		width: 100%;
+		height: 200px;
+		object-fit: cover;
+		background: var(--bg-primary);
+		border-radius: 12px;
+	}
+	.no-img {
+		height: 160px;
+		background: var(--bg-primary);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		color: var(--empty-text-secondary);
+		gap: 8px;
+		font-size: 13px;
+		border: 1px dashed var(--border-color);
+		border-radius: 12px;
+	}
+	.img-sub {
+		margin-top: 10px;
+		text-align: center;
+	}
+	.img-sub h4 { margin: 0 0 2px 0; font-size: 14px; font-weight: 500; color: var(--text-primary); }
+	.img-sub p { margin: 0; font-size: 12px; color: var(--empty-text-secondary); }
+
+	.metric-block { text-align: center; margin-bottom: 14px; }
+	.metric-num { display: block; font-size: 30px; font-weight: 500; color: var(--text-primary); line-height: 1; }
+	.metric-label { font-size: 12px; color: var(--empty-text-secondary); font-weight: 400; }
+
+	/* Skeleton */
+	.sk-container {
+		padding: 40px;
+		background: color-mix(in srgb, var(--bg-secondary), 50% transparent);
+		border: 1px solid var(--border-color);
+		border-radius: 18px;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.sk {
+		background: linear-gradient(90deg, var(--border-color) 25%, var(--empty-text-secondary) 50%, var(--border-color) 75%);
+		opacity: 0.3;
+		background-size: 200% 100%;
+		animation: loading 1.5s infinite;
+		height: 16px;
+		border-radius: 4px;
+	}
+	@keyframes loading {
+		0% { background-position: 200% 0; }
+		100% { background-position: -200% 0; }
+	}
+	.chart-wrap {
+		padding: 8px 0;
+	}
 </style>

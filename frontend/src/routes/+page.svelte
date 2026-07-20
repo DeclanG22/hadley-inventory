@@ -191,14 +191,14 @@
 		<div class="card-header"><h2>Overdue Returns</h2></div>
 		<div class="table-wrap">
 			<table>
-				<thead><tr><th>Tool</th><th>Checked Out By</th><th>Job</th><th>Due</th><th>Overdue</th></tr></thead>
+				<thead><tr><th>Tool</th><th>Checked Out By</th><th style="width:120px">Job</th><th>Due</th><th>Overdue</th></tr></thead>
 				<tbody>
 					{#each overdueCheckouts as co}
 						{@const days = Math.floor((Date.now() - new Date(co.expectedReturnAt).getTime()) / 86400000)}
 						<tr onclick={() => goto(`/tools/${co.tool.id}`)} role="button" tabindex={0}>
 							<td><a href="/tools/{co.tool.id}" onclick={(e) => e.stopPropagation()}>{co.tool.toolNumber} — {co.tool.name}</a></td>
 							<td>{co.checkedOutBy}</td>
-							<td>{co.jobNumber ?? '-'}</td>
+							<td><span class="job-pill">{co.jobNumber ?? '-'}</span></td>
 							<td style="white-space:nowrap">{new Date(co.expectedReturnAt).toLocaleDateString()}</td>
 							<td style="color:var(--red);font-weight:500">{days}d</td>
 						</tr>

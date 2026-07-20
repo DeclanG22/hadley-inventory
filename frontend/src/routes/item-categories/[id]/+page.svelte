@@ -106,9 +106,9 @@
 		white-space: nowrap;
 	}
 	.sub-item.active {
-		background: var(--accent);
+		background: var(--accent-dark);
 		color: var(--bg-primary);
-		border-color: var(--accent);
+		border-color: var(--accent-dark);
 	}
 	.sub-x {
 		margin-left: 4px;

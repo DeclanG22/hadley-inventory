@@ -102,6 +102,6 @@
 		flex: 1;
 	}
 	.cat-name:hover {
-		color: var(--accent);
+		color: var(--accent-dark);
 	}
 </style>

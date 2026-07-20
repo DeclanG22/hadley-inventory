@@ -51,7 +51,7 @@
 			<table>
 				<thead>
 					<tr>
-						<th>Job Number</th>
+						<th style="width:120px">Job Number</th>
 						<th>Items Issued</th>
 						<th>Tools Issued</th>
 					</tr>
@@ -59,7 +59,7 @@
 				<tbody>
 					{#each jobList as j}
 						<tr onclick={() => goto(`/jobs/${j.jobNumber}`)}>
-							<td><a href="/jobs/{j.jobNumber}" onclick={(e) => e.stopPropagation()}>{j.jobNumber}</a></td>
+							<td><a href="/jobs/{j.jobNumber}" class="job-pill" onclick={(e) => e.stopPropagation()}>{j.jobNumber}</a></td>
 							<td>{j.itemCount}</td>
 							<td>{j.toolCount}</td>
 						</tr>

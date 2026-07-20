@@ -220,14 +220,12 @@
 
 			<a href="/jobs" class="tab-link" class:active={path === '/jobs' || path.startsWith('/jobs/')}>
 				<span class="tab-link-icon" aria-hidden="true">
-					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-						<path d="M0 0h24v24H0z" fill="none" />
-						<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
-							<rect x="2" y="7" width="20" height="14" rx="2" />
-							<path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
-							<path d="M8 12h.01M12 12h.01M16 12h.01" />
-						</g>
-					</svg>
+				<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16">
+					<path d="M0 0h16v16H0z" fill="none" />
+					<path fill="currentColor" fill-rule="evenodd" d="M6 1a1.75 1.75 0 0 0-1.75 1.75V4H3a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.25V2.75A1.75 1.75 0 0 0 10 1zm4.25 3V2.75A.25.25 0 0 0 10 2.5H6a.25.25 0 0 0-.25.25V4zM3 5.5h10a.5.5 0 0 1 .5.5v1h-11V6a.5.5 0 0 1 .5-.5m-.5 3V13a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5V8.5H9V10H7V8.5z" clip-rule="evenodd" />
+</svg>
+
+
 				</span>
 				<span>Jobs</span>
 			</a>
@@ -319,7 +317,7 @@
 		display: block;
 	}
 	.nav-label {
-		font-size: 9px;
+		font-size: 11px;
 		font-weight: 500;
 		letter-spacing: -0.04em;
 		color: var(--empty-text-secondary);
