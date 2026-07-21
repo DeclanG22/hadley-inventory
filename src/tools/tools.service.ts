@@ -4,12 +4,16 @@ import { CreateToolDto } from './dto/create-tool.dto';
 import { UpdateToolDto } from './dto/update-tool.dto';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { CheckinDto } from './dto/checkin.dto';
+import { CreateMaintenanceDto } from './dto/create-maintenance.dto';
+import { BatchCreateToolDto } from './dto/batch-create-tool.dto';
 
 function expandSearchQueries(q: string): string[] {
   const norm = q.replace(/\s+/g, ' ').trim();
   const results = [norm];
   const collapsed = norm.replace(/\s*([^\w\d\s])\s*/g, '$1').replace(/\s*([x×])\s*/g, '$1');
   if (collapsed !== norm) results.push(collapsed);
+  const stripped = norm.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (stripped !== norm && stripped !== collapsed) results.push(stripped);
   const expanded = norm
     .replace(/(\d)\s*[x×]\s*(\d)/g, '$1 x $2')
     .replace(/(\d)\s*[x×]\s*$/g, '$1 x')
@@ -17,8 +21,18 @@ function expandSearchQueries(q: string): string[] {
   if (expanded !== norm) results.push(expanded);
   return [...new Set(results)];
 }
-import { CreateMaintenanceDto } from './dto/create-maintenance.dto';
-import { BatchCreateToolDto } from './dto/batch-create-tool.dto';
+
+async function nextHeNumber(prisma: PrismaService): Promise<number | null> {
+  const all = await prisma.tool.findMany({
+    where: { heNumber: { not: null } },
+    select: { heNumber: true },
+  });
+  const nums = all
+    .map(t => t.heNumber!)
+    .filter(n => n != null);
+  if (nums.length === 0) return null;
+  return Math.max(...nums) + 1;
+}
 
 @Injectable()
 export class ToolsService {
@@ -31,43 +45,36 @@ export class ToolsService {
     });
   }
 
-  create(dto: CreateToolDto) {
-    return this.prisma.tool.create({ data: dto });
+  async create(dto: CreateToolDto) {
+    if (!dto.heNumber) {
+      const next = await nextHeNumber(this.prisma);
+      if (next) dto.heNumber = next;
+    }
+    return this.prisma.tool.create({ data: dto as any });
   }
 
   async batchCreate(dto: BatchCreateToolDto) {
-    const lastTool = await this.prisma.tool.findFirst({
-      where: { toolNumber: { startsWith: dto.toolNumberPrefix } },
-      orderBy: { toolNumber: 'desc' },
-      select: { toolNumber: true },
-    });
-
-    let nextNum = 1;
-    if (lastTool) {
-      const match = lastTool.toolNumber.match(/-(\d+)$/);
-      if (match) nextNum = parseInt(match[1], 10) + 1;
-    }
-
     const data: any[] = [];
     for (let i = 0; i < dto.quantity; i++) {
+      let heNum: number | undefined;
+      if (dto.heNumberStart !== undefined) {
+        heNum = dto.heNumberStart + i;
+      }
       data.push({
-        toolNumber: `${dto.toolNumberPrefix}-${String(nextNum + i).padStart(3, '0')}`,
         name: dto.name,
         description: dto.description,
-        brand: dto.brand,
-        model: dto.model,
+        heNumber: heNum,
         serialNumber: dto.serialNumber,
         imageUrl: dto.imageUrl,
         notes: dto.notes,
-        categoryId: dto.categoryId,
+        vendorId: dto.vendorId,
         locationId: dto.locationId,
       });
     }
 
     await this.prisma.tool.createMany({ data });
     return this.prisma.tool.findMany({
-      where: { toolNumber: { startsWith: dto.toolNumberPrefix } },
-      orderBy: { toolNumber: 'desc' },
+      orderBy: { id: 'desc' },
       take: dto.quantity,
     });
   }
@@ -80,13 +87,24 @@ export class ToolsService {
     const where: any = { deletedAt: null };
     if (q) {
       const queries = expandSearchQueries(q);
+      const heNum = parseInt(q, 10);
+      const heWhere = !isNaN(heNum) ? { heNumber: heNum } : null;
       where.OR = queries.flatMap(v => [
-        { toolNumber: { contains: v, mode: 'insensitive' } },
         { name: { contains: v, mode: 'insensitive' } },
-        { brand: { contains: v, mode: 'insensitive' } },
-        { model: { contains: v, mode: 'insensitive' } },
         { description: { contains: v, mode: 'insensitive' } },
+        ...(heWhere ? [heWhere] : []),
       ]);
+      const tokens = q.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase().split(/\s+/).filter(Boolean);
+      if (tokens.length > 1) {
+        where.OR.push({
+          AND: tokens.map(token => ({
+            OR: [
+              { name: { contains: token, mode: 'insensitive' } },
+              { description: { contains: token, mode: 'insensitive' } },
+            ]
+          }))
+        });
+      }
     }
     if (filters?.labelPrinted !== undefined) where.labelPrinted = filters.labelPrinted;
 
@@ -94,7 +112,7 @@ export class ToolsService {
     const limit = filters?.limit ?? 100;
     const skip = (page - 1) * limit;
 
-    const allowedSorts = ['toolNumber', 'name', 'brand', 'model'];
+    const allowedSorts = ['name', 'heNumber'];
     const sortBy = allowedSorts.includes(filters?.sortBy ?? '') ? filters!.sortBy! : 'name';
     const sortOrder = filters?.sortOrder === 'desc' ? 'desc' : 'asc';
 
@@ -105,7 +123,7 @@ export class ToolsService {
         skip,
         take: limit,
         include: {
-          category: true,
+          vendor: true,
           location: true,
           checkouts: {
             where: { checkedInAt: null },
@@ -117,6 +135,15 @@ export class ToolsService {
       this.prisma.tool.count({ where }),
     ]);
 
+    if (q) {
+      const lq = q.toLowerCase();
+      data.sort((a, b) => {
+        const aName = a.name.toLowerCase().includes(lq) ? 0 : 1;
+        const bName = b.name.toLowerCase().includes(lq) ? 0 : 1;
+        return aName - bName;
+      });
+    }
+
     return { data, total, page, limit };
   }
 
@@ -124,7 +151,7 @@ export class ToolsService {
     return this.prisma.tool.findUniqueOrThrow({
       where: { id },
       include: {
-        category: true,
+        vendor: true,
         location: true,
         checkouts: {
           orderBy: { checkedOutAt: 'desc' },
@@ -159,7 +186,7 @@ export class ToolsService {
       },
       orderBy: { expectedReturnAt: 'asc' },
       include: {
-        tool: { select: { id: true, toolNumber: true, name: true } },
+        tool: { select: { id: true, name: true } },
       },
     });
   }
@@ -168,7 +195,7 @@ export class ToolsService {
     return this.prisma.tool.findMany({
       where: { deletedAt: { not: null } },
       orderBy: { deletedAt: 'desc' },
-      include: { category: true, location: true },
+      include: { vendor: true, location: true },
     });
   }
 
@@ -195,6 +222,20 @@ export class ToolsService {
     return this.prisma.tool.delete({ where: { id } });
   }
 
+  decommission(id: number) {
+    return this.prisma.tool.update({
+      where: { id },
+      data: { decommissionedAt: new Date() },
+    });
+  }
+
+  reactivate(id: number) {
+    return this.prisma.tool.update({
+      where: { id },
+      data: { decommissionedAt: null },
+    });
+  }
+
   // Checkouts
 
   async checkout(id: number, dto: CreateCheckoutDto) {
@@ -209,6 +250,9 @@ export class ToolsService {
     });
 
     if (!tool) throw new NotFoundException();
+    if (tool.decommissionedAt) {
+      throw new BadRequestException('Cannot check out a decommissioned tool');
+    }
     if (tool.checkouts.length > 0) {
       throw new BadRequestException('Tool is already checked out');
     }
@@ -265,7 +309,7 @@ export class ToolsService {
     return this.prisma.toolMaintenanceLog.delete({ where: { id: maintenanceId } });
   }
 
-  // Combined costing — purchase records + maintenance records
+  // Combined costing
 
   async findCosting(filters: { dateFrom?: string; dateTo?: string }) {
     const whereMaint: any = {};
@@ -277,14 +321,14 @@ export class ToolsService {
 
     const [tools, maints] = await Promise.all([
       this.prisma.tool.findMany({
-        select: { id: true, toolNumber: true, name: true, brand: true, model: true, purchaseCost: true, createdAt: true },
+        select: { id: true, name: true, purchaseCost: true, createdAt: true },
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.toolMaintenanceLog.findMany({
         where: whereMaint,
         orderBy: { date: 'desc' },
         include: {
-          tool: { select: { id: true, toolNumber: true, name: true } },
+          tool: { select: { id: true, name: true } },
         },
       }),
     ]);
@@ -297,9 +341,8 @@ export class ToolsService {
         date: t.createdAt,
         type: 'purchase',
         toolId: t.id,
-        toolNumber: t.toolNumber,
         toolName: t.name,
-        description: t.brand && t.model ? `${t.brand} ${t.model}` : (t.brand ?? t.model ?? ''),
+        description: '',
         performedBy: null,
         cost: Number(t.purchaseCost),
       });
@@ -310,7 +353,6 @@ export class ToolsService {
         date: m.date,
         type: m.type,
         toolId: m.tool.id,
-        toolNumber: m.tool.toolNumber,
         toolName: m.tool.name,
         description: m.description ?? '',
         performedBy: m.performedBy ?? null,
@@ -318,7 +360,6 @@ export class ToolsService {
       });
     }
 
-    // Filter by date for purchase records (maintenance already filtered via Prisma)
     let filtered = records;
     if (filters.dateFrom) {
       const from = new Date(filters.dateFrom + 'T00:00:00');
@@ -352,7 +393,7 @@ export class ToolsService {
       where,
       orderBy: { date: 'desc' },
       include: {
-        tool: { select: { id: true, toolNumber: true, name: true, purchaseCost: true } },
+        tool: { select: { id: true, name: true, purchaseCost: true } },
       },
     });
   }
@@ -402,7 +443,7 @@ export class ToolsService {
         description: dto.description,
         createdBy: dto.createdBy,
       },
-      include: { tool: { select: { id: true, toolNumber: true, name: true } } },
+      include: { tool: { select: { id: true, name: true } } },
     });
   }
 
@@ -413,7 +454,7 @@ export class ToolsService {
       where,
       orderBy: { createdAt: 'desc' },
       include: {
-        tool: { select: { id: true, toolNumber: true, name: true } },
+        tool: { select: { id: true, name: true } },
       },
     });
   }
@@ -424,7 +465,7 @@ export class ToolsService {
     return this.prisma.toolMaintenanceFlag.update({
       where: { id: flagId },
       data: { resolvedAt: new Date(), resolvedBy },
-      include: { tool: { select: { id: true, toolNumber: true, name: true } } },
+      include: { tool: { select: { id: true, name: true } } },
     });
   }
 
@@ -447,7 +488,7 @@ export class ToolsService {
       orderBy: { date: 'desc' },
       take: 10,
       include: {
-        tool: { select: { id: true, toolNumber: true, name: true } },
+        tool: { select: { id: true, name: true } },
       },
     });
   }

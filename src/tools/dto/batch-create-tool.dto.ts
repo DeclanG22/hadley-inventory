@@ -9,10 +9,6 @@ export class BatchCreateToolDto {
 
   @IsString()
   @IsNotEmpty()
-  toolNumberPrefix!: string;
-
-  @IsString()
-  @IsNotEmpty()
   name!: string;
 
   @IsOptional()
@@ -20,12 +16,9 @@ export class BatchCreateToolDto {
   description?: string;
 
   @IsOptional()
-  @IsString()
-  brand?: string;
-
-  @IsOptional()
-  @IsString()
-  model?: string;
+  @IsInt()
+  @Type(() => Number)
+  heNumberStart?: number;
 
   @IsOptional()
   @IsString()
@@ -42,7 +35,7 @@ export class BatchCreateToolDto {
   @IsOptional()
   @IsInt()
   @Type(() => Number)
-  categoryId?: number;
+  vendorId?: number;
 
   @IsOptional()
   @IsInt()

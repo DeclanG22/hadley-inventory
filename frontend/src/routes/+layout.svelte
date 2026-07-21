@@ -89,8 +89,7 @@
 
 						<button
 							class="dropdown-item"
-							onclick={() => window.dispatchEvent(new Event('open-search'))}
->
+							onclick={() => window.dispatchEvent(new Event('open-search'))}>
 							<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
 								<circle
 									cx="11"
@@ -107,7 +106,7 @@
 									stroke-linecap="round" />
 							</svg>
 							Search <kbd>Ctrl+K</kbd>
-</button>
+                        </button>
 
 						<button class="dropdown-item" onclick={toggleTheme}>
 							<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
@@ -139,7 +138,7 @@
 							</svg>
 							Switch to {theme === 'light' ? 'dark' : 'light'} theme
 						</button>
-					     </div>
+					</div>
 					{/if}
 				</div>
 				<button class="sidebar-close" onclick={() => sidebarOpen = false} aria-label="Close sidebar">
@@ -174,29 +173,27 @@
 
 			<a href="/labels" class="tab-link scan-link" class:active={path === '/labels'}>
 				<span class="tab-link-icon" aria-hidden="true">
-				<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-					<path d="M0 0h24v24H0z" fill="none" />
-					<path fill="currentColor" d="M2 1h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1m1 2v6h6V3z" />
-					<path fill="currentColor" fill-rule="evenodd" d="M5 5h2v2H5z" />
-					<path fill="currentColor" d="M14 1h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1m1 2v6h6V3z" />
-					<path fill="currentColor" fill-rule="evenodd" d="M17 5h2v2h-2z" />
-					<path fill="currentColor" d="M2 13h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1m1 2v6h6v-6z" />
-					<path fill="currentColor" fill-rule="evenodd" d="M5 17h2v2H5z" />
-					<path fill="currentColor" d="M23 19h-4v4h-5a1 1 0 0 1-1-1v-8v5h2v2h2v-6h-2v-2h-1h3v2h2v2h2v-4h1a1 1 0 0 1 1 1zm0 2v1a1 1 0 0 1-1 1h-1v-2z" />
-</svg>
-
+    				<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+    					<path d="M0 0h24v24H0z" fill="none" />
+    					<path fill="currentColor" d="M2 1h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1m1 2v6h6V3z" />
+    					<path fill="currentColor" fill-rule="evenodd" d="M5 5h2v2H5z" />
+    					<path fill="currentColor" d="M14 1h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1m1 2v6h6V3z" />
+    					<path fill="currentColor" fill-rule="evenodd" d="M17 5h2v2h-2z" />
+    					<path fill="currentColor" d="M2 13h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1m1 2v6h6v-6z" />
+    					<path fill="currentColor" fill-rule="evenodd" d="M5 17h2v2H5z" />
+    					<path fill="currentColor" d="M23 19h-4v4h-5a1 1 0 0 1-1-1v-8v5h2v2h2v-6h-2v-2h-1h3v2h2v2h2v-4h1a1 1 0 0 1 1 1zm0 2v1a1 1 0 0 1-1 1h-1v-2z" />
+    				</svg>
 				</span>
 				<span>QR Code Generator</span>
 			</a>
 
 			<a href="/trash" class="tab-link" class:active={path === '/trash'}>
 				<span class="tab-link-icon" aria-hidden="true">
-				<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 512 512">
-					<path d="M0 0h512v512H0z" fill="none" />
-					<path fill="currentColor" d="M96 472a23.82 23.82 0 0 0 23.579 24h272.842A23.82 23.82 0 0 0 416 472V152H96Zm32-288h256v280H128Z" />
-					<path fill="currentColor" d="M168 216h32v200h-32zm72 0h32v200h-32zm72 0h32v200h-32zm16-128V40c0-13.458-9.488-24-21.6-24H205.6C193.488 16 184 26.542 184 40v48H64v32h384V88ZM216 48h80v40h-80Z" />
-</svg>
-
+    				<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 512 512">
+    					<path d="M0 0h512v512H0z" fill="none" />
+    					<path fill="currentColor" d="M96 472a23.82 23.82 0 0 0 23.579 24h272.842A23.82 23.82 0 0 0 416 472V152H96Zm32-288h256v280H128Z" />
+    					<path fill="currentColor" d="M168 216h32v200h-32zm72 0h32v200h-32zm72 0h32v200h-32zm16-128V40c0-13.458-9.488-24-21.6-24H205.6C193.488 16 184 26.542 184 40v48H64v32h384V88ZM216 48h80v40h-80Z" />
+    				</svg>
 				</span>
 				<span>Recently Deleted</span>
 			</a>
@@ -296,16 +293,6 @@
 			<span>New Tool</span>
 			</a>
 
-			<a href="/tool-categories" class="tab-link" class:active={path === '/tool-categories'}>
-    			<span class="tab-link-icon" aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-                        <path d="M0 0h24v24H0z" fill="none" />
-                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 3h6m-3-3v6" />
-                    </svg>
-    			</span>
-			<span>Categories</span>
-			</a>
-
 			<a href="/tools/costing" class="tab-link" class:active={path === '/tools/costing'}>
     			<span class="tab-link-icon" aria-hidden="true">
          			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16">
@@ -334,16 +321,13 @@
 
 			<a href="/jobs" class="tab-link" class:active={path === '/jobs' || path.startsWith('/jobs/')}>
 				<span class="tab-link-icon" aria-hidden="true">
-				<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16">
-					<path d="M0 0h16v16H0z" fill="none" />
-					<path fill="currentColor" fill-rule="evenodd" d="M6 1a1.75 1.75 0 0 0-1.75 1.75V4H3a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.25V2.75A1.75 1.75 0 0 0 10 1zm4.25 3V2.75A.25.25 0 0 0 10 2.5H6a.25.25 0 0 0-.25.25V4zM3 5.5h10a.5.5 0 0 1 .5.5v1h-11V6a.5.5 0 0 1 .5-.5m-.5 3V13a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5V8.5H9V10H7V8.5z" clip-rule="evenodd" />
-</svg>
-
-
+    				<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16">
+    					<path d="M0 0h16v16H0z" fill="none" />
+    					<path fill="currentColor" fill-rule="evenodd" d="M6 1a1.75 1.75 0 0 0-1.75 1.75V4H3a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.25V2.75A1.75 1.75 0 0 0 10 1zm4.25 3V2.75A.25.25 0 0 0 10 2.5H6a.25.25 0 0 0-.25.25V4zM3 5.5h10a.5.5 0 0 1 .5.5v1h-11V6a.5.5 0 0 1 .5-.5m-.5 3V13a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5V8.5H9V10H7V8.5z" clip-rule="evenodd" />
+    				</svg>
 				</span>
 				<span>Jobs</span>
 			</a>
-
 			<a href="/vendors" class="tab-link" class:active={path === '/vendors' || path.startsWith('/vendors/')}>
                 <span class="tab-link-icon" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
@@ -353,7 +337,6 @@
                 </span>
 			<span>Vendors</span>
 			</a>
-
 			<a href="/locations" class="tab-link" class:active={path === '/locations' || path.startsWith('/locations/')}>
 			    <span class="tab-link-icon" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
@@ -364,7 +347,6 @@
 				</span>
 			<span>Locations</span>
 			</a>
-
 		</nav>
 	</aside>
 	<main class="main">
@@ -468,7 +450,6 @@
 		position: absolute;
 		top: 100%;
 		left: 0;
-
 		margin-top: 4px;
 		min-width: 180px;
 		background: var(--bg-primary);
@@ -485,10 +466,8 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
-
 		width: 100%;
 		box-sizing: border-box;
-
 		text-align: left;
 		padding: 8px 12px;
 		font-size: 13px;
@@ -501,15 +480,15 @@
 		text-decoration: none;
 		font-family: inherit;
 		transition: background 0.12s ease;
-}
+	}
 
-.dropdown-item svg {
-		flex-shrink: 0;
-		opacity: 0.8;
-}
+    .dropdown-item svg {
+    	flex-shrink: 0;
+    	opacity: 0.8;
+    }
 	.dropdown-item:hover {
-	background: color-mix(in srgb, var(--empty-text-secondary) 20%, transparent);
-color: var(--text-primary);
+    	background: color-mix(in srgb, var(--empty-text-secondary) 20%, transparent);
+        color: var(--text-primary);
 	}
 	.nav-label {
 		font-size: 11px;

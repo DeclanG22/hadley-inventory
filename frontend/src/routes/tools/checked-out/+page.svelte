@@ -66,7 +66,7 @@
 					{#each checked as t}
 						{@const co = t.checkouts[0]}
 						<tr onclick={() => goto(`/tools/${t.id}`)}>
-							<td><a href="/tools/{t.id}" onclick={(e) => e.stopPropagation()}>{t.toolNumber}</a></td>
+							<td><a href="/tools/{t.id}" onclick={(e) => e.stopPropagation()}>{t.name}</a></td>
 							<td>{t.name}</td>
 							<td>{co.checkedOutBy}</td>
 							<td><a href="/jobs/{co.jobNumber ?? '-'}" class="job-pill" onclick={(e) => e.stopPropagation()}>{co.jobNumber ?? '-'}</a></td>

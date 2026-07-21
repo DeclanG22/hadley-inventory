@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { items, tools, vendors, locations, itemCategories, toolCategories, stockTakes } from '$lib/api';
+	import { items, tools, vendors, locations, itemCategories, stockTakes } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
 	import { confirm } from '$lib/confirmDialog.svelte';
 
@@ -8,7 +8,6 @@
 	let deletedVendors = $state<any[]>([]);
 	let deletedLocations = $state<any[]>([]);
 	let deletedItemCats = $state<any[]>([]);
-	let deletedToolCats = $state<any[]>([]);
 	let deletedSubCats = $state<any[]>([]);
 	let deletedStockTakes = $state<any[]>([]);
 	let loading = $state(true);
@@ -21,7 +20,6 @@
 			vendors.deleted().then(d => deletedVendors = d).catch(() => {}),
 			locations.deleted().then(d => deletedLocations = d).catch(() => {}),
 			itemCategories.deleted().then(d => deletedItemCats = d).catch(() => {}),
-			toolCategories.deleted().then(d => deletedToolCats = d).catch(() => {}),
 			itemCategories.subCategories.deleted().then(d => deletedSubCats = d).catch(() => {}),
 			stockTakes.deleted().then(d => deletedStockTakes = d).catch(() => {}),
 		]).finally(() => loading = false);
@@ -52,12 +50,11 @@
 
 	const sections = $derived([
 		{ label: 'Items', data: deletedItems, api: items, name: (d: any) => `${d.itemNumber} — ${d.description}`, sub: (d: any) => d.location?.name },
-		{ label: 'Tools', data: deletedTools, api: tools, name: (d: any) => `${d.toolNumber} — ${d.name}`, sub: (d: any) => d.location?.name },
+		{ label: 'Tools', data: deletedTools, api: tools, name: (d: any) => d.name, sub: (d: any) => d.location?.name },
 		{ label: 'Vendors', data: deletedVendors, api: vendors, name: (d: any) => d.name, sub: () => '' },
 		{ label: 'Locations', data: deletedLocations, api: locations, name: (d: any) => d.name, sub: () => '' },
 		{ label: 'Item Categories', data: deletedItemCats, api: itemCategories, name: (d: any) => d.name, sub: () => '' },
 		{ label: 'Item Sub-Categories', data: deletedSubCats, api: itemCategories.subCategories, name: (d: any) => `${d.name} (${d.itemCategory?.name ?? '?'})`, sub: () => '' },
-		{ label: 'Tool Categories', data: deletedToolCats, api: toolCategories, name: (d: any) => d.name, sub: () => '' },
 		{ label: 'Stock Takes', data: deletedStockTakes, api: stockTakes, name: (d: any) => `${new Date(d.date).toLocaleDateString()} (${d.status})`, sub: (d: any) => d.notes ?? '' },
 	].filter(s => s.data.length > 0));
 </script>

@@ -26,8 +26,8 @@ export class LocationsService {
         },
         tools: {
           where: { deletedAt: null },
-          include: { category: true, checkouts: { where: { checkedInAt: null } } },
-          orderBy: { toolNumber: 'asc' },
+          include: { vendor: true, checkouts: { where: { checkedInAt: null } } },
+          orderBy: { name: 'asc' },
         },
       },
     });

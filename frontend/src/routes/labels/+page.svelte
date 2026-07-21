@@ -113,7 +113,7 @@
 		for (const e of allEntities) {
 			if (!selected.has(e.id)) continue;
 			if (map.has(e.id)) continue;
-			const code = tab === 'items' ? e.itemNumber : e.toolNumber;
+			const code = tab === 'items' ? e.itemNumber : e.name;
 			const qrUrl = `${origin}/scan?code=${encodeURIComponent(code)}`;
 			const dataUrl = await QRCode.toDataURL(qrUrl, { width: 250, margin: 1 });
 			map.set(e.id, dataUrl);
@@ -141,7 +141,7 @@ img { width: 120px; height: 120px; image-rendering: pixelated; }
 @media print { @page { margin: 8mm; } }
 </style></head><body><div class="grid">`);
 		for (const entity of rows) {
-			const code = tab === 'items' ? entity.itemNumber : entity.toolNumber;
+			const code = tab === 'items' ? entity.itemNumber : entity.name;
 			const desc = tab === 'items' ? entity.description : entity.name;
 			win.document.write(`<div class="label"><img src="${qrImages.get(entity.id)}" alt="QR"><span class="code">${code}</span><span class="desc">${desc ?? ''}</span></div>`);
 		}
@@ -212,7 +212,7 @@ img { width: 120px; height: 120px; image-rendering: pixelated; }
 					{#each allEntities as e}
 						<tr class:selected={selected.has(e.id)}>
 							<td><input type="checkbox" checked={selected.has(e.id)} onchange={() => toggleSelect(e.id)} disabled={loadingAll} style="width:auto" /></td>
-							<td>{tab === 'items' ? e.itemNumber : e.toolNumber}</td>
+							<td>{tab === 'items' ? e.itemNumber : e.name}</td>
 							<td>{tab === 'items' ? e.description : e.name}</td>
 							<td>{e.category?.name ?? '-'}</td>
 							<td>{e.location?.name ?? '-'}</td>

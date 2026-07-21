@@ -24,33 +24,70 @@
 		</div>
 	{:else if !vendor}
 		<div class="empty-state">Vendor not found.</div>
-	{:else if vendor.items.length === 0}
-		<div class="empty-state">No items from this vendor.</div>
+	{:else if vendor.items.length === 0 && vendor.tools.length === 0}
+		<div class="empty-state">No items or tools from this vendor.</div>
 	{:else}
-		<div class="card-header"><h2>Items ({vendor.items.length})</h2></div>
-		<div class="table-wrap">
-			<table>
-				<thead>
-					<tr>
-						<th>Item #</th>
-						<th>Description</th>
-						<th>Category</th>
-						<th>Location</th>
-						<th>On Hand</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each vendor.items as i}
-						<tr onclick={() => goto(`/items/${i.id}`)}>
-							<td><a href="/items/{i.id}" onclick={(e) => e.stopPropagation()}>{i.itemNumber}</a></td>
-							<td>{i.description}</td>
-							<td>{i.category?.name ?? '-'}</td>
-							<td>{i.location?.name ?? '-'}</td>
-							<td>{i.onHand}</td>
+		{#if vendor.items.length > 0}
+			<div class="card-header"><h2>Items ({vendor.items.length})</h2></div>
+			<div class="table-wrap">
+				<table>
+					<thead>
+						<tr>
+							<th>Item #</th>
+							<th>Description</th>
+							<th>Category</th>
+							<th>Location</th>
+							<th>On Hand</th>
 						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
+					</thead>
+					<tbody>
+						{#each vendor.items as i}
+							<tr onclick={() => goto(`/items/${i.id}`)}>
+								<td><a href="/items/{i.id}" onclick={(e) => e.stopPropagation()}>{i.itemNumber}</a></td>
+								<td>{i.description}</td>
+								<td>{i.category?.name ?? '-'}</td>
+								<td>{i.location?.name ?? '-'}</td>
+								<td>{i.onHand}</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{/if}
+
+		{#if vendor.tools.length > 0}
+			<div class="card-header"><h2>Tools ({vendor.tools.length})</h2></div>
+			<div class="table-wrap">
+				<table>
+					<thead>
+						<tr>
+							<th>Name</th>
+							<th>Description</th>
+							<th>HE #</th>
+							<th>Status</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each vendor.tools as t}
+							{@const checkedOut = t.checkouts?.length > 0}
+							<tr onclick={() => goto(`/tools/${t.id}`)}>
+								<td><a href="/tools/{t.id}" onclick={(e) => e.stopPropagation()}>{t.name}</a></td>
+								<td>{t.description ?? '-'}</td>
+								<td>{t.heNumber ?? '-'}</td>
+								<td>
+									{#if t.decommissionedAt}
+										<span class="badge badge-decommissioned">Decommissioned</span>
+									{:else if checkedOut}
+										<span class="badge badge-checked-out">Checked Out</span>
+									{:else}
+										<span class="badge badge-available">Available</span>
+									{/if}
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{/if}
 	{/if}
 </div>

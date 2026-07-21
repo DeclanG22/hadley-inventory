@@ -9,6 +9,9 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  app.useBodyParser('json', { limit: '50mb' });
+  app.useBodyParser('urlencoded', { limit: '50mb', extended: true });
+
   app.setGlobalPrefix('api');
   app.useStaticAssets(join(cwd(), 'uploads'), { prefix: '/uploads' });
   app.enableCors();

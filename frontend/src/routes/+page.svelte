@@ -94,7 +94,7 @@
 	<div class="activity-grid">
 	<div class="card">
 		<div class="card-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-			<h2 style="flex:1">Recent Item Activity</h2>
+			<h2 style="flex:1">Recent Hardware Activity</h2>
 			<input type="search" bind:value={itemSearch} placeholder="Search..." style="min-width:120px;max-width:200px" />
 		</div>
 		{#if loading}
@@ -196,7 +196,7 @@
 					{#each overdueCheckouts as co}
 						{@const days = Math.floor((Date.now() - new Date(co.expectedReturnAt).getTime()) / 86400000)}
 						<tr onclick={() => goto(`/tools/${co.tool.id}`)} role="button" tabindex={0}>
-							<td><a href="/tools/{co.tool.id}" onclick={(e) => e.stopPropagation()}>{co.tool.toolNumber} — {co.tool.name}</a></td>
+							<td><a href="/tools/{co.tool.id}" onclick={(e) => e.stopPropagation()}>{co.tool.name}</a></td>
 							<td>{co.checkedOutBy}</td>
 							<td><span class="job-pill">{co.jobNumber ?? '-'}</span></td>
 							<td style="white-space:nowrap">{new Date(co.expectedReturnAt).toLocaleDateString()}</td>

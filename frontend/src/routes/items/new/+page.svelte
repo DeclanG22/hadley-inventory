@@ -75,7 +75,7 @@
 		<div class="form-grid">
 			<div class="full"><label>Item Number *</label><input bind:value={form.itemNumber} required /></div>
 			<div class="full"><label>Description *</label><input bind:value={form.description} required /></div>
-<div><label>Unit</label><input bind:value={form.unit} placeholder="Each, Box, etc" /></div>
+			<div><label>Unit</label><input bind:value={form.unit} placeholder="Each, Box, etc" /></div>
 			<div><label>Unit Price</label><input type="number" step="0.01" bind:value={form.unitPrice} /></div>
 			<div><label>Weight/Unit (g)</label><input type="number" step="0.0001" bind:value={form.weightPerUnit} /></div>
 			<div><label>Analysis Code</label><input bind:value={form.analysisCode} /></div>

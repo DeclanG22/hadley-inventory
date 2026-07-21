@@ -118,6 +118,16 @@ export class ToolsController {
     return this.toolsService.permanentRemove(id);
   }
 
+  @Post(':id/decommission')
+  decommission(@Param('id', ParseIntPipe) id: number) {
+    return this.toolsService.decommission(id);
+  }
+
+  @Post(':id/reactivate')
+  reactivate(@Param('id', ParseIntPipe) id: number) {
+    return this.toolsService.reactivate(id);
+  }
+
   // Checkouts
   @Post(':id/checkout')
   checkout(@Param('id', ParseIntPipe) id: number, @Body() dto: CreateCheckoutDto) {

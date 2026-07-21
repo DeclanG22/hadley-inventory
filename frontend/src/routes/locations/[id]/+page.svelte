@@ -67,10 +67,9 @@
 				<table>
 					<thead>
 						<tr>
-							<th>Tool #</th>
 							<th>Name</th>
-							<th>Brand</th>
-							<th>Category</th>
+							<th>Description</th>
+							<th>HE #</th>
 							<th>Status</th>
 						</tr>
 					</thead>
@@ -78,12 +77,13 @@
 						{#each location.tools as t}
 							{@const checkedOut = t.checkouts?.length > 0}
 							<tr onclick={() => goto(`/tools/${t.id}`)}>
-								<td><a href="/tools/{t.id}" onclick={(e) => e.stopPropagation()}>{t.toolNumber}</a></td>
-								<td>{t.name}</td>
-								<td>{t.brand ?? '-'}</td>
-								<td>{t.category?.name ?? '-'}</td>
+								<td><a href="/tools/{t.id}" onclick={(e) => e.stopPropagation()}>{t.name}</a></td>
+								<td>{t.description ?? '-'}</td>
+								<td>{t.heNumber ?? '-'}</td>
 								<td>
-									{#if checkedOut}
+									{#if t.decommissionedAt}
+										<span class="badge badge-decommissioned">Decommissioned</span>
+									{:else if checkedOut}
 										<span class="badge badge-checked-out">Checked Out</span>
 									{:else}
 										<span class="badge badge-available">Available</span>

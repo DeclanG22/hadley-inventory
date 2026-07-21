@@ -69,7 +69,7 @@ export class JobsService {
         where: { jobNumber: { equals: jobNumber, mode: 'insensitive' } },
         orderBy: { checkedOutAt: 'desc' },
         include: {
-          tool: { select: { id: true, toolNumber: true, name: true } },
+          tool: { select: { id: true, name: true } },
         },
       }),
     ]);

@@ -210,7 +210,7 @@
 				jobSite: jobSite || undefined,
 				expectedReturnAt: expectedReturnAt || undefined,
 			});
-			addToast(`Checked out ${result!.data.toolNumber}`, 'success');
+			addToast(`Checked out ${result!.data.name}`, 'success');
 			clear();
 		} catch (e: any) {
 			addToast(e.message, 'error');
@@ -224,7 +224,7 @@
 		submitting = true;
 		try {
 			await tools.checkin(result!.data.id);
-			addToast(`Checked in ${result!.data.toolNumber}`, 'success');
+			addToast(`Checked in ${result!.data.name}`, 'success');
 			clear();
 		} catch (e: any) {
 			addToast(e.message, 'error');
@@ -320,15 +320,18 @@
 				<img src={result.data.imageUrl} alt="" class="result-img" />
 			{/if}
 			<div class="result-header">
-				<span class="result-id">{result.type === 'item' ? result.data.itemNumber : result.data.toolNumber}</span>
+				<span class="result-id">{result.type === 'item' ? result.data.itemNumber : result.data.name}</span>
 				<span class="badge badge-{result.type === 'item' ? 'available' : result.data.checkedOut ? 'checked-out' : 'available'}">{result.type === 'item' ? 'Item' : 'Tool'}</span>
 				{#if result.type === 'tool' && result.data.maintenanceFlags?.length}
 					{#each result.data.maintenanceFlags as f}
 						<span class="badge badge-warning" style="font-size:10px">Flagged: {f.type} needed</span>
 					{/each}
 				{/if}
+				{#if result.type === 'tool' && result.data.decommissionedAt}
+					<span class="badge badge-decommissioned" style="font-size:10px">Decommissioned</span>
+				{/if}
 			</div>
-			<div class="result-desc">{result.type === 'item' ? result.data.description : result.data.name}</div>
+			<div class="result-desc">{result.type === 'item' ? result.data.description : (result.data.description ?? '')}</div>
 			{#if result.type === 'item'}
 				<div class="result-meta">
 					<span class="meta-tag">On Hand: <strong>{result.data.onHand}</strong></span>
@@ -337,10 +340,9 @@
 				</div>
 			{:else}
 				<div class="result-meta">
-					{#if result.data.brand || result.data.model}
-						<span class="meta-tag">{result.data.brand ?? '-'} / {result.data.model ?? '-'}</span>
+					{#if result.data.vendor}
+						<span class="meta-tag">Vendor: <strong>{result.data.vendor}</strong></span>
 					{/if}
-					{#if result.data.category}<span class="meta-tag">Category: <strong>{result.data.category}</strong></span>{/if}
 				</div>
 			{/if}
 		</div>
@@ -415,6 +417,8 @@
 					<button onclick={submitToolCheckin} disabled={submitting} class="btn-primary txn-submit checkin-btn">
 						{submitting ? 'Checking in...' : 'Check In'}
 					</button>
+				{:else if result.data.decommissionedAt}
+					<div class="txn-warn" style="text-align:center;padding:12px 0">This tool has been decommissioned and cannot be checked out.</div>
 				{:else}
 					<div class="txn-row">
 						<input bind:value={checkedOutBy} placeholder="Checked out by (name)" class="txn-field" autofocus={false} />

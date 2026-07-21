@@ -9,6 +9,8 @@ function expandSearchQueries(q: string): string[] {
   const results = [norm];
   const collapsed = norm.replace(/\s*([^\w\d\s])\s*/g, '$1').replace(/\s*([x×])\s*/g, '$1');
   if (collapsed !== norm) results.push(collapsed);
+  const stripped = norm.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (stripped !== norm && stripped !== collapsed) results.push(stripped);
   const expanded = norm
     .replace(/(\d)\s*[x×]\s*(\d)/g, '$1 x $2')
     .replace(/(\d)\s*[x×]\s*$/g, '$1 x')
@@ -47,6 +49,17 @@ export class ItemsService {
         { itemNumber: { contains: v, mode: 'insensitive' } },
         { description: { contains: v, mode: 'insensitive' } },
       ]);
+      const tokens = q.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase().split(/\s+/).filter(Boolean);
+      if (tokens.length > 1) {
+        where.OR.push({
+          AND: tokens.map(token => ({
+            OR: [
+              { itemNumber: { contains: token, mode: 'insensitive' } },
+              { description: { contains: token, mode: 'insensitive' } },
+            ]
+          }))
+        });
+      }
     }
     if (filters?.categoryId) where.categoryId = filters.categoryId;
     if (filters?.vendorId) where.vendorId = filters.vendorId;
@@ -76,6 +89,15 @@ export class ItemsService {
       }),
       this.prisma.item.count({ where }),
     ]);
+
+    if (q) {
+      const lq = q.toLowerCase();
+      data.sort((a, b) => {
+        const aName = a.itemNumber.toLowerCase().includes(lq) ? 0 : 1;
+        const bName = b.itemNumber.toLowerCase().includes(lq) ? 0 : 1;
+        return aName - bName;
+      });
+    }
 
     return { data, total, page, limit };
   }

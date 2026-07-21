@@ -1,8 +1,12 @@
 const BASE = '/api';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+	const headers: Record<string, string> = {};
+	if (!(options?.body instanceof FormData)) {
+		headers['Content-Type'] = 'application/json';
+	}
 	const res = await fetch(`${BASE}${path}`, {
-		headers: { 'Content-Type': 'application/json', ...options?.headers },
+		headers: { ...headers, ...options?.headers },
 		...options,
 	});
 	if (!res.ok) {
@@ -81,17 +85,6 @@ export const stockTakes = {
 	updateItem: (stockTakeId: number, itemId: number, data: { physicalQty: number; notes?: string }) =>
 		request<any>(`/stock-takes/${stockTakeId}/items/${itemId}`, { method: 'PATCH', body: JSON.stringify(data) }),
 	reconcile: (id: number) => request<any>(`/stock-takes/${id}/reconcile`, { method: 'POST' }),
-};
-
-// Tool Categories
-export const toolCategories = {
-	list: () => request<any[]>('/tool-categories'),
-	get: (id: number) => request<any>(`/tool-categories/${id}`),
-	create: (data: { name: string }) => request<any>('/tool-categories', { method: 'POST', body: JSON.stringify(data) }),
-	remove: (id: number) => request<void>(`/tool-categories/${id}`, { method: 'DELETE' }),
-	deleted: () => request<any[]>('/tool-categories/deleted'),
-	restore: (id: number) => request<any>(`/tool-categories/${id}/restore`, { method: 'POST' }),
-	permanentRemove: (id: number) => request<void>(`/tool-categories/${id}/permanent`, { method: 'DELETE' }),
 };
 
 export interface PaginatedResult<T> {
@@ -177,6 +170,8 @@ export const tools = {
 	remove: (id: number) => request<void>(`/tools/${id}`, { method: 'DELETE' }),
 	restore: (id: number) => request<any>(`/tools/${id}/restore`, { method: 'POST' }),
 	permanentRemove: (id: number) => request<void>(`/tools/${id}/permanent`, { method: 'DELETE' }),
+	decommission: (id: number) => request<any>(`/tools/${id}/decommission`, { method: 'POST' }),
+	reactivate: (id: number) => request<any>(`/tools/${id}/reactivate`, { method: 'POST' }),
 	deleted: () => request<any[]>('/tools/deleted'),
 	overdue: () => request<any[]>('/tools/overdue'),
 	checkout: (id: number, data: any) =>
@@ -211,6 +206,16 @@ export const tools = {
 			request<any>(`/tools/maintenance-flags/${flagId}/resolve`, { method: 'POST', body: JSON.stringify({ resolvedBy }) }),
 		remove: (flagId: number) =>
 			request<void>(`/tools/maintenance-flags/${flagId}`, { method: 'DELETE' }),
+	},
+	import: {
+		fields: () => request<{ value: string; label: string; required: boolean }[]>('/tools/import/fields'),
+		analyze: (file: File) => {
+			const form = new FormData();
+			form.set('file', file);
+			return request<any>('/tools/import/analyze', { method: 'POST', body: form });
+		},
+		execute: (fileToken: string, columnMap: Record<string, string>) =>
+			request<any>('/tools/import/execute', { method: 'POST', body: JSON.stringify({ fileToken, columnMap }) }),
 	},
 };
 

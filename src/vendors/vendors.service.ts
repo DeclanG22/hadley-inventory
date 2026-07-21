@@ -24,6 +24,11 @@ export class VendorsService {
           include: { category: true, location: true },
           orderBy: { itemNumber: 'asc' },
         },
+        tools: {
+          where: { deletedAt: null },
+          include: { checkouts: { where: { checkedInAt: null } } },
+          orderBy: { name: 'asc' },
+        },
       },
     });
   }

@@ -405,9 +405,9 @@ input::-webkit-search-cancel-button,
 input::-webkit-search-decoration,
 input::-webkit-search-results-button,
 input::-webkit-search-results-decoration {
-		-webkit-appearance: none;
-		appearance: none;
-		display: none;
+	-webkit-appearance: none;
+	appearance: none;
+	display: none;
 }
 textarea {
   resize: vertical;
@@ -568,8 +568,13 @@ margin-top: 10px;
   padding-top: 4px;
 }
 .badge-checked-out {
-    background: var(--red);
-    color: var(--red-bg-light);
+	background: var(--red-bg-light);
+	color: var(--red);
+}
+
+.badge-decommissioned {
+	background: var(--empty-text-secondary);
+	color: var(--bg-primary);
 }
 .badge-warning {
     background: var(--orange);

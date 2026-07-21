@@ -12,6 +12,7 @@ model Vendor {
   id    Int    @id @default(autoincrement())
   name  String @unique
   items Item[]
+  tools Tool[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -154,36 +155,23 @@ model StockTakeItem {
 
 // ===== Tools Domain (Unique Assets) =====
 
-model ToolCategory {
-  id    Int    @id @default(autoincrement())
-  name  String @unique
-  tools Tool[]
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-
-  @@map("tool_categories")
-}
-
 model Tool {
   id           Int      @id @default(autoincrement())
-  toolNumber   String   @unique @map("tool_number")
   name         String
   description  String?
-  brand        String?
-  model        String?
+  heNumber     Int?     @map("he_number")
   serialNumber String?  @map("serial_number")
   labelPrinted Boolean  @default(false) @map("label_printed")
   qrCode       String?  @map("qr_code")
   imageUrl     String?  @map("image_url")
   purchaseCost Decimal?  @map("purchase_cost") @db.Decimal(10, 2)
   notes        String?
+  decommissionedAt DateTime? @map("decommissioned_at")
 
-  categoryId   Int?           @map("category_id")
-  category     ToolCategory?  @relation(fields: [categoryId], references: [id])
-  locationId   Int?           @map("location_id")
-  location     Location?      @relation(fields: [locationId], references: [id])
+  locationId Int?      @map("location_id")
+  location   Location? @relation(fields: [locationId], references: [id])
+  vendorId   Int?      @map("vendor_id")
+  vendor     Vendor?   @relation(fields: [vendorId], references: [id])
 
   checkouts        ToolCheckout[]
   maintenance      ToolMaintenanceLog[]

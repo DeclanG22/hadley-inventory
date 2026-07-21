@@ -125,8 +125,21 @@
 			<button type="button" class="segment" class:active={viewMode === 'table'} onclick={() => viewMode = 'table'}>Table</button>
 			<button type="button" class="segment" class:active={viewMode === 'cards'} onclick={() => viewMode = 'cards'}>Cards</button>
 		</div>
-		<a href="/items/import" class="btn">Import</a>
-		<button class="btn" onclick={exportCSV}>Export</button>
+		<a href="/items/import" class="btn">
+			<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+				<path d="M0 0h24v24H0z" fill="none" />
+				<path fill="currentColor" d="M21 14a1 1 0 0 0-1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-4a1 1 0 0 0-2 0v4a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-4a1 1 0 0 0-1-1m-9.71 1.71a1 1 0 0 0 .33.21a.94.94 0 0 0 .76 0a1 1 0 0 0 .33-.21l4-4a1 1 0 0 0-1.42-1.42L13 12.59V3a1 1 0 0 0-2 0v9.59l-2.29-2.3a1 1 0 1 0-1.42 1.42Z" />
+			</svg>
+			Import
+</a>
+<button class="btn" onclick={exportCSV}>
+    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+	<path d="M0 0h24v24H0z" fill="none" />
+	<path fill="currentColor" d="M8.71 7.71L11 5.41V15a1 1 0 0 0 2 0V5.41l2.29 2.3a1 1 0 0 0 1.42 0a1 1 0 0 0 0-1.42l-4-4a1 1 0 0 0-.33-.21a1 1 0 0 0-.76 0a1 1 0 0 0-.33.21l-4 4a1 1 0 1 0 1.42 1.42M21 14a1 1 0 0 0-1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-4a1 1 0 0 0-2 0v4a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-4a1 1 0 0 0-1-1" />
+    </svg>
+
+	Export
+</button>
 		<a href="/items/new" class="btn btn-primary">+ New Item</a>
 	</div>
 </div>
@@ -311,6 +324,17 @@
 		border-radius: 50%;
 		animation: spin 0.6s linear infinite;
 		display: inline-block;
+	}
+
+	.btn {
+	display: infline-flex;
+	align-items: center;
+	gap: 6px;
+	}
+
+	.btn svg {
+	margin-right: 4px;
+	transform: translateY(2px);
 	}
 
 	@keyframes spin {

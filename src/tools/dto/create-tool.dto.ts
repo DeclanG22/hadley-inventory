@@ -4,10 +4,6 @@ import { Type } from 'class-transformer';
 export class CreateToolDto {
   @IsString()
   @IsNotEmpty()
-  toolNumber!: string;
-
-  @IsString()
-  @IsNotEmpty()
   name!: string;
 
   @IsOptional()
@@ -15,12 +11,9 @@ export class CreateToolDto {
   description?: string;
 
   @IsOptional()
-  @IsString()
-  brand?: string;
-
-  @IsOptional()
-  @IsString()
-  model?: string;
+  @IsInt()
+  @Type(() => Number)
+  heNumber?: number;
 
   @IsOptional()
   @IsString()
@@ -37,7 +30,7 @@ export class CreateToolDto {
   @IsOptional()
   @IsInt()
   @Type(() => Number)
-  categoryId?: number;
+  vendorId?: number;
 
   @IsOptional()
   @IsNumber()

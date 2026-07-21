@@ -15,17 +15,17 @@ export class ActivityService {
       this.prisma.toolCheckout.findMany({
         take: limit,
         orderBy: { checkedOutAt: 'desc' },
-        include: { tool: { select: { id: true, toolNumber: true, name: true } } },
+        include: { tool: { select: { id: true, name: true } } },
       }),
       this.prisma.toolMaintenanceLog.findMany({
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: { tool: { select: { id: true, toolNumber: true, name: true } } },
+        include: { tool: { select: { id: true, name: true } } },
       }),
       this.prisma.toolMaintenanceFlag.findMany({
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: { tool: { select: { id: true, toolNumber: true, name: true } } },
+        include: { tool: { select: { id: true, name: true } } },
       }),
     ]);
 
@@ -44,18 +44,18 @@ export class ActivityService {
         type: (c.checkedInAt ? 'tool_checkin' : 'tool_checkout') as string,
         id: c.id,
         date: c.checkedInAt ?? c.checkedOutAt,
-        summary: `${c.checkedInAt ? 'Checked in' : 'Checked out'} ${c.tool.toolNumber} — ${c.tool.name} by ${c.checkedOutBy}`,
+        summary: `${c.checkedInAt ? 'Checked in' : 'Checked out'} ${c.tool.name} by ${c.checkedOutBy}`,
         link: `/tools/${c.tool.id}`,
-        itemRef: c.tool.toolNumber,
+        itemRef: c.tool.name,
       })),
       ...maint.map((m) => ({
         type: 'tool_maintenance' as const,
         subType: m.type,
         id: m.id,
         date: m.createdAt,
-        summary: `${m.type} on ${m.tool.toolNumber} — ${m.tool.name}${m.description ? `: ${m.description}` : ''}`,
+        summary: `${m.type} on ${m.tool.name}${m.description ? `: ${m.description}` : ''}`,
         link: `/tools/${m.tool.id}`,
-        itemRef: m.tool.toolNumber,
+        itemRef: m.tool.name,
       })),
       ...flags.flatMap((f) => {
         const events: any[] = [{
@@ -63,9 +63,9 @@ export class ActivityService {
           subType: f.type,
           id: f.id,
           date: f.createdAt,
-          summary: `Flag ${f.type} on ${f.tool.toolNumber} — ${f.tool.name}${f.description ? `: ${f.description}` : ''}`,
+          summary: `Flag ${f.type} on ${f.tool.name}${f.description ? `: ${f.description}` : ''}`,
           link: `/tools/maintenance-flags?highlight=${f.id}`,
-          itemRef: f.tool.toolNumber,
+          itemRef: f.tool.name,
         }];
         if (f.resolvedAt) {
           events.push({
@@ -73,9 +73,9 @@ export class ActivityService {
             subType: f.type,
             id: f.id,
             date: f.resolvedAt,
-            summary: `Flag ${f.type} resolved on ${f.tool.toolNumber} — ${f.tool.name}`,
+            summary: `Flag ${f.type} resolved on ${f.tool.name}`,
             link: `/tools/maintenance-flags?highlight=${f.id}`,
-            itemRef: f.tool.toolNumber,
+            itemRef: f.tool.name,
           });
         }
         return events;

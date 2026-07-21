@@ -1,17 +1,16 @@
 ﻿<script lang="ts">
-	import { tools, locations, toolCategories } from '$lib/api';
+	import { tools, locations, vendors } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 
 	let locList = $state<any[]>([]);
-	let catList = $state<any[]>([]);
+	let vendorList = $state<any[]>([]);
 	let loading = $state(true);
 
 	let form = $state({
 		quantity: '',
-		toolNumberPrefix: '',
-		name: '', description: '', brand: '', model: '',
-		serialNumber: '', imageUrl: '', notes: '', categoryId: '', locationId: '',
+		name: '', description: '', heNumberStart: '',
+		serialNumber: '', imageUrl: '', notes: '', vendorId: '', locationId: '',
 	});
 	let saved = $state(false);
 	let created = $state<any[]>([]);
@@ -21,7 +20,7 @@
 		loading = true;
 		Promise.all([
 			locations.list().then(l => locList = l),
-			toolCategories.list().then(l => catList = l),
+			vendors.list().then(l => vendorList = l),
 		]).finally(() => loading = false);
 	}
 	$effect(loadRefs);
@@ -30,16 +29,14 @@
 		error = '';
 		const qty = Number(form.quantity);
 		if (!qty || qty < 1) { error = 'Quantity must be at least 1.'; return; }
-		if (!form.toolNumberPrefix.trim()) { error = 'Tool number prefix is required.'; return; }
 		if (!form.name.trim()) { error = 'Name is required.'; return; }
-		const data: any = { quantity: qty, toolNumberPrefix: form.toolNumberPrefix.trim(), name: form.name.trim() };
+		const data: any = { quantity: qty, name: form.name.trim() };
 		if (form.description) data.description = form.description;
-		if (form.brand) data.brand = form.brand;
-		if (form.model) data.model = form.model;
+		if (form.heNumberStart) data.heNumberStart = Number(form.heNumberStart);
 		if (form.serialNumber) data.serialNumber = form.serialNumber;
 		if (form.imageUrl) data.imageUrl = form.imageUrl;
 		if (form.notes) data.notes = form.notes;
-		if (form.categoryId) data.categoryId = Number(form.categoryId);
+		if (form.vendorId) data.vendorId = Number(form.vendorId);
 		if (form.locationId) data.locationId = Number(form.locationId);
 		try {
 			const result = await tools.batchCreate(data);
@@ -72,10 +69,10 @@
 		<p>Created {created.length} tools!</p>
 		<div class="table-wrap" style="margin-top:12px">
 			<table>
-				<thead><tr><th>Tool #</th><th>Name</th></tr></thead>
+				<thead><tr><th>Name</th><th>HE #</th></tr></thead>
 				<tbody>
 					{#each created as t}
-						<tr><td><a href="/tools/{t.id}">{t.toolNumber}</a></td><td>{t.name}</td></tr>
+						<tr><td><a href="/tools/{t.id}">{t.name}</a></td><td>{t.heNumber ?? '-'}</td></tr>
 					{/each}
 				</tbody>
 			</table>
@@ -90,17 +87,15 @@
 		{/if}
 		<div class="form-grid">
 			<div><label>Quantity *</label><input type="number" min="1" bind:value={form.quantity} required /></div>
-			<div><label>Tool # Prefix *</label><input bind:value={form.toolNumberPrefix} placeholder="e.g. HAM" required /></div>
+			<div><label>HE # Start</label><input type="number" min="0" bind:value={form.heNumberStart} placeholder="e.g. 600" /></div>
 			<div class="full"><label>Name *</label><input bind:value={form.name} required /></div>
 			<div class="full"><label>Description</label><input bind:value={form.description} /></div>
-			<div><label>Brand</label><input bind:value={form.brand} /></div>
-			<div><label>Model</label><input bind:value={form.model} /></div>
 			<div><label>Serial Number</label><input bind:value={form.serialNumber} /></div>
 			<ImageUpload bind:value={form.imageUrl} label="Image URL" />
-			<div><label>Category</label>
-				<select bind:value={form.categoryId}>
+			<div><label>Vendor</label>
+				<select bind:value={form.vendorId}>
 					<option value="">--</option>
-					{#each catList as c}<option value={c.id}>{c.name}</option>{/each}
+					{#each vendorList as v}<option value={v.id}>{v.name}</option>{/each}
 				</select>
 			</div>
 			<div><label>Location</label>

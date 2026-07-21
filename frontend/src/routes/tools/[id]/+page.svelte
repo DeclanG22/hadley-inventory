@@ -1,5 +1,5 @@
 ﻿<script lang="ts">
-	import { tools, locations, toolCategories } from '$lib/api';
+	import { tools, locations, vendors } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
 	import { confirm } from '$lib/confirmDialog.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
@@ -11,7 +11,7 @@
 	let maint = $state<any[]>([]);
 	let editing = $state(false);
 	let locList = $state<any[]>([]);
-	let catList = $state<any[]>([]);
+	let vendorList = $state<any[]>([]);
 	let form = $state<any>({});
 
 	let activeTab = $state<'details' | 'checkouts' | 'maintenance' | 'flags'>('details');
@@ -32,7 +32,7 @@
 		tools.checkouts.list(id).then(c => checkouts = c);
 		tools.maintenance.list(id).then(m => maint = m);
 		locations.list().then(l => locList = l);
-		toolCategories.list().then(l => catList = l);
+		vendors.list().then(l => vendorList = l);
 	}
 	$effect(load);
 
@@ -48,10 +48,10 @@
 
 	function resetForm(t: any) {
 		form = {
-			toolNumber: t.toolNumber, name: t.name, description: t.description ?? '',
-			brand: t.brand ?? '', model: t.model ?? '', serialNumber: t.serialNumber ?? '',
+			name: t.name, description: t.description ?? '',
+			heNumber: t.heNumber ?? '', serialNumber: t.serialNumber ?? '',
 			imageUrl: t.imageUrl ?? '', notes: t.notes ?? '',
-			categoryId: t.categoryId ?? '', locationId: t.locationId ?? '',
+			vendorId: t.vendorId ?? '', locationId: t.locationId ?? '',
 		};
 	}
 
@@ -61,7 +61,7 @@
 			const data: any = {};
 			for (const [k, v] of Object.entries(form)) {
 				if (v === '') continue;
-				if (['categoryId','locationId'].includes(k)) data[k] = Number(v);
+				if (['vendorId','locationId'].includes(k)) data[k] = Number(v);
 				else data[k] = v;
 			}
 			await tools.update(id, data);
@@ -93,6 +93,24 @@
 			load();
 			addToast('Maintenance flag created', 'success');
 			flagForm = { open: false, type: 'repair', description: '', createdBy: '' };
+		} catch (e: any) { addToast(e.message, 'error'); }
+	}
+
+	async function doDecommission() {
+		const ok = await confirm('Decommission Tool', 'Are you sure? This tool will no longer be available for checkout.');
+		if (!ok) return;
+		try {
+			await tools.decommission(Number(params.id));
+			load();
+			addToast('Tool decommissioned', 'success');
+		} catch (e: any) { addToast(e.message, 'error'); }
+	}
+
+	async function doReactivate() {
+		try {
+			await tools.reactivate(Number(params.id));
+			load();
+			addToast('Tool reactivated', 'success');
 		} catch (e: any) { addToast(e.message, 'error'); }
 	}
 
@@ -200,12 +218,12 @@
 		let dataUrl = qrCodeUrl;
 		if (!dataUrl) {
 			const origin = window.location.origin;
-			const url = `${origin}/scan?code=${encodeURIComponent(tool.toolNumber)}`;
+			const url = `${origin}/scan?code=${encodeURIComponent(tool.name)}`;
 			dataUrl = await QRCode.toDataURL(url, { width: 250, margin: 1 });
 		}
 		const win = window.open('', '_blank');
 		if (!win) return;
-		win.document.write(`<!DOCTYPE html><html><head><title>QR - ${tool.toolNumber}</title>
+		win.document.write(`<!DOCTYPE html><html><head><title>QR - ${tool.name}</title>
 <style>
 * { margin:0;padding:0;box-sizing:border-box; }
 body { font-family:Inter,sans-serif;padding:12px;display:flex;justify-content:center;align-items:center;min-height:100vh; }
@@ -214,7 +232,7 @@ img { width:120px;height:120px;image-rendering:pixelated; }
 .code { font-weight:700;font-size:12px; }
 .desc { font-size:10px;color:#555;line-height:1.3; }
 @media print { @page { margin:8mm; } }
-</style></head><body><div class="label"><img src="${dataUrl}" alt="QR"><span class="code">${tool.toolNumber}</span><span class="desc">${tool.name ?? ''}</span></div></body></html>`);
+</style></head><body><div class="label"><img src="${dataUrl}" alt="QR"><span class="code">${tool.name}</span><span class="desc">${tool.heNumber ? `HE# ${tool.heNumber}` : ''}</span></div></body></html>`);
 		win.document.close();
 		win.focus();
 		setTimeout(() => win.print(), 300);
@@ -226,7 +244,7 @@ img { width:120px;height:120px;image-rendering:pixelated; }
 	$effect(() => {
 		if (tool?.labelPrinted) {
 			const origin = window.location.origin;
-			const url = `${origin}/scan?code=${encodeURIComponent(tool.toolNumber)}`;
+			const url = `${origin}/scan?code=${encodeURIComponent(tool.name)}`;
 			QRCode.toDataURL(url, { width: 250, margin: 1 }).then((dataUrl: string) => {
 				qrCodeUrl = dataUrl;
 			});
@@ -246,11 +264,11 @@ img { width:120px;height:120px;image-rendering:pixelated; }
 	<div class="page-header">
 		<div>
 			<h1 class="item-title">{tool.name || 'Unnamed Tool'}</h1>
-			<p class="item-subtitle">{tool.toolNumber}{tool.brand ? ` — ${tool.brand}` : ''}{tool.model ? ` ${tool.model}` : ''}{tool.serialNumber ? ` (S/N: ${tool.serialNumber})` : ''}</p>
+			<p class="item-subtitle">{tool.heNumber ? `HE# ${tool.heNumber}` : ''}{tool.serialNumber ? ` (S/N: ${tool.serialNumber})` : ''}</p>
 			<div class="header-meta-grid">
 				<span class="meta-label">Status</span>
 				<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
-					<span class="status-badge {openCheckout() ? 'low-stock' : 'in-stock'}">{openCheckout() ? 'Checked Out' : 'Available'}</span>
+					<span class="status-badge {tool.decommissionedAt ? 'decommissioned' : openCheckout() ? 'low-stock' : 'in-stock'}">{tool.decommissionedAt ? 'Decommissioned' : openCheckout() ? 'Checked Out' : 'Available'}</span>
 					{#each tool.maintenanceFlags ?? [] as f}
 						<span class="badge badge-{f.type}">Flagged for {f.type}</span>
 					{/each}
@@ -293,17 +311,15 @@ img { width:120px;height:120px;image-rendering:pixelated; }
 			{#if editing}
 				<form style="padding:16px" onsubmit={(e) => { e.preventDefault(); save(); }}>
 					<div class="form-grid">
-						<div class="full"><label>Tool Number</label><input bind:value={form.toolNumber} required /></div>
 						<div class="full"><label>Name</label><input bind:value={form.name} required /></div>
 						<div class="full"><label>Description</label><input bind:value={form.description} /></div>
-						<div><label>Brand</label><input bind:value={form.brand} /></div>
-						<div><label>Model</label><input bind:value={form.model} /></div>
+						<div><label>HE #</label><input bind:value={form.heNumber} /></div>
 						<div><label>Serial Number</label><input bind:value={form.serialNumber} /></div>
 						<div class="full"><ImageUpload bind:value={form.imageUrl} label="Image URL" /></div>
-						<div><label>Category</label>
-							<select bind:value={form.categoryId}>
+						<div><label>Vendor</label>
+							<select bind:value={form.vendorId}>
 								<option value="">--</option>
-								{#each catList as c}<option value={c.id}>{c.name}</option>{/each}
+								{#each vendorList as v}<option value={v.id}>{v.name}</option>{/each}
 							</select>
 						</div>
 						<div><label>Location</label>
@@ -320,12 +336,12 @@ img { width:120px;height:120px;image-rendering:pixelated; }
 				<div class="tab-body">
 					{#if activeTab === 'details'}
 						<div class="details-grid">
-							<span class="detail-label">Category</span><span class="detail-val">{tool.category?.name ?? '-'}</span>
-							<span class="detail-label">Location</span><span class="detail-val">{tool.location?.name ?? '-'}</span>
-							<span class="detail-label">Brand</span><span class="detail-val">{tool.brand ?? '-'}</span>
-							<span class="detail-label">Model</span><span class="detail-val">{tool.model ?? '-'}</span>
-							<span class="detail-label">Serial Number</span><span class="detail-val">{tool.serialNumber ?? '-'}</span>
 							<span class="detail-label">Description</span><span class="detail-val">{tool.description ?? '-'}</span>
+							<span class="detail-label">Vendor</span><span class="detail-val">{tool.vendor?.name ?? '-'}</span>
+							<span class="detail-label">Location</span><span class="detail-val">{tool.location?.name ?? '-'}</span>
+							<span class="detail-label">HE #</span><span class="detail-val">{tool.heNumber ?? '-'}</span>
+							<span class="detail-label">Serial Number</span><span class="detail-val">{tool.serialNumber ?? '-'}</span>
+							<span class="detail-label">Decommissioned</span><span class="detail-val">{tool.decommissionedAt ? new Date(tool.decommissionedAt).toLocaleDateString() : 'No'}</span>
 							<span class="detail-label">Notes</span><span class="detail-val">{tool.notes ?? '-'}</span>
 						</div>
 					{:else if activeTab === 'checkouts'}
@@ -504,10 +520,15 @@ img { width:120px;height:120px;image-rendering:pixelated; }
 					<span class="metric-num">{checkouts.length}</span>
 					<span class="metric-label">Total Checkouts</span>
 				</div>
-				<a href="/scan?code={tool.toolNumber}" class="btn-primary" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box">
+				<a href="/scan?code={encodeURIComponent(tool.name)}" class="btn-primary" class:disabled={tool.decommissionedAt} style="display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box">
 					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M9.5 6.5v3h-3v-3zM11 5H5v6h6zm-1.5 9.5v3h-3v-3zM11 13H5v6h6zm6.5-6.5v3h-3v-3zM19 5h-6v6h6zm-6 8h1.5v1.5H13zm1.5 1.5H16V16h-1.5zM16 13h1.5v1.5H16zm-3 3h1.5v1.5H13zm1.5 1.5H16V19h-1.5zM16 16h1.5v1.5H16zm1.5-1.5H19V16h-1.5zm0 3H19V19h-1.5z"/></svg>
 					Check Out
 				</a>
+				{#if tool.decommissionedAt}
+					<button class="btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick={doReactivate}>Reactivate Tool</button>
+				{:else}
+					<button class="btn-ghost btn-sm" style="width:100%;margin-top:8px;color:var(--red)" onclick={doDecommission}>Decommission Tool</button>
+				{/if}
 			</div>
 		</div>
 	</div>
@@ -553,6 +574,10 @@ img { width:120px;height:120px;image-rendering:pixelated; }
 		background: var(--red);
 		color: var(--red-bg-light);
 	}
+	.status-badge.decommissioned {
+		background: var(--empty-text-secondary);
+		color: var(--bg-primary);
+	}
 	.qr-box {
 		background: color-mix(in srgb, var(--bg-secondary), 50% transparent);
 		border: 1px solid var(--border-color);
@@ -563,22 +588,26 @@ img { width:120px;height:120px;image-rendering:pixelated; }
 		gap: 10px;
 	}
 	.btn-primary {
-	padding: 6px 8px;
-	border-radius: 10px;
-	font-size: 20px;
-	text-decoration: none;
+    	padding: 6px 8px;
+    	border-radius: 10px;
+    	font-size: 20px;
+    	text-decoration: none;
 	}
 	.btn-primary:hover {
-	opacity: 0.8 ;
-	color: white;
+    	opacity: 0.8 ;
+    	color: white;
+	}
+	.btn-primary.disabled {
+		opacity: 0.4;
+		pointer-events: none;
 	}
 	.qr-btn {
-	background: transparent;
-	border: 1px solid transparent;
-	margin-left: 2.4rem;
-	margin-right: 0.8rem;
-	padding: 4px;
-	transition: all var(--transition-normal);
+    	background: transparent;
+    	border: 1px solid transparent;
+    	margin-left: 2.4rem;
+    	margin-right: 0.8rem;
+    	padding: 4px;
+    	transition: all var(--transition-normal);
 	}
 	.qr-btn:hover {
 		background: var(--bg-primary);

@@ -77,7 +77,7 @@
 				<tbody>
 					{#each flags as f}
 						<tr data-id={f.id} class:highlight={f.id === highlightId}>
-							<td><a href="/tools/{f.tool.id}">{f.tool.toolNumber} — {f.tool.name}</a></td>
+							<td><a href="/tools/{f.tool.id}">{f.tool.name}</a></td>
 							<td><span style="color:{typeColors[f.type] ?? 'var(--text-secondary)'};font-weight:500">{f.type}</span></td>
 							<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{f.description ?? '-'}</td>
 							<td>{f.createdBy ?? '-'}</td>

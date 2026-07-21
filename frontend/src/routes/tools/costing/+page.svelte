@@ -31,11 +31,11 @@
 	}
 
 	function exportRecords() {
-		const rows = [['Date','Tool #','Name','Type','Description','By','Cost']];
+		const rows = [['Date','Name','Type','Description','By','Cost']];
 		for (const r of records) {
 			const d = new Date(r.date).toLocaleDateString();
 			const cost = r.cost ? Number(r.cost).toFixed(2) : '';
-			rows.push([d, r.toolNumber, r.toolName, r.type, r.description, r.performedBy ?? '', cost]);
+			rows.push([d, r.toolName, r.type, r.description ?? '', r.performedBy ?? '', cost]);
 		}
 		const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
 		const blob = new Blob([csv], { type: 'text/csv' });
@@ -86,11 +86,11 @@
 
 	{#if loading}
 		<div class="sk-table">
-			<div class="sk-row"><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:20%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:25%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:10%"></div></div>
-			<div class="sk-row"><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:14%"></div><div class="sk-cell sk" style="width:18%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:30%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:10%"></div></div>
-			<div class="sk-row"><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:22%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:28%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:10%"></div></div>
-			<div class="sk-row"><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:13%"></div><div class="sk-cell sk" style="width:16%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:35%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:10%"></div></div>
-			<div class="sk-row"><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:16%"></div><div class="sk-cell sk" style="width:24%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:22%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:10%"></div></div>
+			<div class="sk-row"><div class="sk-cell sk" style="width:12%"></div><div class="sk-cell sk" style="width:20%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:28%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:10%"></div></div>
+			<div class="sk-row"><div class="sk-cell sk" style="width:14%"></div><div class="sk-cell sk" style="width:18%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:32%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:10%"></div></div>
+			<div class="sk-row"><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:22%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:30%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:10%"></div></div>
+			<div class="sk-row"><div class="sk-cell sk" style="width:13%"></div><div class="sk-cell sk" style="width:16%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:36%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:10%"></div></div>
+			<div class="sk-row"><div class="sk-cell sk" style="width:16%"></div><div class="sk-cell sk" style="width:24%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:26%"></div><div class="sk-cell sk" style="width:10%"></div><div class="sk-cell sk" style="width:10%"></div></div>
 		</div>
 	{:else if records.length === 0}
 		<div class="empty-state">No records found.</div>
@@ -100,7 +100,6 @@
 				<thead>
 					<tr>
 						<th>Date</th>
-						<th>Tool #</th>
 						<th>Name</th>
 						<th>Type</th>
 						<th>Description</th>
@@ -112,14 +111,13 @@
 					{#each records as r}
 						<tr onclick={() => goto(`/tools/${r.toolId}`)}>
 							<td style="white-space:nowrap">{new Date(r.date).toLocaleDateString()}</td>
-							<td><a href="/tools/{r.toolId}" onclick={(e) => e.stopPropagation()}>{r.toolNumber}</a></td>
-							<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{r.toolName}</td>
+							<td><a href="/tools/{r.toolId}" onclick={(e) => e.stopPropagation()}>{r.toolName}</a></td>
 							<td>
 								<span style="color:var(--{r.type === 'purchase' ? 'blue' : r.type === 'repair' ? 'red' : r.type === 'service' ? 'orange' : r.type === 'calibration' ? 'yellow' : 'green'});font-weight:500">
 									{r.type}
 								</span>
 							</td>
-							<td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{r.description}</td>
+							<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{r.description ?? ''}</td>
 							<td>{r.performedBy ?? '-'}</td>
 							<td style="font-weight:500">{r.cost ? `$${Number(r.cost).toFixed(2)}` : '-'}</td>
 						</tr>

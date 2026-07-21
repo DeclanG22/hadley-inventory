@@ -79,7 +79,7 @@
 					<tbody>
 						{#each data.toolCheckouts as co}
 							<tr onclick={() => goto(`/tools/${co.tool.id}`)}>
-								<td><a href="/tools/{co.tool.id}" onclick={(e) => e.stopPropagation()}>{co.tool.toolNumber}</a></td>
+								<td><a href="/tools/{co.tool.id}" onclick={(e) => e.stopPropagation()}>{co.tool.name}</a></td>
 								<td>{co.tool.name}</td>
 								<td>{co.checkedOutBy}</td>
 								<td style="white-space:nowrap">{new Date(co.checkedOutAt).toLocaleDateString()}</td>

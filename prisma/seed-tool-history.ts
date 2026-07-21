@@ -5,7 +5,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 const p = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env['DATABASE_URL']! }) });
 
 async function main() {
-  const tools = await p.tool.findMany({ select: { id: true, toolNumber: true } });
+  const tools = await p.tool.findMany({ select: { id: true } });
   const now = new Date();
 
   // Add checkouts for some tools

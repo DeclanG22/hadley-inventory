@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { fade, scale } from 'svelte/transition';
-	import { items, tools, vendors, locations, itemCategories, toolCategories, stockTakes } from '$lib/api';
+	import { items, tools, vendors, locations, itemCategories, stockTakes } from '$lib/api';
 	import { onMount } from 'svelte';
 	let open = $state(false);
 	let query = $state('');
@@ -11,8 +11,8 @@
 	let debounce: any;
 	let inputEl: HTMLInputElement | undefined = $state();
 
-	let cache = $state<{ vendors: any[]; locations: any[]; itemCats: any[]; toolCats: any[]; stockTakes: any[]; maintFlags: any[] }>({
-		vendors: [], locations: [], itemCats: [], toolCats: [], stockTakes: [], maintFlags: [],
+	let cache = $state<{ vendors: any[]; locations: any[]; itemCats: any[]; stockTakes: any[]; maintFlags: any[] }>({
+		vendors: [], locations: [], itemCats: [], stockTakes: [], maintFlags: [],
 	});
 
 	$effect(() => {
@@ -23,7 +23,6 @@
 					vendors.list().then(l => cache.vendors = l).catch(() => {}),
 					locations.list().then(l => cache.locations = l).catch(() => {}),
 					itemCategories.list().then(l => cache.itemCats = l).catch(() => {}),
-					toolCategories.list().then(l => cache.toolCats = l).catch(() => {}),
 					stockTakes.list().then(l => cache.stockTakes = l).catch(() => {}),
 					tools.maintenanceFlags.list().then(l => cache.maintFlags = l).catch(() => {}),
 				]);
@@ -90,7 +89,6 @@
 		{ label: 'Import Items', sub: 'Bulk import from spreadsheet', href: '/items/import' },
 		{ label: 'All Tools', sub: 'Browse tools', href: '/tools' },
 		{ label: 'New Tool', sub: 'Create a tool', href: '/tools/new' },
-		{ label: 'Tool Categories', sub: 'Manage tool categories', href: '/tool-categories' },
 		{ label: 'Tool Costing', sub: 'Tool purchase & maintenance costing', href: '/tools/costing' },
 		{ label: 'Checked Out Tools', sub: 'Currently checked out tools', href: '/tools/checked-out' },
 		{ label: 'Overdue Returns', sub: 'Tools past due date', href: '/tools/checked-out?overdue=true' },
@@ -110,7 +108,6 @@
 		vendors: ['vendor', 'vendors'],
 		locations: ['location', 'locations', 'loc'],
 		itemCats: ['category', 'categories', 'cat', 'item category'],
-		toolCats: ['tool category', 'tool categories'],
 		stockTakes: ['stock', 'stocktake', 'stocktakes', 'stock take', 'stock takes'],
 		maintFlags: ['flag', 'flags', 'maintenance'],
 	};
@@ -123,6 +120,16 @@
 		return s.replace(/\s+/g, ' ').trim().replace(/\s*([^\w\d\s])\s*/g, '$1').replace(/\s*([x×])\s*/g, '$1');
 	}
 
+	function stripPunct(s: string): string {
+		return s.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+	}
+
+	function tokensMatch(text: string, q: string): boolean {
+		const tokens = stripPunct(q).toLowerCase().split(/\s+/).filter(Boolean);
+		const lower = text.toLowerCase();
+		return tokens.length > 1 ? tokens.every(t => lower.includes(t)) : lower.includes(q);
+	}
+
 	function doSearch(q: string) {
 		query = q;
 		clearTimeout(debounce);
@@ -132,10 +139,15 @@
 			selectedIdx = 0;
 			const lq = q.toLowerCase();
 			const nq = norm(lq);
+			const sq = stripPunct(lq);
 			const allItems = showAllOf(lq, 'items');
 			const allTools = showAllOf(lq, 'tools');
 
-			const queries = lq === nq ? [lq] : [lq, nq];
+			const queries = [lq];
+			if (nq !== lq) queries.push(nq);
+			if (sq !== lq && sq !== nq) queries.push(sq);
+			const nQueries = sq !== nq ? [nq, sq] : [nq];
+
 			const res = await Promise.all(queries.flatMap(query => [
 				items.list(query, { limit: 200 }).catch(() => null),
 				tools.list(query, { limit: 200 }).catch(() => null),
@@ -159,43 +171,37 @@
 					if (seenTools.has(t.id)) continue;
 					seenTools.add(t.id);
 					const status = t.checkouts?.length > 0 ? 'Checked out' : 'Available';
-					r.push({ type: 'Tool', label: t.toolNumber, sub: `${t.name} — ${status}`, href: `/tools/${t.id}` });
+					r.push({ type: 'Tool', label: t.heNumber ?? t.name, sub: `${t.name} — ${status}`, href: `/tools/${t.id}` });
 				}
 				for (const m of maintRes) {
 					if (seenMaint.has(m.id)) continue;
 					seenMaint.add(m.id);
-					r.push({ type: 'Maintenance', label: `${m.tool.toolNumber} — ${m.type}`, sub: m.description ?? '', href: `/tools/${m.tool.id}` });
+					r.push({ type: 'Maintenance', label: `${m.tool.name} — ${m.type}`, sub: m.description ?? '', href: `/tools/${m.tool.id}` });
 				}
 			}
 
 			if (showAllOf(lq, 'pages')) {
 				for (const p of pages) r.push({ type: 'Page', label: p.label, sub: p.sub, href: p.href });
 			} else {
-				for (const p of pages) if (norm(p.label.toLowerCase()).includes(nq) || norm(p.sub.toLowerCase()).includes(nq)) r.push({ type: 'Page', label: p.label, sub: p.sub, href: p.href });
+				for (const p of pages) if (tokensMatch(`${p.label} ${p.sub}`, q)) r.push({ type: 'Page', label: p.label, sub: p.sub, href: p.href });
 			}
 
 			if (showAllOf(lq, 'vendors')) {
 				for (const v of cache.vendors) r.push({ type: 'Vendor', label: v.name, sub: '', href: `/vendors/${v.id}` });
 			} else {
-				for (const v of cache.vendors) if (norm(v.name.toLowerCase()).includes(nq)) r.push({ type: 'Vendor', label: v.name, sub: '', href: `/vendors/${v.id}` });
+				for (const v of cache.vendors) if (tokensMatch(v.name, q)) r.push({ type: 'Vendor', label: v.name, sub: '', href: `/vendors/${v.id}` });
 			}
 
 			if (showAllOf(lq, 'locations')) {
 				for (const l of cache.locations) r.push({ type: 'Location', label: l.name, sub: '', href: `/locations/${l.id}` });
 			} else {
-				for (const l of cache.locations) if (norm(l.name.toLowerCase()).includes(nq)) r.push({ type: 'Location', label: l.name, sub: '', href: `/locations/${l.id}` });
+				for (const l of cache.locations) if (tokensMatch(l.name, q)) r.push({ type: 'Location', label: l.name, sub: '', href: `/locations/${l.id}` });
 			}
 
 			if (showAllOf(lq, 'itemCats')) {
 				for (const c of cache.itemCats) r.push({ type: 'Item Category', label: c.name, sub: '', href: `/item-categories?highlight=${c.id}` });
 			} else {
-				for (const c of cache.itemCats) if (norm(c.name.toLowerCase()).includes(nq)) r.push({ type: 'Item Category', label: c.name, sub: '', href: `/item-categories?highlight=${c.id}` });
-			}
-
-			if (showAllOf(lq, 'toolCats')) {
-				for (const c of cache.toolCats) r.push({ type: 'Tool Category', label: c.name, sub: '', href: `/tool-categories?highlight=${c.id}` });
-			} else {
-				for (const c of cache.toolCats) if (norm(c.name.toLowerCase()).includes(nq)) r.push({ type: 'Tool Category', label: c.name, sub: '', href: `/tool-categories?highlight=${c.id}` });
+				for (const c of cache.itemCats) if (tokensMatch(c.name, q)) r.push({ type: 'Item Category', label: c.name, sub: '', href: `/item-categories?highlight=${c.id}` });
 			}
 
 			if (showAllOf(lq, 'stockTakes')) {
@@ -206,21 +212,20 @@
 			} else {
 				for (const s of cache.stockTakes) {
 					const d = new Date(s.date).toLocaleDateString();
-					if (norm(d.toLowerCase()).includes(nq) || norm((s.status ?? '').toLowerCase()).includes(nq)) r.push({ type: 'Stock Take', label: d, sub: `Status: ${s.status}`, href: `/stock-takes/${s.id}` });
+					if (tokensMatch(`${d} ${s.status ?? ''}`, q)) r.push({ type: 'Stock Take', label: d, sub: `Status: ${s.status}`, href: `/stock-takes/${s.id}` });
 				}
 			}
 
 			if (showAllOf(lq, 'maintFlags')) {
 				for (const f of cache.maintFlags) {
 					const status = f.resolvedAt ? 'Resolved' : 'Open';
-					r.push({ type: 'Flag', label: `${f.tool.toolNumber} — ${f.type}`, sub: `Status: ${status} — ${f.description ?? ''}`, href: `/tools/maintenance-flags?highlight=${f.id}` });
+						r.push({ type: 'Flag', label: `${f.tool.name} — ${f.type}`, sub: `Status: ${status} — ${f.description ?? ''}`, href: `/tools/maintenance-flags?highlight=${f.id}` });
 				}
 			} else {
 				for (const f of cache.maintFlags) {
-					const txt = norm(`${f.tool.toolNumber} ${f.type} ${f.description ?? ''} ${f.createdBy ?? ''}`.toLowerCase());
-					if (txt.includes(nq) || norm(f.tool.name.toLowerCase()).includes(nq)) {
+					if (tokensMatch(`${f.tool.name} ${f.type} ${f.description ?? ''} ${f.createdBy ?? ''}`, q)) {
 						const status = f.resolvedAt ? 'Resolved' : 'Open';
-						r.push({ type: 'Flag', label: `${f.tool.toolNumber} — ${f.type}`, sub: `Status: ${status} — ${f.description ?? ''}`, href: `/tools/maintenance-flags?highlight=${f.id}` });
+					r.push({ type: 'Flag', label: `${f.tool.name} — ${f.type}`, sub: `Status: ${status} — ${f.description ?? ''}`, href: `/tools/maintenance-flags?highlight=${f.id}` });
 					}
 				}
 			}

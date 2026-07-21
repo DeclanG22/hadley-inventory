@@ -71,7 +71,7 @@
 			<h2>Scan and Transact</h2>
 			<p>This is where you record inventory movement day to day.</p>
 			<ul>
-				<li><strong>Search</strong> by item number, tool number, or description. You can also scan a bin QR code with a barcode scanner, and it types the code in automatically.</li>
+				<li><strong>Search</strong> by item number, HE#, or description. You can also scan a bin QR code with a barcode scanner, and it types the code in automatically.</li>
 				<li><strong>Items</strong>: pick Out to issue stock or In to receive it, enter the quantity, and hit the button. A job number is optional but recommended so you can track where things went.</li>
 				<li><strong>Weight entry</strong>: if the item has a weight per unit set, a weight field appears next to quantity. Change the quantity and the weight updates, or change the weight and the quantity recalculates. This lets you weigh a handful of parts and get an instant count.</li>
 				<li><strong>Tools</strong>: type the persons name to check a tool out, or click Check In to return it.</li>
@@ -103,7 +103,7 @@
 
 		<section id="tools" class="doc-section">
 			<h2>Tools</h2>
-			<p>Tools are unique assets, not consumable items. Each tool has its own number, name, brand and model, and serial number so you can keep track of individual pieces of equipment.</p>
+			<p>Tools are unique assets, not consumable items. Each tool has its own number, name, and serial number so you can keep track of individual pieces of equipment.</p>
 			<ul>
 				<li><strong>Check out</strong> a tool to record who has it, what job it is for, and when it is due back.</li>
 				<li><strong>Check in</strong> when the tool is returned.</li>

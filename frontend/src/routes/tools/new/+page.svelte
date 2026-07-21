@@ -1,15 +1,15 @@
 ﻿<script lang="ts">
-	import { tools, locations, toolCategories } from '$lib/api';
+	import { tools, locations, vendors } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 
 	let locList = $state<any[]>([]);
-	let catList = $state<any[]>([]);
+	let vendorList = $state<any[]>([]);
 	let loading = $state(true);
 
 	let form = $state({
-		toolNumber: '', name: '', description: '', brand: '', model: '',
-		serialNumber: '', imageUrl: '', notes: '', categoryId: '', locationId: '',
+		name: '', description: '', heNumber: '',
+		serialNumber: '', imageUrl: '', notes: '', vendorId: '', locationId: '',
 	});
 	let saved = $state(false);
 
@@ -17,7 +17,7 @@
 		loading = true;
 		Promise.all([
 			locations.list().then(l => locList = l),
-			toolCategories.list().then(l => catList = l),
+			vendors.list().then(l => vendorList = l),
 		]).finally(() => loading = false);
 	}
 	$effect(loadRefs);
@@ -27,7 +27,7 @@
 			const data: any = {};
 			for (const [k, v] of Object.entries(form)) {
 				if (v === '') continue;
-				if (['categoryId','locationId'].includes(k)) data[k] = Number(v);
+				if (['vendorId','locationId'].includes(k)) data[k] = Number(v);
 				else data[k] = v;
 			}
 			await tools.create(data);
@@ -61,17 +61,15 @@
 	<form class="card" onsubmit={(e) => { e.preventDefault(); submit(); }}>
 		<div class="card-header"><h2>Tool Details</h2></div>
 		<div class="form-grid">
-			<div class="full"><label>Tool Number *</label><input bind:value={form.toolNumber} required /></div>
 			<div class="full"><label>Name *</label><input bind:value={form.name} required /></div>
 			<div class="full"><label>Description</label><input bind:value={form.description} /></div>
-			<div><label>Brand</label><input bind:value={form.brand} /></div>
-			<div><label>Model</label><input bind:value={form.model} /></div>
+			<div><label>HE #</label><input bind:value={form.heNumber} /></div>
 			<div><label>Serial Number</label><input bind:value={form.serialNumber} /></div>
 			<ImageUpload bind:value={form.imageUrl} label="Image URL" />
-			<div><label>Category</label>
-				<select bind:value={form.categoryId}>
+			<div><label>Vendor</label>
+				<select bind:value={form.vendorId}>
 					<option value="">--</option>
-					{#each catList as c}<option value={c.id}>{c.name}</option>{/each}
+					{#each vendorList as v}<option value={v.id}>{v.name}</option>{/each}
 				</select>
 			</div>
 			<div><label>Location</label>
