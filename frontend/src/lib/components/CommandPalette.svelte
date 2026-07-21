@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { fade, scale } from 'svelte/transition';
 	import { items, tools, vendors, locations, itemCategories, toolCategories, stockTakes } from '$lib/api';
-
+	import { onMount } from 'svelte';
 	let open = $state(false);
 	let query = $state('');
 	let results = $state<{ type: string; label: string; sub: string; href: string }[]>([]);
@@ -31,22 +31,54 @@
 		}
 	});
 
+	onMount(() => {
+		function openSearchFromMenu() {
+			open = !open;
+
+			if (open) {
+				query = '';
+				results = [];
+				selectedIdx = 0;
+			}
+		}
+
+		window.addEventListener('open-search', openSearchFromMenu);
+
+		return () => {
+			window.removeEventListener('open-search', openSearchFromMenu);
+		};
+});
+
 	function onKeydown(e: KeyboardEvent) {
 		if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
 			e.preventDefault();
-			open = !open;
-			if (open) { query = ''; results = []; selectedIdx = 0; }
+
+			window.dispatchEvent(new Event('open-search'));
 		}
+
 		if (!open) return;
-		if (e.key === 'Escape') { e.preventDefault(); open = false; }
-		if (e.key === 'ArrowDown') { e.preventDefault(); selectedIdx = Math.min(selectedIdx + 1, results.length - 1); }
-		if (e.key === 'ArrowUp') { e.preventDefault(); selectedIdx = Math.max(selectedIdx - 1, 0); }
+
+		if (e.key === 'Escape') {
+			e.preventDefault();
+			open = false;
+		}
+
+		if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			selectedIdx = Math.min(selectedIdx + 1, results.length - 1);
+		}
+
+		if (e.key === 'ArrowUp') {
+			e.preventDefault();
+			selectedIdx = Math.max(selectedIdx - 1, 0);
+		}
+
 		if (e.key === 'Enter' && results[selectedIdx]) {
 			e.preventDefault();
 			goto(results[selectedIdx].href);
 			open = false;
 		}
-	}
+}
 
 	const pages = [
 		{ label: 'Dashboard', sub: 'Home', href: '/' },

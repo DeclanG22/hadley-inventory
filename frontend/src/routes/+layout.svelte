@@ -8,6 +8,47 @@
 	let { children } = $props();
 	let path = $derived($page.url.pathname);
 	let sidebarOpen = $state(false);
+	let menuOpen = $state(false);
+	let theme = $state<'light' | 'dark'>('light');
+
+	$effect(() => {
+		const saved = localStorage.getItem('theme');
+		if (saved === 'light' || saved === 'dark') {
+			theme = saved;
+		} else {
+			theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+		}
+	});
+
+	$effect(() => {
+		document.documentElement.dataset.theme = theme;
+		localStorage.setItem('theme', theme);
+	});
+
+	$effect(() => {
+		const mq = window.matchMedia('(prefers-color-scheme: dark)');
+		const handler = (e: MediaQueryListEvent) => {
+			if (!localStorage.getItem('theme')) theme = e.matches ? 'dark' : 'light';
+		};
+		mq.addEventListener('change', handler);
+		return () => mq.removeEventListener('change', handler);
+	});
+
+	function toggleTheme() {
+		theme = theme === 'light' ? 'dark' : 'light';
+		menuOpen = false;
+	}
+
+	$effect(() => {
+		if (menuOpen) {
+			const handler = (e: MouseEvent) => {
+				const target = e.target as HTMLElement;
+				if (!target.closest('.ellipsis-wrap')) menuOpen = false;
+			};
+			document.addEventListener('click', handler, true);
+			return () => document.removeEventListener('click', handler, true);
+		}
+	});
 </script>
 
 <div class="app-shell">
@@ -17,12 +58,97 @@
 	<aside class="sidebar" class:open={sidebarOpen}>
 		<div class="sidebar-header">
 			<div class="logo"><img src={logo} alt="" class="logo-img" />Hadley Inventory</div>
-			<button class="sidebar-close" onclick={() => sidebarOpen = false} aria-label="Close sidebar">
-				<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-					<path d="M0 0h24v24H0z" fill="none" />
-					<path fill="currentColor" fill-rule="evenodd" d="M6.416 4.767a2.65 2.65 0 0 0-2.65 2.65v8.832a2.65 2.65 0 0 0 2.65 2.65h1.461V4.767h-1.46Zm0-1.767A4.416 4.416 0 0 0 2 7.416v8.833a4.416 4.416 0 0 0 4.416 4.417h11.168A4.416 4.416 0 0 0 22 16.248V7.416A4.416 4.416 0 0 0 17.584 3zm3.228 1.767v14.132h7.94a2.65 2.65 0 0 0 2.65-2.65V7.416a2.65 2.65 0 0 0-2.65-2.65h-7.94Z" clip-rule="evenodd" />
-				</svg>
-			</button>
+			<div class="header-right">
+				<div class="ellipsis-wrap">
+					<button class="ellipsis-btn" onclick={() => menuOpen = !menuOpen} aria-label="Menu">
+						<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+							<path d="M0 0h24v24H0z" fill="none" />
+							<path fill="currentColor" d="M12 8a2 2 0 1 0 0-4a2 2 0 0 0 0 4m0 6a2 2 0 1 0 0-4a2 2 0 0 0 0 4m0 6a2 2 0 1 0 0-4a2 2 0 0 0 0 4" />
+						</svg>
+					</button>
+					{#if menuOpen}
+					<div class="dropdown-menu" onclick={() => menuOpen = false}>
+						<a href="/help" class="dropdown-item">
+							<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+								<path d="M12 18h.01M9.09 9a3 3 0 1 1 5.82 1c0 2-3 2.5-3 4"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round" />
+								<circle
+									cx="12"
+									cy="12"
+									r="10"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2" />
+							</svg>
+							Help
+						</a>
+
+						<button
+							class="dropdown-item"
+							onclick={() => window.dispatchEvent(new Event('open-search'))}
+>
+							<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+								<circle
+									cx="11"
+									cy="11"
+									r="7"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2" />
+								<path
+									d="m20 20-3.5-3.5"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round" />
+							</svg>
+							Search <kbd>Ctrl+K</kbd>
+</button>
+
+						<button class="dropdown-item" onclick={toggleTheme}>
+							<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+								{#if theme === 'light'}
+									<!-- Moon -->
+									<path
+										d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round" />
+								{:else}
+									<!-- Sun -->
+									<circle
+										cx="12"
+										cy="12"
+										r="4"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2" />
+									<path
+										d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round" />
+								{/if}
+							</svg>
+							Switch to {theme === 'light' ? 'dark' : 'light'} theme
+						</button>
+					     </div>
+					{/if}
+				</div>
+				<button class="sidebar-close" onclick={() => sidebarOpen = false} aria-label="Close sidebar">
+					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+						<path d="M0 0h24v24H0z" fill="none" />
+						<path fill="currentColor" fill-rule="evenodd" d="M6.416 4.767a2.65 2.65 0 0 0-2.65 2.65v8.832a2.65 2.65 0 0 0 2.65 2.65h1.461V4.767h-1.46Zm0-1.767A4.416 4.416 0 0 0 2 7.416v8.833a4.416 4.416 0 0 0 4.416 4.417h11.168A4.416 4.416 0 0 0 22 16.248V7.416A4.416 4.416 0 0 0 17.584 3zm3.228 1.767v14.132h7.94a2.65 2.65 0 0 0 2.65-2.65V7.416a2.65 2.65 0 0 0-2.65-2.65h-7.94Z" clip-rule="evenodd" />
+					</svg>
+				</button>
+			</div>
 		</div>
 		<nav>
 
@@ -204,18 +330,6 @@
 			<span>Maintenance</span>
 			</a>
 
-		<span class="nav-label">General</span>
-
-			<a href="/help" class="tab-link" class:active={path === '/help'}>
-				<span class="tab-link-icon" aria-hidden="true">
-					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-						<path d="M0 0h24v24H0z" fill="none" />
-						<path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m1 17h-2v-2h2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41c0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25" />
-					</svg>
-				</span>
-				<span>Help</span>
-			</a>
-
 		<span class="nav-label">Reference</span>
 
 			<a href="/jobs" class="tab-link" class:active={path === '/jobs' || path.startsWith('/jobs/')}>
@@ -284,6 +398,12 @@
 		gap: 2px;
 		height: 100dvh;
 	}
+	.sidebar nav {
+		flex: 1;
+		overflow-y: auto;
+		min-height: 0;
+		padding-bottom: 2rem;
+	}
 	.sidebar-header {
 		display: flex;
 		align-items: center;
@@ -291,12 +411,17 @@
 		padding-right: 4px;
 		flex-shrink: 0;
 	}
+	.header-right {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
 	.sidebar-close {
 		display: none;
+		transition: color 0.15s ease;
 	}
-	.sidebar-backdrop {
-		display: none;
-	}
+	.sidebar-close:hover { color: var(--text-primary); }
+	.sidebar-backdrop,
 	.menu-toggle {
 		display: none;
 	}
@@ -315,6 +440,76 @@
 		height: 18px;
 		width: auto;
 		display: block;
+	}
+
+	.ellipsis-wrap {
+		position: relative;
+		display: flex;
+		margin-bottom: 6px;
+	}
+
+	.ellipsis-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: transparent;
+		border: none;
+		color: var(--empty-text-primary);
+		cursor: pointer;
+		padding: 8px;
+		border-radius: 8px;
+		font-size: 20px;
+		transition: color 0.15s ease;
+	}
+	.ellipsis-btn:hover { color: var(--text-primary); }
+	.ellipsis-btn svg { width: 20px; height: 20px; }
+
+	.dropdown-menu {
+		position: absolute;
+		top: 100%;
+		left: 0;
+
+		margin-top: 4px;
+		min-width: 180px;
+		background: var(--bg-primary);
+		border: 1px solid var(--border-color);
+		border-radius: 10px;
+		padding: 4px;
+		box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+		z-index: 1000000000000;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.dropdown-item {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+
+		width: 100%;
+		box-sizing: border-box;
+
+		text-align: left;
+		padding: 8px 12px;
+		font-size: 13px;
+		font-weight: 400;
+		border: none;
+		border-radius: 6px;
+		background: transparent;
+		color: var(--text-secondary);
+		cursor: pointer;
+		text-decoration: none;
+		font-family: inherit;
+		transition: background 0.12s ease;
+}
+
+.dropdown-item svg {
+		flex-shrink: 0;
+		opacity: 0.8;
+}
+	.dropdown-item:hover {
+	background: color-mix(in srgb, var(--empty-text-secondary) 20%, transparent);
+color: var(--text-primary);
 	}
 	.nav-label {
 		font-size: 11px;
@@ -382,16 +577,19 @@
 		}
 		.sidebar-close {
 			display: flex;
+			align-items: center;
+			justify-content: center;
 			background: transparent;
 			border: none;
 			color: var(--empty-text-primary);
 			cursor: pointer;
 			padding: 8px;
 			border-radius: 8px;
+			margin-bottom: 6px;
 			font-size: 20px;
-			align-items: center;
-			justify-content: center;
+			transition: color 0.15s ease;
 		}
+		.sidebar-close:hover { color: var(--text-primary); }
 		.sidebar-backdrop {
 			display: block;
 			position: fixed;
@@ -431,5 +629,13 @@
 		.main {
 			padding: 60px 12px 12px;
 		}
+	}
+	kbd {
+		background: var(--bg-secondary);
+		border: 1px solid var(--border-color);
+		border-radius: 4px;
+		padding: 1px 5px;
+		font-size: 12px;
+		font-family: inherit;
 	}
 </style>

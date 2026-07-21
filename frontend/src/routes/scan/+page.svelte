@@ -168,7 +168,7 @@
 	function onWeightChange() {
 		const wpu = result?.type === 'item' ? (result.data as any).weightPerUnit : null;
 		if (wpu && wpu > 0 && parseFloat(weight || '0') > 0) {
-			quantity = Math.max(1, Math.floor(parseFloat(weight) / wpu));
+			quantity = Math.max(1, Math.round(parseFloat(weight) / wpu));
 		}
 	}
 
@@ -371,7 +371,7 @@
 						<input
 							type="number"
 							bind:value={weight}
-							oninput={onWeightChange}
+							onchange={onWeightChange}
 							step="0.01"
 							min="0"
 							placeholder="Weight"

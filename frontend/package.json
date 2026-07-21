@@ -23,6 +23,7 @@
 		"vite": "^8.0.16"
 	},
 	"dependencies": {
-		"qrcode": "^1.5.4"
+		"qrcode": "^1.5.4",
+		"table-of-content-component": "github:zanwei/table-of-content-component"
 	}
 }

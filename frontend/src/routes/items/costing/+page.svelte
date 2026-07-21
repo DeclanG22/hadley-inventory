@@ -156,7 +156,7 @@
 							</td>
 							<td>{t.unitPrice || t.item?.unitPrice ? `$${Number(t.unitPrice ?? t.item.unitPrice).toFixed(2)}` : '-'}</td>
 							<td style="font-weight:500">{t.totalCost ? `$${Number(t.totalCost).toFixed(2)}` : t.unitPrice || t.item?.unitPrice ? `$${(Math.abs(t.quantityInOut) * Number(t.unitPrice ?? t.item.unitPrice)).toFixed(2)}` : '-'}</td>
-							<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{t.notes ?? ''}</td>
+							<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--empty-text-secondary)">{t.notes ?? ''}</td>
 						</tr>
 					{/each}
 				</tbody>
