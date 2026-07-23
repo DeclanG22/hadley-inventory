@@ -51,7 +51,7 @@
 						<tr onclick={() => goto(`/vendors/${v.id}`)}>
 							<td>{v.id}</td>
 							<td><a href="/vendors/{v.id}" onclick={(e) => e.stopPropagation()}>{v.name}</a></td>
-							<td><button class="btn-del btn-sm" onclick={(e) => { e.stopPropagation(); remove(v.id); }}><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 14 14"><path d="M0 0h14v14H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M1.707.293A1 0 0 0 .293 1.707L5.586 7L.293 12.293a1 1 0 1 0 1.414 1.414L7 8.414l5.293 5.293a1 1 0 0 0 1.414-1.414L8.414 7l5.293-5.293A1 1 0 0 0 12.293.293L7 5.586z" clip-rule="evenodd" /></svg></button></td>
+							<td><button class="btn-del btn-sm" onclick={(e) => { e.stopPropagation(); remove(v.id); }}><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 14 14"><path d="M0 0h14v14H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M1.707.293A1 1 0 0 0 .293 1.707L5.586 7L.293 12.293a1 1 0 1 0 1.414 1.414L7 8.414l5.293 5.293a1 1 0 0 0 1.414-1.414L8.414 7l5.293-5.293A1 1 0 0 0 12.293.293L7 5.586z" clip-rule="evenodd" /></svg></button></td>
 						</tr>
 					{/each}
 				</tbody>

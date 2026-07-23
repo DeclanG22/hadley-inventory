@@ -1,4 +1,4 @@
-import { Controller, Get, Param, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Param, Query, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 function expandSearchQueries(q: string): string[] {
@@ -16,172 +16,175 @@ function expandSearchQueries(q: string): string[] {
   return [...new Set(results)];
 }
 
+const itemInclude = {
+  category: true,
+  subCategory: true,
+  location: true,
+  vendor: true,
+} as const;
+
+const toolInclude = {
+  vendor: true,
+  checkouts: {
+    where: { checkedInAt: null },
+    take: 1,
+  },
+  maintenanceFlags: {
+    where: { resolvedAt: null },
+    select: { id: true, type: true, description: true, createdAt: true },
+  },
+} as const;
+
+function formatItem(item: any) {
+  return {
+    type: 'item' as const,
+    data: {
+      id: item.id,
+      itemNumber: item.itemNumber,
+      description: item.description,
+      onHand: item.onHand,
+      unit: item.unit,
+      category: item.category?.name ?? null,
+      imageUrl: item.imageUrl,
+      weightPerUnit: item.weightPerUnit ? Number(item.weightPerUnit) : null,
+    },
+  };
+}
+
+function formatTool(tool: any) {
+  return {
+    type: 'tool' as const,
+    data: {
+      id: tool.id,
+      name: tool.name,
+      description: tool.description,
+      heNumber: tool.heNumber,
+      vendor: tool.vendor?.name ?? null,
+      imageUrl: tool.imageUrl,
+      decommissionedAt: tool.decommissionedAt,
+      checkedOut: tool.checkouts.length > 0,
+      checkedOutBy: tool.checkouts[0]?.checkedOutBy ?? null,
+      checkedOutAt: tool.checkouts[0]?.checkedOutAt ?? null,
+      expectedReturnAt: tool.checkouts[0]?.expectedReturnAt ?? null,
+      maintenanceFlags: tool.maintenanceFlags,
+    },
+  };
+}
+
 @Controller('lookup')
 export class LookupController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get(':code')
-  async lookup(@Param('code') code: string) {
+  async lookup(@Param('code') code: string, @Query('type') type?: string) {
     const queries = expandSearchQueries(code);
 
-    for (const q of queries) {
-      let item = await this.prisma.item.findFirst({
-        where: { itemNumber: { equals: q, mode: 'insensitive' } },
-        include: {
-          category: true,
-          subCategory: true,
-          location: true,
-          vendor: true,
-        },
-      });
-      if (!item) {
-        item = await this.prisma.item.findFirst({
-          where: { description: { contains: q, mode: 'insensitive' } },
-          include: {
-            category: true,
-            subCategory: true,
-            location: true,
-            vendor: true,
-          },
+    // Phase 1 — Exact matches on ALL entities (no contains)
+    // This ensures an exact heNumber / serialNumber / itemNumber match
+    // beats any partial description match on a different entity.
+    if (!type || type === 'item') {
+      for (const q of queries) {
+        const item = await this.prisma.item.findFirst({
+          where: { itemNumber: { equals: q, mode: 'insensitive' } },
+          include: itemInclude,
         });
-      }
-      if (item) {
-        return {
-          type: 'item' as const,
-          data: {
-            id: item.id,
-            itemNumber: item.itemNumber,
-            description: item.description,
-            onHand: item.onHand,
-            unit: item.unit,
-            category: item.category?.name ?? null,
-            imageUrl: item.imageUrl,
-            weightPerUnit: item.weightPerUnit ? Number(item.weightPerUnit) : null,
-          },
-        };
+        if (item) return formatItem(item);
       }
     }
 
-    const itemTokens = code.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase().split(/\s+/).filter(Boolean);
-    if (itemTokens.length > 1) {
-      const item = await this.prisma.item.findFirst({
-        where: {
-          AND: itemTokens.map(token => ({
-            OR: [
-              { itemNumber: { contains: token, mode: 'insensitive' } },
-              { description: { contains: token, mode: 'insensitive' } },
-            ]
-          }))
-        },
-        include: {
-          category: true,
-          subCategory: true,
-          location: true,
-          vendor: true,
-        },
-      });
-      if (item) {
-        return {
-          type: 'item' as const,
-          data: {
-            id: item.id,
-            itemNumber: item.itemNumber,
-            description: item.description,
-            onHand: item.onHand,
-            unit: item.unit,
-            category: item.category?.name ?? null,
-            imageUrl: item.imageUrl,
-            weightPerUnit: item.weightPerUnit ? Number(item.weightPerUnit) : null,
-          },
-        };
-      }
-    }
+    if (!type || type === 'tool') {
+      for (const q of queries) {
+        let tool = await this.prisma.tool.findFirst({
+          where: { serialNumber: { equals: q, mode: 'insensitive' } },
+          include: toolInclude,
+        });
+        if (tool) return formatTool(tool);
 
-    const toolInclude = {
-      vendor: true,
-      checkouts: {
-        where: { checkedInAt: null },
-        take: 1,
-      },
-      maintenanceFlags: {
-        where: { resolvedAt: null },
-        select: { id: true, type: true, description: true, createdAt: true },
-      },
-    } as const;
+        const heNum = parseInt(q, 10);
+        if (!isNaN(heNum)) {
+          tool = await this.prisma.tool.findFirst({
+            where: { heNumber: heNum },
+            include: toolInclude,
+          });
+          if (tool) return formatTool(tool);
+        }
 
-    for (const q of queries) {
-      const heNum = parseInt(q, 10);
-      let tool = !isNaN(heNum) ? await this.prisma.tool.findFirst({
-        where: { heNumber: heNum },
-        include: toolInclude,
-      }) : null;
-      if (!tool) {
         tool = await this.prisma.tool.findFirst({
           where: { name: { equals: q, mode: 'insensitive' } },
           include: toolInclude,
         });
+        if (tool) return formatTool(tool);
       }
-      if (!tool) {
+    }
+
+    // Phase 2 — Contains matches
+    if (!type || type === 'item') {
+      for (const q of queries) {
+        const item = await this.prisma.item.findFirst({
+          where: { description: { contains: q, mode: 'insensitive' } },
+          include: itemInclude,
+        });
+        if (item) return formatItem(item);
+      }
+    }
+
+    if (!type || type === 'tool') {
+      for (const q of queries) {
+        let tool = await this.prisma.tool.findFirst({
+          where: { serialNumber: { contains: q, mode: 'insensitive' } },
+          include: toolInclude,
+        });
+        if (tool) return formatTool(tool);
+
         tool = await this.prisma.tool.findFirst({
           where: { name: { contains: q, mode: 'insensitive' } },
           include: toolInclude,
         });
-      }
-      if (tool) {
-        return {
-          type: 'tool' as const,
-          data: {
-            id: tool.id,
-            name: tool.name,
-            description: tool.description,
-            heNumber: tool.heNumber,
-            vendor: tool.vendor?.name ?? null,
-            imageUrl: tool.imageUrl,
-            decommissionedAt: tool.decommissionedAt,
-            checkedOut: tool.checkouts.length > 0,
-            checkedOutBy: tool.checkouts[0]?.checkedOutBy ?? null,
-            checkedOutAt: tool.checkouts[0]?.checkedOutAt ?? null,
-            expectedReturnAt: tool.checkouts[0]?.expectedReturnAt ?? null,
-            maintenanceFlags: tool.maintenanceFlags,
-          },
-        };
+        if (tool) return formatTool(tool);
       }
     }
 
+    // Phase 3 — Multi-token AND search
     const tokens = code.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase().split(/\s+/).filter(Boolean);
     if (tokens.length > 1) {
-      const tool = await this.prisma.tool.findFirst({
-        where: {
-          AND: tokens.map(token => ({
-            OR: [
-              { name: { contains: token, mode: 'insensitive' } },
-              { description: { contains: token, mode: 'insensitive' } },
-            ]
-          }))
-        },
-        include: toolInclude,
-      });
-      if (tool) {
-        return {
-          type: 'tool' as const,
-          data: {
-            id: tool.id,
-            name: tool.name,
-            description: tool.description,
-            heNumber: tool.heNumber,
-            vendor: tool.vendor?.name ?? null,
-            imageUrl: tool.imageUrl,
-            decommissionedAt: tool.decommissionedAt,
-            checkedOut: tool.checkouts.length > 0,
-            checkedOutBy: tool.checkouts[0]?.checkedOutBy ?? null,
-            checkedOutAt: tool.checkouts[0]?.checkedOutAt ?? null,
-            expectedReturnAt: tool.checkouts[0]?.expectedReturnAt ?? null,
-            maintenanceFlags: tool.maintenanceFlags,
+      if (!type || type === 'item') {
+        const item = await this.prisma.item.findFirst({
+          where: {
+            AND: tokens.map(token => ({
+              OR: [
+                { itemNumber: { contains: token, mode: 'insensitive' } },
+                { description: { contains: token, mode: 'insensitive' } },
+              ]
+            }))
           },
-        };
+          include: itemInclude,
+        });
+        if (item) return formatItem(item);
+      }
+
+      if (!type || type === 'tool') {
+        const tool = await this.prisma.tool.findFirst({
+          where: {
+            AND: tokens.map(token => ({
+              OR: [
+                { serialNumber: { contains: token, mode: 'insensitive' } },
+                { name: { contains: token, mode: 'insensitive' } },
+                { description: { contains: token, mode: 'insensitive' } },
+              ]
+            }))
+          },
+          include: toolInclude,
+        });
+        if (tool) return formatTool(tool);
       }
     }
 
+    if (type === 'item') {
+      throw new NotFoundException(`No item found matching "${code}"`);
+    }
+    if (type === 'tool') {
+      throw new NotFoundException(`No tool found matching "${code}"`);
+    }
     throw new NotFoundException(`No item or tool found matching "${code}"`);
   }
 }

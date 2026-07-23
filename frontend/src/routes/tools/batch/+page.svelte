@@ -10,7 +10,7 @@
 	let form = $state({
 		quantity: '',
 		name: '', description: '', heNumberStart: '',
-		serialNumber: '', imageUrl: '', notes: '', vendorId: '', locationId: '',
+		imageUrl: '', notes: '', vendorId: '', locationId: '',
 	});
 	let saved = $state(false);
 	let created = $state<any[]>([]);
@@ -33,7 +33,6 @@
 		const data: any = { quantity: qty, name: form.name.trim() };
 		if (form.description) data.description = form.description;
 		if (form.heNumberStart) data.heNumberStart = Number(form.heNumberStart);
-		if (form.serialNumber) data.serialNumber = form.serialNumber;
 		if (form.imageUrl) data.imageUrl = form.imageUrl;
 		if (form.notes) data.notes = form.notes;
 		if (form.vendorId) data.vendorId = Number(form.vendorId);
@@ -77,7 +76,7 @@
 				</tbody>
 			</table>
 		</div>
-		<a href="/tools" class="btn btn-primary" style="margin-top:12px">Done</a>
+		<a href="/tools" class="btn btn-primary" style="margin-top:28px;display:inline-block">Done</a>
 	</div>
 {:else}
 	<form class="card" onsubmit={(e) => { e.preventDefault(); submit(); }}>
@@ -90,7 +89,6 @@
 			<div><label>HE # Start</label><input type="number" min="0" bind:value={form.heNumberStart} placeholder="e.g. 600" /></div>
 			<div class="full"><label>Name *</label><input bind:value={form.name} required /></div>
 			<div class="full"><label>Description</label><input bind:value={form.description} /></div>
-			<div><label>Serial Number</label><input bind:value={form.serialNumber} /></div>
 			<ImageUpload bind:value={form.imageUrl} label="Image URL" />
 			<div><label>Vendor</label>
 				<select bind:value={form.vendorId}>
@@ -109,3 +107,10 @@
 		<button type="submit" style="margin-top:12px" class="btn-primary">Create {form.quantity || '?'} Tools</button>
 	</form>
 {/if}
+
+<style>
+	.success-card table th,
+	.success-card table td {
+		padding: 8px 6px;
+	}
+</style>

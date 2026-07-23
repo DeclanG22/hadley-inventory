@@ -114,6 +114,14 @@
 		} catch (e: any) { addToast(e.message, 'error'); }
 	}
 
+	async function doCheckin() {
+		try {
+			await tools.checkin(Number(params.id));
+			load();
+			addToast('Tool checked in', 'success');
+		} catch (e: any) { addToast(e.message, 'error'); }
+	}
+
 	async function deleteCheckout(coId: number) {
 		const ok = await confirm('Delete Checkout', 'This will permanently remove this checkout record.');
 		if (!ok) return;
@@ -218,7 +226,7 @@
 		let dataUrl = qrCodeUrl;
 		if (!dataUrl) {
 			const origin = window.location.origin;
-			const url = `${origin}/scan?code=${encodeURIComponent(tool.name)}`;
+			const url = `${origin}/scan?code=${encodeURIComponent(scanCode)}`;
 			dataUrl = await QRCode.toDataURL(url, { width: 250, margin: 1 });
 		}
 		const win = window.open('', '_blank');
@@ -239,12 +247,13 @@ img { width:120px;height:120px;image-rendering:pixelated; }
 		tools.markPrinted([tool.id]).catch(() => {});
 	}
 
+	let scanCode = $derived(tool?.serialNumber || tool?.heNumber?.toString() || tool?.name || '');
 	let qrCodeUrl = $state<string | null>(null);
 
 	$effect(() => {
 		if (tool?.labelPrinted) {
 			const origin = window.location.origin;
-			const url = `${origin}/scan?code=${encodeURIComponent(tool.name)}`;
+			const url = `${origin}/scan?code=${encodeURIComponent(scanCode)}`;
 			QRCode.toDataURL(url, { width: 250, margin: 1 }).then((dataUrl: string) => {
 				qrCodeUrl = dataUrl;
 			});
@@ -520,10 +529,23 @@ img { width:120px;height:120px;image-rendering:pixelated; }
 					<span class="metric-num">{checkouts.length}</span>
 					<span class="metric-label">Total Checkouts</span>
 				</div>
-				<a href="/scan?code={encodeURIComponent(tool.name)}" class="btn-primary" class:disabled={tool.decommissionedAt} style="display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box">
-					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M9.5 6.5v3h-3v-3zM11 5H5v6h6zm-1.5 9.5v3h-3v-3zM11 13H5v6h6zm6.5-6.5v3h-3v-3zM19 5h-6v6h6zm-6 8h1.5v1.5H13zm1.5 1.5H16V16h-1.5zM16 13h1.5v1.5H16zm-3 3h1.5v1.5H13zm1.5 1.5H16V19h-1.5zM16 16h1.5v1.5H16zm1.5-1.5H19V16h-1.5zm0 3H19V19h-1.5z"/></svg>
+				{#if openCheckout()}
+				<button onclick={doCheckin} class="btn-primary" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box;background:var(--green);border-color:transparent;border:none;cursor:pointer">
+				<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+					<path d="M0 0h24v24H0z" fill="none" />
+					<path fill="currentColor" d="M9 15.17L5.83 12l-1.42 1.41L9 18 21 6l-1.41-1.41z" />
+				</svg>
+					Check In
+				</button>
+			{:else}
+				<a href="/scan?code={encodeURIComponent(scanCode)}&type=tool" class="btn-primary" class:disabled={tool.decommissionedAt} style="display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box">
+				<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+					<path d="M0 0h24v24H0z" fill="none" />
+					<path fill="currentColor" d="M6.725 21q-.75 0-1.3-.5t-.675-1.225L3.175 8.15q-.05-.45.238-.8T4.15 7H6V5q0-.825.588-1.413T8 3h8q.825 0 1.413.588T18 5v2h1.825q.45 0 .75.35t.25.8L19.25 19.275q-.125.725-.687 1.225t-1.313.5zM5.3 9l1.425 10h10.55L18.7 9zm5.65 5.175l-.725-.725q-.3-.275-.7-.275t-.7.3t-.3.7t.3.7l1.4 1.425q.3.3.713.3t.712-.3l3.525-3.55q.3-.3.3-.7t-.3-.7t-.7-.3t-.7.3zM8 7h8V5H8zm4 7" />
+				</svg>
 					Check Out
 				</a>
+			{/if}
 				{#if tool.decommissionedAt}
 					<button class="btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick={doReactivate}>Reactivate Tool</button>
 				{:else}

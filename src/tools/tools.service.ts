@@ -81,6 +81,9 @@ export class ToolsService {
 
   async findAll(q?: string, filters?: {
     labelPrinted?: boolean;
+    vendorId?: number;
+    locationId?: number;
+    status?: string;
     page?: number; limit?: number;
     sortBy?: string; sortOrder?: 'asc' | 'desc';
   }) {
@@ -92,6 +95,7 @@ export class ToolsService {
       where.OR = queries.flatMap(v => [
         { name: { contains: v, mode: 'insensitive' } },
         { description: { contains: v, mode: 'insensitive' } },
+        { serialNumber: { contains: v, mode: 'insensitive' } },
         ...(heWhere ? [heWhere] : []),
       ]);
       const tokens = q.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -101,12 +105,24 @@ export class ToolsService {
             OR: [
               { name: { contains: token, mode: 'insensitive' } },
               { description: { contains: token, mode: 'insensitive' } },
+              { serialNumber: { contains: token, mode: 'insensitive' } },
             ]
           }))
         });
       }
     }
     if (filters?.labelPrinted !== undefined) where.labelPrinted = filters.labelPrinted;
+    if (filters?.vendorId) where.vendorId = filters.vendorId;
+    if (filters?.locationId) where.locationId = filters.locationId;
+    if (filters?.status === 'decommissioned') {
+      where.decommissionedAt = { not: null };
+    } else if (filters?.status === 'checked-out') {
+      where.decommissionedAt = null;
+      where.checkouts = { some: { checkedInAt: null } };
+    } else if (filters?.status === 'available') {
+      where.decommissionedAt = null;
+      where.NOT = { checkouts: { some: { checkedInAt: null } } };
+    }
 
     const page = filters?.page ?? 1;
     const limit = filters?.limit ?? 100;

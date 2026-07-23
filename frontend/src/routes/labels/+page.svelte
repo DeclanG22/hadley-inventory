@@ -202,9 +202,9 @@ img { width: 120px; height: 120px; image-rendering: pixelated; }
 							<input type="checkbox" checked={selected.size === allEntities.length && allEntities.length > 0}
 								onchange={(e) => (e.target as HTMLInputElement).checked ? selectAll() : deselectAll()} disabled={loadingAll} style="width:auto" />
 						</th>
-						<th>{tab === 'items' ? 'Item #' : 'Tool #'}</th>
-						<th>{tab === 'items' ? 'Description' : 'Name'}</th>
-						<th>Category</th>
+						<th>{tab === 'items' ? 'Item #' : 'Name'}</th>
+						<th>{tab === 'items' ? 'Description' : 'Description'}</th>
+						<th>{tab === 'items' ? 'Category' : 'HE #'}</th>
 						<th>Location</th>
 					</tr>
 				</thead>
@@ -213,8 +213,8 @@ img { width: 120px; height: 120px; image-rendering: pixelated; }
 						<tr class:selected={selected.has(e.id)}>
 							<td><input type="checkbox" checked={selected.has(e.id)} onchange={() => toggleSelect(e.id)} disabled={loadingAll} style="width:auto" /></td>
 							<td>{tab === 'items' ? e.itemNumber : e.name}</td>
-							<td>{tab === 'items' ? e.description : e.name}</td>
-							<td>{e.category?.name ?? '-'}</td>
+							<td>{tab === 'items' ? e.description : e.description}</td>
+							<td>{tab === 'items' ? (e.category?.name ?? '-') : (e.heNumber ?? '-')}</td>
 							<td>{e.location?.name ?? '-'}</td>
 						</tr>
 					{/each}

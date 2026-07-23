@@ -12,16 +12,30 @@ Base URL: `http://localhost:3000/api`
 
 Scans a barcode/QR code value or free-text search and returns the **first matching entity** — either an item or a tool — in a single unified response. Designed for scan-and-transact workflows (e.g., scanning a QR code on a bin or tool tag).
 
-**Search algorithm (two-phase per entity):**
+**Query params**
 
-1. **Phase 1 – Exact match** on the primary identifier:
-   - Items: `itemNumber` (case-insensitive)
-   - Tools: `toolNumber` (case-insensitive)
-2. **Phase 2 – Contains match** on the description/name (only if Phase 1 misses):
-   - Items: `description` (case-insensitive contains)
-   - Tools: `name` (case-insensitive contains)
+| Param | Type | Description |
+|-------|------|-------------|
+| type  | string | Restrict search to one entity: `"item"` or `"tool"`. Omit to search both. |
 
-**Entity priority:** Items are searched first. Only if no item matches does the endpoint fall through to tools. If neither matches, returns 404.
+**Search algorithm:**
+
+The code is expanded into multiple query variants (normalized, collapsed separators, stripped punctuation, expanded math separators) and searched in priority order.
+
+**Items (Phase 1 — `?type=item` or omitted):**
+1. Exact match on `itemNumber` (case-insensitive)
+2. Contains match on `description` (case-insensitive)
+3. Multi-token AND search if the code contains multiple words
+
+**Tools (Phase 2 — `?type=tool` or omitted):**
+1. Exact match on `serialNumber` (case-insensitive)
+2. Exact match on `heNumber` (integer)
+3. Exact match on `name` (case-insensitive)
+4. Contains match on `serialNumber` (case-insensitive)
+5. Contains match on `name` (case-insensitive)
+6. Multi-token AND search if the code contains multiple words
+
+**Entity priority:** Items are searched first. Only if no item matches (and `?type` is not `"tool"`) does the endpoint fall through to tools. If neither matches, returns 404.
 
 **Response shape** — the response has a `type` discriminator (`"item"` or `"tool"`) and a `data` object whose fields differ by type:
 
@@ -60,15 +74,15 @@ Scans a barcode/QR code value or free-text search and returns the **first matchi
   "type": "tool",
   "data": {
     "id": 1,
-    "toolNumber": "SAW-001",
     "name": "Dewalt Miter Saw",
-    "brand": "Dewalt",
-    "model": "DWS780",
-    "category": "Power Tools",
+    "heNumber": 1001,
+    "vendor": "McMaster-Carr",
     "imageUrl": "https://example.com/saw.jpg",
+    "decommissionedAt": null,
     "checkedOut": true,
     "checkedOutBy": "John D",
     "checkedOutAt": "2026-07-09T18:00:00.000Z",
+    "expectedReturnAt": "2026-07-16T00:00:00.000Z",
     "maintenanceFlags": [
       { "id": 1, "type": "repair", "description": "Blade wobble", "createdAt": "..." }
     ]
@@ -79,15 +93,16 @@ Scans a barcode/QR code value or free-text search and returns the **first matchi
 | Field | Type | Notes |
 |-------|------|-------|
 | id | int | Tool primary key |
-| toolNumber | string | Unique tool identifier |
 | name | string | Display name |
-| brand | string or null | Manufacturer |
-| model | string or null | Model number |
-| category | string or null | Category name |
+| description | string or null | Description |
+| heNumber | int or null | Inventory number (auto-incremented sequential) |
+| vendor | string or null | Vendor name |
 | imageUrl | string or null | Image URL |
+| decommissionedAt | ISO datetime or null | Null if active, set if decommissioned |
 | checkedOut | boolean | Whether the tool is currently checked out |
 | checkedOutBy | string or null | Name of who checked it out (null if available) |
 | checkedOutAt | ISO datetime or null | When it was checked out (null if available) |
+| expectedReturnAt | ISO datetime or null | Expected return date (null if not set) |
 | maintenanceFlags | array | Unresolved maintenance flags for this tool |
 
 **Error response (404):**
@@ -103,9 +118,9 @@ Scans a barcode/QR code value or free-text search and returns the **first matchi
 **Typical workflow:**
 
 1. User scans a QR code (or types a number) on the scan page.
-2. Call `GET /lookup/<code>`.
+2. Call `GET /lookup/<code>` (optionally with `?type=tool` or `?type=item`).
 3. If the result's `type` is `"item"`, show the item details and prompt for a stock movement (in/out, quantity, job number).
-4. If the result's `type` is `"tool"`, check `checkedOut`: if false, show check-out form (name, job number, job site, expected return date); if true, show check-in button.
+4. If the result's `type` is `"tool"`, check `checkedOut`: if false, show check-out form (name, job number, expected return date); if true, show check-in button.
 5. On 404, show a "not found" message.
 
 ---
@@ -175,44 +190,44 @@ Returns the latest activity across items (transactions), tools (checkouts/checki
     "type": "tool_checkout",
     "id": 2,
     "date": "2026-07-09T18:00:00.000Z",
-    "summary": "Checked out SAW-001 — Dewalt Miter Saw by John D",
+    "summary": "Checked out Dewalt Miter Saw by John D",
     "link": "/tools/1",
-    "itemRef": "SAW-001"
+    "itemRef": "Dewalt Miter Saw"
   },
   {
     "type": "tool_checkin",
     "id": 2,
     "date": "2026-07-10T10:00:00.000Z",
-    "summary": "Checked in SAW-001 — Dewalt Miter Saw by John D",
+    "summary": "Checked in Dewalt Miter Saw by John D",
     "link": "/tools/1",
-    "itemRef": "SAW-001"
+    "itemRef": "Dewalt Miter Saw"
   },
   {
     "type": "tool_maintenance",
     "subType": "repair",
     "id": 1,
     "date": "2026-07-09T17:00:00.000Z",
-    "summary": "repair on SAW-001 — Dewalt Miter Saw: Replaced blade",
+    "summary": "repair on Dewalt Miter Saw: Replaced blade",
     "link": "/tools/1",
-    "itemRef": "SAW-001"
+    "itemRef": "Dewalt Miter Saw"
   },
   {
     "type": "flag_created",
     "subType": "repair",
     "id": 1,
     "date": "2026-07-10T14:00:00.000Z",
-    "summary": "Flag repair on SAW-001 — Dewalt Miter Saw: Blade wobble",
+    "summary": "Flag repair on Dewalt Miter Saw: Blade wobble",
     "link": "/tools/maintenance-flags?highlight=1",
-    "itemRef": "SAW-001"
+    "itemRef": "Dewalt Miter Saw"
   },
   {
     "type": "flag_resolved",
     "subType": "repair",
     "id": 1,
     "date": "2026-07-10T15:00:00.000Z",
-    "summary": "Flag repair resolved on SAW-001 — Dewalt Miter Saw",
+    "summary": "Flag repair resolved on Dewalt Miter Saw",
     "link": "/tools/maintenance-flags?highlight=1",
-    "itemRef": "SAW-001"
+    "itemRef": "Dewalt Miter Saw"
   }
 ]
 ```
@@ -301,7 +316,7 @@ Returns only active locations.
 
 ### `GET /locations/:id`
 
-Returns the location with all active items and tools eagerly loaded. Items include category, vendor, and sub-category relations. Tools include category and open checkouts (for status derivation).
+Returns the location with all active items and tools eagerly loaded. Items include category, vendor, and sub-category relations. Tools include vendor and open checkouts (for status derivation).
 
 ```json
 {
@@ -321,10 +336,10 @@ Returns the location with all active items and tools eagerly loaded. Items inclu
   "tools": [
     {
       "id": 1,
-      "toolNumber": "SAW-001",
       "name": "Dewalt Miter Saw",
-      "brand": "Dewalt",
-      "category": { "id": 1, "name": "Power Tools" },
+      "heNumber": 1001,
+      "serialNumber": "SN-12345",
+      "vendor": { "id": 1, "name": "McMaster-Carr" },
       "checkouts": []
     }
   ],
@@ -440,72 +455,6 @@ Restores a soft-deleted sub-category.
 
 #### `DELETE /item-categories/sub-categories/:subId/permanent`
 Permanently deletes the sub-category.
-
----
-
-## Tool Categories
-
-Flat reference data for tool types (e.g., "Power Tools", "Hand Tools"). Supports soft-delete.
-
-**Model fields:** `id`, `name`, `createdAt`, `updatedAt`, `deletedAt`.
-
-### `GET /tool-categories`
-```json
-[{ "id": 1, "name": "Power Tools", "createdAt": "...", "updatedAt": "..." }]
-```
-Returns only active categories.
-
-### `POST /tool-categories`
-```json
-{ "name": "Saws" }
-```
-
-### `GET /tool-categories/:id`
-
-Returns the category with all active tools eagerly loaded. Tools include location and open checkouts (for status derivation).
-
-```json
-{
-  "id": 1,
-  "name": "Power Tools",
-  "tools": [
-    {
-      "id": 1,
-      "toolNumber": "SAW-001",
-      "name": "Dewalt Miter Saw",
-      "brand": "Dewalt",
-      "location": { "id": 2, "name": "Tool Crib" },
-      "checkouts": [
-        {
-          "id": 1,
-          "checkedOutBy": "John D",
-          "checkedOutAt": "2026-07-09T18:00:00.000Z",
-          "checkedInAt": null
-        }
-      ]
-    }
-  ]
-}
-```
-
-A non-empty `checkouts` array means the tool is currently checked out.
-
-### `PATCH /tool-categories/:id`
-```json
-{ "name": "Saws (renamed)" }
-```
-
-### `DELETE /tool-categories/:id`
-Soft-deletes the category (sets `deletedAt`).
-
-### `GET /tool-categories/deleted`
-Returns all soft-deleted categories.
-
-### `POST /tool-categories/:id/restore`
-Restores a soft-deleted category.
-
-### `DELETE /tool-categories/:id/permanent`
-Permanently deletes the category.
 
 ---
 
@@ -909,24 +858,23 @@ Execute the import with the user-confirmed column mapping.
 
 ## Tools (Assets)
 
-The Tool model represents unique tracked assets (tools, equipment). Each tool has check-out/check-in history and maintenance logs. Tool status is derived: if there's an open checkout (no `checkedInAt`), the tool is "Checked Out"; otherwise it's "Available".
+The Tool model represents unique tracked assets (tools, equipment). Each tool has check-out/check-in history and maintenance logs. Tool status is derived: if there's an open checkout (no `checkedInAt`), the tool is "Checked Out"; if `decommissionedAt` is set, the tool is "Decommissioned"; otherwise it's "Available".
 
 **Tool model fields:**
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | id | int | auto | Primary key |
-| toolNumber | string | **yes** | Unique identifier (user-provided, e.g. "SAW-001") |
 | name | string | **yes** | Display name |
 | description | string | no | Details about the tool |
-| brand | string | no | Manufacturer/brand |
-| model | string | no | Model number |
+| heNumber | int | no | Inventory number (auto-incremented if omitted on create) |
 | serialNumber | string | no | Manufacturer serial number |
 | imageUrl | string | no | Image reference |
 | purchaseCost | decimal(10,2) | no | Original purchase cost |
 | notes | string | no | Free-form notes |
 | labelPrinted | boolean | no (default false) | Whether QR label has been printed |
-| categoryId | int | no | FK -> ToolCategory |
+| decommissionedAt | datetime | no | Null if active, set if decommissioned |
+| vendorId | int | no | FK -> Vendor |
 | locationId | int | no | FK -> Location (where the tool is stored) |
 | createdAt | datetime | auto | Prisma timestamp |
 | updatedAt | datetime | auto | Prisma timestamp |
@@ -934,17 +882,20 @@ The Tool model represents unique tracked assets (tools, equipment). Each tool ha
 
 ### `GET /tools`
 
-List all tools with category, location, and current status (derived from open checkouts).
+List all tools with vendor, location, and current status (derived from open checkouts and decommissionedAt).
 
 **Query params**
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
-| q | string | — | Search by toolNumber, name, brand, model, or description (case-insensitive contains) |
+| q | string | — | Search by name, description, serialNumber, or heNumber (case-insensitive contains) |
 | labelPrinted | boolean | — | Filter by label printed status (`true` or `false`) |
+| vendorId | int | — | Filter by vendor ID |
+| locationId | int | — | Filter by location ID |
+| status | string | — | Filter by status: `available`, `checked-out`, `decommissioned` |
 | page | int | 1 | Page number (1-indexed) |
 | limit | int | 100 | Tools per page |
-| sortBy | string | `name` | Sort column: `toolNumber`, `name`, `brand`, `model` |
+| sortBy | string | `name` | Sort column: `name`, `heNumber` |
 | sortOrder | string | `asc` | Sort direction: `asc` or `desc` |
 
 **Response:**
@@ -954,17 +905,17 @@ List all tools with category, location, and current status (derived from open ch
   "data": [
     {
       "id": 1,
-      "toolNumber": "SAW-001",
       "name": "Dewalt Miter Saw",
       "description": "DWS780 12-inch",
-      "brand": "Dewalt",
-      "model": "DWS780",
+      "heNumber": 1001,
       "serialNumber": "SN-12345",
       "imageUrl": null,
       "purchaseCost": 199.99,
       "notes": null,
-      "categoryId": 1,
-      "category": { "id": 1, "name": "Power Tools", "createdAt": "...", "updatedAt": "..." },
+      "labelPrinted": false,
+      "decommissionedAt": null,
+      "vendorId": 1,
+      "vendor": { "id": 1, "name": "McMaster-Carr", "createdAt": "...", "updatedAt": "..." },
       "locationId": 2,
       "location": { "id": 2, "name": "Tool Crib", "createdAt": "...", "updatedAt": "..." },
       "checkouts": [
@@ -1012,7 +963,7 @@ Returns all open (not yet checked in) checkouts whose `expectedReturnAt` is in t
     "checkedInAt": null,
     "notes": "",
     "createdAt": "...",
-    "tool": { "id": 1, "toolNumber": "SAW-001", "name": "Dewalt Miter Saw" }
+    "tool": { "id": 1, "name": "Dewalt Miter Saw" }
   }
 ]
 ```
@@ -1024,9 +975,15 @@ Tool detail with all checkouts (including closed ones) and all maintenance logs 
 ```json
 {
   "id": 1,
-  "toolNumber": "SAW-001",
-  ...basic fields...,
-  "category": { "id": 1, "name": "Power Tools" },
+  "name": "Dewalt Miter Saw",
+  "description": "DWS780 12-inch",
+  "heNumber": 1001,
+  "serialNumber": "SN-12345",
+  "purchaseCost": 199.99,
+  "notes": null,
+  "labelPrinted": false,
+  "decommissionedAt": null,
+  "vendor": { "id": 1, "name": "McMaster-Carr" },
   "location": { "id": 2, "name": "Tool Crib" },
   "checkouts": [
     {
@@ -1090,37 +1047,36 @@ Create a new tool.
 
 ```json
 {
-  "toolNumber": "SAW-001",
   "name": "Dewalt Miter Saw",
   "description": "DWS780 12-inch",
-  "brand": "Dewalt",
-  "model": "DWS780",
+  "heNumber": 1001,
   "serialNumber": "SN-12345",
   "purchaseCost": 199.99,
   "notes": "Purchased 2025",
-  "categoryId": 1,
+  "vendorId": 1,
   "locationId": 2
 }
 ```
 
-Required: `toolNumber`, `name`. All other fields are optional.
+Required: `name`. All other fields are optional. If `heNumber` is omitted, it auto-increments from the highest existing value.
 
 ### `POST /tools/batch`
 
-Create multiple identical tools with auto-numbering. Generates `{PREFIX}-001`, `{PREFIX}-002`, etc., picking up the next available sequence number based on existing tools with the same prefix.
+Create multiple tools with optional sequential `heNumber` values. Generates `heNumber` values starting from `heNumberStart` if provided.
 
 ```json
 {
   "quantity": 10,
-  "toolNumberPrefix": "HAM",
   "name": "16oz Claw Hammer",
-  "brand": "Stanley",
-  "categoryId": 2,
+  "description": "Stanley 16oz curved claw",
+  "heNumberStart": 200,
+  "serialNumber": "BATCH-2026",
+  "vendorId": 2,
   "locationId": 3
 }
 ```
 
-Required: `quantity` (>= 1), `toolNumberPrefix`, `name`. All other tool optional fields are accepted and applied to all generated tools.
+Required: `quantity` (>= 1), `name`. All other fields are optional and applied to all generated tools. `heNumberStart` causes sequential HE numbers (`heNumberStart`, `heNumberStart + 1`, ...).
 
 ### `POST /tools/mark-printed`
 
@@ -1144,9 +1100,17 @@ Partial update. Same shape as POST but all fields optional.
 
 Soft-deletes the tool (sets `deletedAt`). The tool no longer appears in `GET /tools` but can be restored.
 
+### `POST /tools/:id/decommission`
+
+Marks a tool as decommissioned (sets `decommissionedAt`). Decommissioned tools cannot be checked out.
+
+### `POST /tools/:id/reactivate`
+
+Reactivates a decommissioned tool (clears `decommissionedAt`).
+
 ### `GET /tools/deleted`
 
-Returns all soft-deleted tools, ordered by `deletedAt` descending. Includes category and location relations.
+Returns all soft-deleted tools, ordered by `deletedAt` descending. Includes vendor and location relations.
 
 ### `POST /tools/:id/restore`
 
@@ -1154,13 +1118,13 @@ Restores a soft-deleted tool (clears `deletedAt`).
 
 ### `DELETE /tools/:id/permanent`
 
-Permanently deletes the tool from the database. Cannot be undone.
+Permanently deletes the tool from the database. Cannot be undone if the tool has checkouts, maintenance records, or flags — an error is returned instead.
 
 ### Checkouts
 
 #### `POST /tools/:id/checkout`
 
-Check out a tool. Fails with 400 if the tool already has an open checkout (checkedInAt is null).
+Check out a tool. Fails with 400 if the tool already has an open checkout (checkedInAt is null) or is decommissioned.
 
 ```json
 {
@@ -1274,7 +1238,7 @@ List all maintenance flags, with optional filter for only unresolved.
     "resolvedAt": null,
     "resolvedBy": null,
     "createdAt": "...",
-    "tool": { "id": 1, "toolNumber": "SAW-001", "name": "Dewalt Miter Saw" }
+    "tool": { "id": 1, "name": "Dewalt Miter Saw" }
   }
 ]
 ```
@@ -1337,7 +1301,7 @@ Searches maintenance logs across all tools by type or description (case-insensit
     "cost": 45.00,
     "notes": "",
     "createdAt": "...",
-    "tool": { "id": 1, "toolNumber": "SAW-001", "name": "Dewalt Miter Saw" }
+    "tool": { "id": 1, "name": "Dewalt Miter Saw" }
   }
 ]
 ```
@@ -1412,9 +1376,8 @@ Returns a unified view of tool purchase costs and maintenance costs, sorted by d
     "date": "2026-07-09T00:00:00.000Z",
     "type": "purchase",
     "toolId": 1,
-    "toolNumber": "SAW-001",
     "toolName": "Dewalt Miter Saw",
-    "description": "Dewalt DWS780",
+    "description": "",
     "performedBy": null,
     "cost": 199.99
   },
@@ -1422,7 +1385,6 @@ Returns a unified view of tool purchase costs and maintenance costs, sorted by d
     "date": "2026-07-09T00:00:00.000Z",
     "type": "repair",
     "toolId": 1,
-    "toolNumber": "SAW-001",
     "toolName": "Dewalt Miter Saw",
     "description": "Replaced blade",
     "performedBy": "Jane S",
@@ -1463,10 +1425,33 @@ Returns maintenance records only, across all tools. Used for filtered maintenanc
     "cost": 45.00,
     "notes": "",
     "createdAt": "...",
-    "tool": { "id": 1, "toolNumber": "SAW-001", "name": "Dewalt Miter Saw", "purchaseCost": 199.99 }
+    "tool": { "id": 1, "name": "Dewalt Miter Saw", "purchaseCost": 199.99 }
   }
 ]
 ```
+
+### Import (CSV/Excel Upload, Two-Phase — Tools)
+
+Tools can be bulk-imported from CSV or Excel files (.xlsx). The process mirrors the items import with two phases. Column detection uses a separate set of known aliases for tools.
+
+#### `GET /tools/import/fields`
+
+```json
+[
+  { "value": "name", "label": "Name", "required": true },
+  { "value": "description", "label": "Description", "required": false },
+  { "value": "heNumber", "label": "HE Number", "required": false },
+  { "value": "serialNumber", "label": "Serial Number", "required": false },
+  { "value": "purchaseCost", "label": "Purchase Cost", "required": false },
+  { "value": "notes", "label": "Notes", "required": false },
+  { "value": "locationName", "label": "Location", "required": false },
+  { "value": "vendorName", "label": "Vendor", "required": false }
+]
+```
+
+#### `POST /tools/import/analyze` / `POST /tools/import/execute`
+
+Same two-phase pattern as items import. See [Items Import](#import-csvexcel-upload-two-phase) for protocol details.
 
 ---
 
@@ -1675,10 +1660,10 @@ Common status codes:
 
 ```
 Vendor (1) ──< Item (N)
+Vendor (1) ──< Tool (N)
 Location (1) ──< Item (N), Tool (N)
 ItemCategory (1) ──< ItemSubCategory (N), Item (N)
 ItemSubCategory (1) ──< Item (N)
-ToolCategory (1) ──< Tool (N)
 
 Item (1) ──< ItemTransaction (N)
 Item (1) ──< StockTakeItem (N)
@@ -1692,6 +1677,7 @@ ToolMaintenanceFlag (1) ─? ToolMaintenanceLog (1)  (optional, via flagId)
 
 **Key business rules:**
 - A tool can only have one open checkout at a time (checkedInAt is null).
+- A decommissioned tool cannot be checked out.
 - Item `onHand` is updated automatically by transactions and stock take adjustments.
 - Out transactions that would make an item's `onHand` negative are rejected.
 - Stock take delete + reconcile + restore are transactional — all-or-nothing via Prisma `$transaction`.

@@ -29,9 +29,15 @@ export class ToolsController {
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: string,
     @Query('labelPrinted') labelPrinted?: string,
+    @Query('vendorId') vendorId?: string,
+    @Query('locationId') locationId?: string,
+    @Query('status') status?: string,
   ) {
     return this.toolsService.findAll(q, {
       labelPrinted: labelPrinted !== undefined ? labelPrinted === 'true' : undefined,
+      vendorId: vendorId ? Number(vendorId) : undefined,
+      locationId: locationId ? Number(locationId) : undefined,
+      status,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
       sortBy,

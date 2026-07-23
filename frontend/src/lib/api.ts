@@ -96,7 +96,11 @@ export interface PaginatedResult<T> {
 
 // Items
 export const lookup = {
-	byCode: (code: string) => request<{ type: 'item' | 'tool'; data: any }>(`/lookup/${encodeURIComponent(code)}`),
+	byCode: (code: string, type?: 'item' | 'tool') => {
+		let path = `/lookup/${encodeURIComponent(code)}`;
+		if (type) path += `?type=${type}`;
+		return request<{ type: 'item' | 'tool'; data: any }>(path);
+	},
 };
 export const items = {
 	list: (q?: string, filters?: { categoryId?: number; vendorId?: number; locationId?: number; labelPrinted?: boolean; page?: number; limit?: number; sortBy?: string; sortOrder?: string }) => {
@@ -151,10 +155,13 @@ export const upload = {
 };
 
 export const tools = {
-	list: (q?: string, filters?: { labelPrinted?: boolean; page?: number; limit?: number; sortBy?: string; sortOrder?: string }) => {
+	list: (q?: string, filters?: { labelPrinted?: boolean; vendorId?: number; locationId?: number; status?: string; page?: number; limit?: number; sortBy?: string; sortOrder?: string }) => {
 		const params = new URLSearchParams();
 		if (q) params.set('q', q);
 		if (filters?.labelPrinted !== undefined) params.set('labelPrinted', String(filters.labelPrinted));
+		if (filters?.vendorId) params.set('vendorId', String(filters.vendorId));
+		if (filters?.locationId) params.set('locationId', String(filters.locationId));
+		if (filters?.status) params.set('status', filters.status);
 		if (filters?.page) params.set('page', String(filters.page));
 		if (filters?.limit) params.set('limit', String(filters.limit));
 		if (filters?.sortBy) params.set('sortBy', filters.sortBy);

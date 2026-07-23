@@ -1,6 +1,6 @@
 ﻿<script lang="ts">
 	import { goto } from '$app/navigation';
-	import { tools } from '$lib/api';
+	import { tools, vendors, locations } from '$lib/api';
 	import { addToast } from '$lib/toast.svelte';
 
 	const PAGE_SIZE = 50;
@@ -13,6 +13,11 @@
 	let hasMore = $state(true);
 	let loadId = 0;
 	let search = $state('');
+	let vendorId = $state('');
+	let locationId = $state('');
+	let statusFilter = $state('');
+	let venList = $state<any[]>([]);
+	let locList = $state<any[]>([]);
 	let sortBy = $state('name');
 	let sortOrder = $state<'asc' | 'desc'>('asc');
 	let viewMode = $state<'table' | 'cards'>('table');
@@ -28,7 +33,11 @@
 
 	import { onMount } from 'svelte';
 
-	onMount(() => { load(); });
+	onMount(() => {
+		vendors.list().then(l => venList = l).catch(() => {});
+		locations.list().then(l => locList = l).catch(() => {});
+		load();
+	});
 
 	async function load(reset = true) {
 		const id = ++loadId;
@@ -41,6 +50,9 @@
 		}
 		try {
 			const r = await tools.list(search || undefined, {
+				vendorId: vendorId ? Number(vendorId) : undefined,
+				locationId: locationId ? Number(locationId) : undefined,
+				status: statusFilter || undefined,
 				page: reset ? 1 : (Math.floor(allTools.length / PAGE_SIZE) + 1),
 				limit: PAGE_SIZE,
 				sortBy, sortOrder,
@@ -118,8 +130,22 @@
 </div>
 
 <div class="card">
-	<div class="search-bar">
-		<input type="search" bind:value={search} placeholder="Search tools by name or HE#..." oninput={onSearchInput} />
+	<div class="search-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+		<input type="search" bind:value={search} placeholder="Search tools by name, HE#, or serial#..." oninput={onSearchInput} style="flex:1;min-width:140px" />
+		<select bind:value={vendorId} onchange={load} style="width:140px">
+			<option value="">All Vendors</option>
+			{#each venList as v}<option value={v.id}>{v.name}</option>{/each}
+		</select>
+		<select bind:value={locationId} onchange={load} style="width:140px">
+			<option value="">All Locations</option>
+			{#each locList as l}<option value={l.id}>{l.name}</option>{/each}
+		</select>
+		<select bind:value={statusFilter} onchange={load} style="width:140px">
+			<option value="">All Statuses</option>
+			<option value="available">Available</option>
+			<option value="checked-out">Checked Out</option>
+			<option value="decommissioned">Decommissioned</option>
+		</select>
 	</div>
 	{#if loading && allTools.length === 0}
 		<div class="sk-table">
@@ -138,6 +164,7 @@
 					<tr>
 						<th role="button" tabindex={0} onclick={() => setSort('name')} style="cursor:pointer;width:auto">Name{sortArrow('name')}</th>
 						<th style="width:auto">Description</th>
+						<th style="width:100px">Serial #</th>
 						<th role="button" tabindex={0} onclick={() => setSort('heNumber')} style="cursor:pointer;width:100px">HE #{sortArrow('heNumber')}</th>
 						<th style="width:120px">Vendor</th>
 						<th style="width:100px">Status</th>
@@ -154,6 +181,7 @@
 								<a href="/tools/{t.id}" onclick={(e) => e.stopPropagation()}>{t.name}</a>
 							</td>
 							<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{t.description ?? '-'}</td>
+							<td>{t.serialNumber ?? '-'}</td>
 							<td>{t.heNumber ?? '-'}</td>
 							<td>{t.vendor?.name ?? '-'}</td>
 							<td><span class="badge {status(t) === 'Checked Out' ? 'badge-checked-out' : status(t) === 'Decommissioned' ? 'badge-decommissioned' : 'badge-available'}">{status(t)}</span></td>

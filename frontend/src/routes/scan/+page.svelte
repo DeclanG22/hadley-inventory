@@ -31,7 +31,7 @@
 	let direction = $state<'in' | 'out'>('out');
 	let checkedOutBy = $state('');
 	let jobNumber = $state('');
-	let jobSite = $state('');
+
 	let expectedReturnAt = $state('');
 	let totalCost = $state('');
 	let toolAction = $state('');
@@ -41,6 +41,7 @@
 	let resultVisible = $state(false);
 
 	let scanInput: HTMLInputElement;
+	let processedUrlCode: string | null = null;
 	let laserEl: HTMLDivElement;
 	let trailDownEl: HTMLDivElement;
 	let trailUpEl: HTMLDivElement;
@@ -111,7 +112,8 @@
 
 	$effect(() => {
 		const c = $page.url.searchParams.get('code') || ($page.url.hash ? decodeURIComponent($page.url.hash.slice(1)) : '');
-		if (c) {
+		if (c && c !== processedUrlCode) {
+			processedUrlCode = c;
 			code = c;
 			doLookup();
 		}
@@ -126,7 +128,7 @@
 		weight = '';
 		direction = 'out';
 		jobNumber = '';
-		jobSite = '';
+
 		expectedReturnAt = '';
 		totalCost = '';
 		toolAction = '';
@@ -143,7 +145,8 @@
 		result = null;
 		resultVisible = false;
 		try {
-			result = await lookup.byCode(val);
+			const t = $page.url.searchParams.get('type') as 'item' | 'tool' | null;
+			result = await lookup.byCode(val, t ?? undefined);
 			resultVisible = true;
 		} catch (e: any) {
 			error = e.message;
@@ -207,7 +210,7 @@
 			await tools.checkout(result!.data.id, {
 				checkedOutBy,
 				jobNumber: jobNumber || undefined,
-				jobSite: jobSite || undefined,
+		
 				expectedReturnAt: expectedReturnAt || undefined,
 			});
 			addToast(`Checked out ${result!.data.name}`, 'success');
@@ -426,9 +429,7 @@
 					<div class="txn-row">
 						<input bind:value={jobNumber} placeholder="Job number (optional)" class="txn-field" />
 					</div>
-					<div class="txn-row">
-						<input bind:value={jobSite} placeholder="Job site (optional)" class="txn-field" />
-					</div>
+
 					<div class="txn-row txn-date-row">
 						<span class="txn-label">Expected return date (optional)</span>
 						<input bind:value={expectedReturnAt} type="date" class="txn-field" />

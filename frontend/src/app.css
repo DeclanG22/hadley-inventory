@@ -400,6 +400,9 @@ input:focus, textarea:focus, select:focus {
 input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(49%);
 }
+input::placeholder, textarea::placeholder {
+  color: var(--empty-text-secondary);
+}
 
 input::-webkit-search-cancel-button,
 input::-webkit-search-decoration,
@@ -568,8 +571,8 @@ margin-top: 10px;
   padding-top: 4px;
 }
 .badge-checked-out {
-	background: var(--red-bg-light);
-	color: var(--red);
+	background: var(--red);
+	color: var(--red-bg-light);
 }
 
 .badge-decommissioned {

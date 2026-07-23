@@ -69,6 +69,7 @@
 						<tr>
 							<th>Name</th>
 							<th>Description</th>
+							<th>Serial #</th>
 							<th>HE #</th>
 							<th>Status</th>
 						</tr>
@@ -79,6 +80,7 @@
 							<tr onclick={() => goto(`/tools/${t.id}`)}>
 								<td><a href="/tools/{t.id}" onclick={(e) => e.stopPropagation()}>{t.name}</a></td>
 								<td>{t.description ?? '-'}</td>
+								<td>{t.serialNumber ?? '-'}</td>
 								<td>{t.heNumber ?? '-'}</td>
 								<td>
 									{#if t.decommissionedAt}

@@ -5,7 +5,7 @@
 	import { onMount } from 'svelte';
 	let open = $state(false);
 	let query = $state('');
-	let results = $state<{ type: string; label: string; sub: string; href: string }[]>([]);
+	let results = $state<{ type: string; label: string; sub: string; href: string; serialNumber?: string }[]>([]);
 	let loading = $state(false);
 	let selectedIdx = $state(0);
 	let debounce: any;
@@ -171,7 +171,7 @@
 					if (seenTools.has(t.id)) continue;
 					seenTools.add(t.id);
 					const status = t.checkouts?.length > 0 ? 'Checked out' : 'Available';
-					r.push({ type: 'Tool', label: t.heNumber ?? t.name, sub: `${t.name} — ${status}`, href: `/tools/${t.id}` });
+					r.push({ type: 'Tool', label: t.heNumber ?? t.name, sub: `${t.name} — ${status}`, href: `/tools/${t.id}`, serialNumber: t.serialNumber });
 				}
 				for (const m of maintRes) {
 					if (seenMaint.has(m.id)) continue;
@@ -230,6 +230,13 @@
 				}
 			}
 
+			const lqLower = q.toLowerCase().trim();
+			r.sort((a, b) => {
+				const aExact = String(a.label).toLowerCase() === lqLower ? 0 : 1;
+				const bExact = String(b.label).toLowerCase() === lqLower ? 0 : 1;
+				if (aExact !== bExact) return aExact - bExact;
+				return 0;
+			});
 			results = r;
 			loading = false;
 		}, 200);
@@ -268,7 +275,7 @@
 						<span class="label">{r.label}</span>
 						{#if r.sub}<span class="sub">{r.sub}</span>{/if}
 						{#if r.type === 'Item' || r.type === 'Tool'}
-							<button class="scan-btn" onclick={(e) => { e.stopPropagation(); goto(`/scan?code=${r.label}`); open = false; }}>Scan</button>
+							<button class="scan-btn" onclick={(e) => { e.stopPropagation(); const scanCode = r.serialNumber ?? r.label; goto(`/scan?code=${scanCode}&type=${r.type.toLowerCase()}`); open = false; }}>Scan</button>
 						{/if}
 					</button>
 				{/each}
