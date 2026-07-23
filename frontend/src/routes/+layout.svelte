@@ -198,7 +198,7 @@
 				<span>Recently Deleted</span>
 			</a>
 
-		<span class="nav-label">Hardware</span>
+		<span class="nav-label">Items</span>
 
 			<a href="/items" class="tab-link" class:active={path === '/items' || (path.startsWith('/items/') && path !== '/items/new' && path !== '/items/low-stock' && path !== '/items/costing' && path !== '/items/import')}>
     			<span class="tab-link-icon" aria-hidden="true">

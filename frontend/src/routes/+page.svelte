@@ -94,7 +94,7 @@
 	<div class="activity-grid">
 	<div class="card">
 		<div class="card-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-			<h2 style="flex:1">Recent Hardware Activity</h2>
+			<h2 style="flex:1">Recent Item Activity</h2>
 			<input type="search" bind:value={itemSearch} placeholder="Search..." style="min-width:120px;max-width:200px" />
 		</div>
 		{#if loading}
